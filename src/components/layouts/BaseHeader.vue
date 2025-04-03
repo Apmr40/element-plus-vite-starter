@@ -46,6 +46,9 @@ import { toggleDark } from '~/composables'
     <el-menu-item index="4">
       Orders
     </el-menu-item>
+    <el-menu-item index="5">
+      Orders
+    </el-menu-item>
 
     <el-menu-item h="full" @click="toggleDark()">
       <button

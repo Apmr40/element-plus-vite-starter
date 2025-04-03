@@ -81,5 +81,13 @@ function handleClose(key: string, keyPath: string[]) {
         Navigator Four
       </template>
     </el-menu-item>
+    <el-menu-item index="/nav/5">
+      <el-icon>
+        <Setting />
+      </el-icon>
+      <template #title>
+        Navigator Five
+      </template>
+    </el-menu-item>
   </el-menu>
 </template>
