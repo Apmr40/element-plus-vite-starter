@@ -86,7 +86,7 @@ function handleClose(key: string, keyPath: string[]) {
         <Setting />
       </el-icon>
       <template #title>
-        Navigator Five
+        应用模块巡检首页
       </template>
     </el-menu-item>
   </el-menu>

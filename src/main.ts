@@ -1,5 +1,5 @@
 import type { UserModule } from './types'
-import { ViteSSG } from 'vite-ssg'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
 // import "~/styles/element/index.scss";
 
@@ -9,6 +9,7 @@ import { ViteSSG } from 'vite-ssg'
 
 // or use cdn, uncomment cdn link in `index.html`
 
+import { ViteSSG } from 'vite-ssg'
 import { routes } from 'vue-router/auto-routes'
 import App from './App.vue'
 
