@@ -1,5 +1,9 @@
+<script setup>
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+</script>
+
 <template>
-  <el-config-provider namespace="ep">
+  <el-config-provider namespace="ep" :locale="zhCn">
     <BaseHeader />
     <div class="main-container flex">
       <BaseSide />
