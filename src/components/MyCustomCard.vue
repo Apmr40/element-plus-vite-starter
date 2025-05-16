@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { defineProps } from 'vue'
+import { defineEmits, defineProps } from 'vue'
 
-defineProps({
+const props = defineProps({
   header: {
     type: String,
     required: true,
@@ -20,6 +20,8 @@ defineProps({
   },
 })
 
+const emit = defineEmits(['openDrawer']) // 定义触发的事件
+
 function getRiskTypeStyle(riskType: string) {
   if (riskType === '应用') {
     return 'success'
@@ -28,16 +30,22 @@ function getRiskTypeStyle(riskType: string) {
     return 'info'
   }
   else {
-    return '' // 默认样式
+    return ''
   }
 }
 
-function getTrackedStyle(toBeTracked: string) {
+function getTrackedStyle(toBeTracked = '0') {
   if (toBeTracked === '0') {
     return 'primary'
   }
   else {
-    return 'danger' // 默认样式
+    return 'danger'
+  }
+}
+
+function emitOpenDrawer() {
+  if (props.toBeTracked !== '0') {
+    emit('openDrawer', props.header) // 触发 openDrawer 事件，并传递 header
   }
 }
 </script>
@@ -55,7 +63,11 @@ function getTrackedStyle(toBeTracked: string) {
     <div class="card-body">
       <slot />
       <div>
-        <el-link :type="getTrackedStyle(toBeTracked)" :disabled="toBeTracked === '0'">
+        <el-link
+          :type="getTrackedStyle(toBeTracked)"
+          :disabled="toBeTracked === '0'"
+          修改点击事件 @click="emitOpenDrawer"
+        >
           {{ toBeTracked }}待跟踪
         </el-link>
         /
@@ -65,8 +77,8 @@ function getTrackedStyle(toBeTracked: string) {
   </el-card>
 </template>
 
-  <style scoped>
-  .my-custom-card {
+<style scoped>
+.my-custom-card {
   margin-bottom: 20px;
 }
 
