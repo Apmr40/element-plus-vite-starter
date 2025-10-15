@@ -8,8 +8,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ActivityTimeline: typeof import('./components/SpecialCareView/ActivityTimeline.vue')['default']
     BaseHeader: typeof import('./components/layouts/BaseHeader.vue')['default']
     BaseSide: typeof import('./components/layouts/BaseSide.vue')['default']
+    ChangeTopology: typeof import('./components/SpecialCareView/ChangeTopology.vue')['default']
     Echart1: typeof import('./components/trans/echart1.vue')['default']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -22,7 +24,9 @@ declare module 'vue' {
     ElConfigProvider: typeof import('element-plus/es')['ElConfigProvider']
     ElContainer: typeof import('element-plus/es')['ElContainer']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
+    ElDivider: typeof import('element-plus/es')['ElDivider']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
+    ElEmpty: typeof import('element-plus/es')['ElEmpty']
     ElFooter: typeof import('element-plus/es')['ElFooter']
     ElHeader: typeof import('element-plus/es')['ElHeader']
     ElIcon: typeof import('element-plus/es')['ElIcon']
@@ -34,6 +38,8 @@ declare module 'vue' {
     ElMenuItem: typeof import('element-plus/es')['ElMenuItem']
     ElMenuItemGroup: typeof import('element-plus/es')['ElMenuItemGroup']
     ElProgress: typeof import('element-plus/es')['ElProgress']
+    ElRadioButton: typeof import('element-plus/es')['ElRadioButton']
+    ElRadioGroup: typeof import('element-plus/es')['ElRadioGroup']
     ElRow: typeof import('element-plus/es')['ElRow']
     ElSelectV2: typeof import('element-plus/es')['ElSelectV2']
     ElSubMenu: typeof import('element-plus/es')['ElSubMenu']
@@ -49,9 +55,11 @@ declare module 'vue' {
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     Logos: typeof import('./components/Logos.vue')['default']
     MessageBoxDemo: typeof import('./components/MessageBoxDemo.vue')['default']
+    MetricCharts: typeof import('./components/SpecialCareView/MetricCharts.vue')['default']
     MyCustomCard: typeof import('./components/MyCustomCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    TopControls: typeof import('./components/SpecialCareView/TopControls.vue')['default']
     Trans: typeof import('./components/trans.vue')['default']
   }
   export interface ComponentCustomProperties {
