@@ -8,10 +8,10 @@ const selectedCalendarDate = ref('2025-10-09')
 const selectedActivityIndex = ref(null)
 const timelineData = ref({
   '2025-10-09': [
-    { start: 1, end: 3.5, label: '生产活动A' },
-    { start: 7, end: 10, label: '生产活动B' },
-    { start: 14.25, end: 16, label: '生产活动C' },
-    { start: 20, end: 23.9, label: '生产活动D' },
+    { start: 1, end: 3.5, label: '变更区间1' },
+    { start: 7, end: 10, label: '变更区间2' },
+    { start: 14.25, end: 16, label: '变更区间3' },
+    { start: 20, end: 23.9, label: '变更区间4' },
   ],
   // ... 其他日期
 })
@@ -33,17 +33,21 @@ function handleActivitySelect(index) {
 }
 
 const searchText = ref('')
-const transactionCodes = ref(['TRNA01', 'TXNBO2', 'SVCO03', 'FICO04', 'FUND05', 'ASSEO6', 'EXTO07'])
+const transactionCodes = ref(['PSDCO001', 'PSDCO002', 'PSDCO003', 'PSDCO004', 'PSDCO005', 'PSDCO006', 'PSDCO007', 'PSDCO008'])
 const provinces = ref(['北京', '上海', '广东', '江苏', '浙江', '四川', '湖南'])
-function handleCodeClick(code) { console.log(`选择交易码: ${code}`) }
-function handleProvinceClick(province) { console.log(`选择省市: ${province}`) }
+function handleCodeClick(code) {
+  console.warn(`选择交易码: ${code}`)
+}
+function handleProvinceClick(province) {
+  console.warn(`选择省市: ${province}`)
+}
 
 const systemList = ref([
-  { id: 'SYS-A', name: '一级特护病床管理平台', code: '10.0.9x-A(P)' },
-  { id: 'SYS-B', name: '人员用户管理平台/人员用户权限管理中心', code: 'A(CR)' },
-  { id: 'SYS-C', name: '特护床位分配', code: 'A(RDP)-PSTF-G(H)' },
-  { id: 'SYS-D', name: '特护床位分配列表', code: 'A(RDP)-PSTF-G-LIST(H)' },
-  { id: 'SYS-E', name: '特护床位分配-床位视图', code: 'A(RDP)-PSTF-G-VIEW(H)' },
+  { id: 'SYS-A', name: '分布式核心总控', code: '10.0.9x-A(P)' },
+  { id: 'SYS-B', name: '个人负债', code: 'A(CR)' },
+  { id: 'SYS-C', name: '信用卡', code: 'A(RDP)-PSTF-G(H)' },
+  { id: 'SYS-D', name: '基金', code: 'A(RDP)-PSTF-G-LIST(H)' },
+  { id: 'SYS-E', nßame: '储蓄国债', code: 'A(RDP)-PSTF-G-VIEW(H)' },
 ])
 const filteredSystemList = computed(() => {
   if (!searchText.value)
@@ -59,23 +63,96 @@ function handleMenuSelect(index) {
   fetchChartData()
 }
 
-const calendarEvents = ref({ /* 模拟事件数据 */ })
+const calendarEvents = ref({
+  'SYS-A': {
+    '2025-10-09': 5, // 示例：10月9日有 5 个活动
+    '2025-10-15': 2, // 示例：10月15日有 2 个活动
+    '2025-10-20': 1, // 示例：10月20日有 1 个活动
+    // ... 其他系统和日期的事件
+  },
+  // ...
+})
 const currentSystemEvents = computed(() => calendarEvents.value[selectedSystemId.value] || {})
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+// 新增：模拟当前日历视图是 2025年10月
+const calendarYear = ref(2025)
+const calendarMonth = ref(10) // 10月
+
+// ✅ 修正后的 calendarDates 计算属性
 const calendarDates = computed(() => {
-  // 简化日历模拟数据
-  const baseDates = [
-    { day: '01', date: '2025-10-01', isCurrentMonth: true },
-    { day: '09', date: '2025-10-09', isCurrentMonth: true },
-    { day: '15', date: '2025-10-15', isCurrentMonth: true },
-  ]
-  return baseDates.map((dateItem) => {
-    const activityCount = currentSystemEvents.value[dateItem.date] || 0
-    return { ...dateItem, activityCount, hasEvent: activityCount > 0 }
-  })
+  const year = calendarYear.value
+  const month = calendarMonth.value // 目标月份 (1-12)
+
+  // 1. 获取目标月份的第一天
+  // JS Date 中的月份是从 0 (一月) 开始的，所以需要 month - 1
+  const firstDayOfMonth = new Date(year, month - 1, 1)
+
+  // 2. 获取目标月份第一天是星期几 (0:周日, 1:周一...)
+  const firstDayOfWeek = firstDayOfMonth.getDay()
+
+  // 3. 计算需要从上个月显示多少天来填充日历网格
+  // 如果周日是第一天，firstDayOfWeek 是 0，需要 0 天。
+  const daysFromPrevMonth = firstDayOfWeek
+
+  // 4. 获取目标月份总共有多少天 (0 表示上个月的最后一天)
+  const daysInMonth = new Date(year, month, 0).getDate()
+
+  const dates = []
+
+  // === 填充上个月的日期（如果需要）===
+  const prevMonth = month === 1 ? 12 : month - 1
+  const prevYear = month === 1 ? year - 1 : year
+  const daysInPrevMonth = new Date(prevYear, prevMonth, 0).getDate()
+
+  for (let i = 0; i < daysFromPrevMonth; i++) {
+    const day = daysInPrevMonth - daysFromPrevMonth + i + 1
+    const dateStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    dates.push({
+      day: String(day),
+      date: dateStr,
+      isCurrentMonth: false, // 不是当前月
+      activityCount: currentSystemEvents.value[dateStr] || 0,
+      hasEvent: currentSystemEvents.value[dateStr] > 0,
+    })
+  }
+
+  // === 填充当前月份的日期 ===
+  for (let i = 1; i <= daysInMonth; i++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+    dates.push({
+      day: String(i),
+      date: dateStr,
+      isCurrentMonth: true, // 是当前月
+      activityCount: currentSystemEvents.value[dateStr] || 0,
+      hasEvent: currentSystemEvents.value[dateStr] > 0,
+      // 保持之前的选中逻辑
+      // isSelected 和 hasEvent 的计算逻辑需要在循环结束后
+    })
+  }
+
+  // === 填充下个月的日期（以保证完整的 6 周网格，如果需要）===
+  const totalCells = 42 // 日历网格通常是 6 行 x 7 列 = 42 个单元格
+  const daysFromNextMonth = totalCells - dates.length
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+
+  for (let i = 1; i <= daysFromNextMonth; i++) {
+    const dateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+    dates.push({
+      day: String(i),
+      date: dateStr,
+      isCurrentMonth: false,
+      activityCount: currentSystemEvents.value[dateStr] || 0,
+      hasEvent: currentSystemEvents.value[dateStr] > 0,
+    })
+  }
+
+  // 如果只需要 5 行 (35个单元格)，可以在这里截断
+  return dates.slice(0, 42) // 返回 6 行日历，共 42 天
 })
 
 const selectedChangeId = ref('C10001')
+const selectedTaskId = ref('T10002') // Move this declaration here
 const changeSearchText = ref('')
 const changeList = ref([
   { id: 'C10001', name: '核心系统升级-第一阶段' },
@@ -106,7 +183,6 @@ const topologyData = computed(() => {
     successors: [{ id: 'C10007', name: '安全检查' }],
   }
 })
-const selectedTaskId = ref('T10002')
 function handleTaskSelect(taskId) {
   selectedTaskId.value = taskId
 }
@@ -116,7 +192,9 @@ const k8sDetailData = computed(() => {
   }
   return [{ component: 'core-api', namespace: 'prod-ns', cluster: 'SH-K8S02', status: 'SUCCESS' }, { component: 'data-sync', namespace: 'dev-ns', cluster: 'SH-K8S02', status: 'SUCCESS' }]
 })
-function handleDetailClick(prop, value) { console.log(`点击了属性：${prop}，值：${value}`) }
+function handleDetailClick(prop, value) {
+  console.warn(`点击了属性：${prop}，值：${value}`)
+}
 
 // --- ECharts 分析区数据和逻辑 ---
 
@@ -168,7 +246,7 @@ function generateMockData(isBaseline = false) {
 
     let totalCpu = 0
     let totalMemory = 0
-    let instanceDetails = []
+    const instanceDetails = []
 
     // 循环生成每个实例的数据 (仅用于当前时段的异常模拟)
     for (let j = 1; j <= numInstances; j++) {
@@ -376,6 +454,253 @@ onMounted(() => {
     })
   })
 })
+
+// --- 新增：诊断指标数据和抽屉状态 ---
+const diagnostics = ref({
+  mockVerification: {
+    title: '模拟交易验证',
+    value: '852 / 1000',
+    status: 'success', // success, warning, danger
+    detail: [
+      { id: 1, type: 'SUCCESS', count: 852, msg: '验证成功' },
+      { id: 2, type: 'FAILED', count: 148, msg: '超时或响应码错误' },
+    ],
+  },
+  anomalyLog: {
+    title: '异常日志',
+    value: '42 条',
+    status: 'warning',
+    detail: [
+      { id: 101, type: 'ERROR', timestamp: '10:05:32', content: 'NPE: Null pointer exception in core service' },
+      { id: 102, type: 'WARN', timestamp: '10:10:55', content: 'Database connection pool usage high' },
+    ],
+  },
+  suppressedAlarm: {
+    title: '被屏蔽告警',
+    value: '0 个',
+    status: 'success',
+    detail: [
+      { id: 201, type: 'INFO', count: 0, content: '无被屏蔽告警' },
+    ],
+  },
+  anomalyTransaction: {
+    title: '异常交易',
+    value: '22 笔',
+    status: 'danger',
+    detail: [
+      { id: 301, type: 'TIMEOUT', time: '10:08:15', code: 'PSDCO003', region: '上海' },
+      { id: 302, type: 'FAILED', time: '10:09:40', code: 'PSDCO001', region: '北京' },
+    ],
+  },
+})
+
+// 抽屉状态
+const drawerVisible = ref(false)
+const currentDetail = ref(null)
+const currentDetailTitle = ref('')
+
+// --- 新增：健康检查流程状态 ---
+const isChecking = ref(false) // 是否正在检查
+const checkProgress = ref(0) // 进度条百分比
+const healthCheckResult = ref({
+  status: 'info', // overall status: success, warning, danger, info
+  message: '点击发起系统健康检查',
+  summary: [
+    { name: '交易系统', status: 'success', time: '5.2s' },
+    { name: '数据同步', status: 'success', time: '1.8s' },
+    { name: 'K8s集群', status: 'warning', time: '3.1s', detail: '部分Pod CPU使用率偏高，建议关注' },
+  ],
+})
+const checkResultDrawerVisible = ref(false) // 结果抽屉
+
+/**
+ * 统一发起健康检查和数据更新 (修改为流程控制)
+ */
+function runHealthCheck() {
+  if (isChecking.value)
+    return // 检查中，禁止再次点击
+
+  isChecking.value = true
+  checkProgress.value = 0
+
+  // 模拟进度条增长
+  const interval = setInterval(() => {
+    if (checkProgress.value < 90) {
+      checkProgress.value += Math.random() * 10
+      if (checkProgress.value > 90)
+        checkProgress.value = 90
+    }
+  }, 300)
+
+  // 模拟检查耗时 (5秒后完成)
+  setTimeout(() => {
+    clearInterval(interval)
+    checkProgress.value = 100
+    isChecking.value = false
+
+    // 1. 触发诊断数据和图表更新 (原有的逻辑)
+    updateDiagnosticsAndCharts()
+
+    // 2. 模拟设置检查结果
+    const isSuccess = Math.random() > 0.2 // 80% 概率成功
+    healthCheckResult.value.status = isSuccess ? 'success' : 'danger'
+    healthCheckResult.value.message = isSuccess ? '核心系统运行健康。' : '发现严重异常，请立即关注。'
+  }, 5000)
+}
+
+function updateDiagnosticsAndCharts() {
+  // 1. 模拟更新诊断数据 (来自之前的逻辑)
+  diagnostics.value.mockVerification.value = `${Math.floor(Math.random() * 900) + 100} / 1000`
+  diagnostics.value.anomalyLog.value = `${Math.floor(Math.random() * 50)} 条`
+  diagnostics.value.anomalyTransaction.value = `${Math.floor(Math.random() * 30)} 笔`
+
+  // 2. 刷新 ECharts 图表数据
+  // fetchChartData() // 假设这个函数已经被定义
+}
+
+/**
+ * 打开健康检查结果抽屉
+ */
+function showHealthCheckResult() {
+  checkResultDrawerVisible.value = true
+}
+
+// 辅助函数：获取状态对应的图标
+function getStatusIcon(status) {
+  if (status === 'success')
+    return 'i-ep-circle-check-filled'
+  if (status === 'warning')
+    return 'i-ep-warning-filled'
+  if (status === 'danger')
+    return 'i-ep-circle-close-filled'
+  return 'i-ep-info-filled'
+}
+
+// 辅助函数，将 status 映射到 Element Plus 的 Tag 类型
+function getTagType(status) {
+  if (status === 'success')
+    return 'success'
+  if (status === 'warning')
+    return 'warning'
+  if (status === 'danger')
+    return 'danger'
+  return 'info'
+}
+
+// 辅助函数：获取状态对应的颜色
+function getStatusColor(status) {
+  if (status === 'success')
+    return '#67c23a'
+  if (status === 'warning')
+    return '#e6a23c'
+  if (status === 'danger')
+    return '#f56c6c'
+  return '#409eff' // info/初始状态使用 Element Plus 主色
+}
+
+// 确保在 handleDateSelect 或 handleMenuSelect 中调用 runHealthCheck 以刷新数据（可选）
+// function handleDateSelect(date) {
+//   // ... 省略旧代码
+//   runHealthCheck() // 示例：在选择日期后刷新
+// }
+// function handleMenuSelect(index) {
+//   // ... 省略旧代码
+//   runHealthCheck() // 示例：在选择系统后刷新
+// }
+
+// 定义每个筛选器的数据结构和状态
+const dimensionFilters = ref([
+  {
+    label: '省市',
+    key: 'province',
+    options: [
+      { label: '上海', value: 'SH' },
+      { label: '北京', value: 'BJ', disabled: true },
+      { label: '广州', value: 'GZ' },
+    ],
+    selected: ['SH'], // 已选中
+    type: 'select',
+    multiple: true,
+  },
+  {
+    label: '交易码',
+    key: 'tradeCode',
+    options: [
+      { label: 'CODE-001', value: 'C001' },
+      { label: 'CODE-002', value: 'C002', disabled: true },
+      { label: 'CODE-003', value: 'C003' },
+    ],
+    selected: ['C001'],
+    type: 'select',
+    multiple: true,
+  },
+  {
+    label: '渠道',
+    key: 'channel',
+    options: [
+      { label: 'APP', value: 'APP', disabled: true },
+      { label: 'WEB', value: 'WEB' },
+      { label: 'API', value: 'API' },
+    ],
+    selected: ['WEB'],
+    type: 'select',
+    multiple: false, // 单选
+  },
+  {
+    label: '集群',
+    key: 'cluster',
+    options: [
+      { label: 'CL-A', value: 'CLA' },
+      { label: 'CL-B', value: 'CLB' },
+      { label: 'CL-C', value: 'CLC' },
+    ],
+    selected: [],
+    type: 'select',
+    multiple: true,
+  },
+  {
+    label: '微服务',
+    key: 'microservice',
+    options: [
+      { label: 'User-Svc', value: 'USER', disabled: true },
+      { label: 'Order-Svc', value: 'ORDER' },
+    ],
+    selected: ['ORDER'],
+    type: 'select',
+    multiple: true,
+  },
+  {
+    label: '部署单元',
+    key: 'deployUnit',
+    options: [
+      { label: 'Unit-01', value: 'U01' },
+      { label: 'Unit-02', value: 'U02' },
+      { label: 'Unit-03', value: 'U03', disabled: true },
+    ],
+    selected: ['U01'],
+    type: 'select',
+    multiple: true,
+  },
+])
+
+/**
+ * 筛选器值变更处理函数
+ * @param key 筛选器的唯一键
+ * @param value 新的选中值
+ */
+function handleFilterChange(key, value) {
+  const filterItem = dimensionFilters.value.find(f => f.key === key)
+  if (filterItem) {
+    // 强制更新 selected 状态
+    filterItem.selected = Array.isArray(value) ? value : [value]
+    console.warn(
+      `筛选器 [${filterItem.label}] 更新为:`,
+      value,
+    )
+    // 可以在这里调用数据查询函数
+    // fetchChartData()
+  }
+}
 </script>
 
 <template>
@@ -469,48 +794,11 @@ onMounted(() => {
       </el-col>
     </el-row>
 
-    <el-row :gutter="20" class="control-row">
-      <el-col :span="2" class="title-col">
-        交易码：
-      </el-col>
-      <el-col :span="22">
-        <div class="button-group">
-          <el-button
-            v-for="code in transactionCodes"
-            :key="code"
-            plain
-            size="small"
-            @click="handleCodeClick(code)"
-          >
-            {{ code }}
-          </el-button>
-        </div>
-      </el-col>
-    </el-row>
-    <el-row :gutter="20" class="control-row">
-      <el-col :span="2" class="title-col">
-        省市：
-      </el-col>
-      <el-col :span="22">
-        <div class="button-group">
-          <el-button
-            v-for="province in provinces"
-            :key="province"
-            type="primary"
-            plain
-            size="small"
-            @click="handleProvinceClick(province)"
-          >
-            {{ province }}
-          </el-button>
-        </div>
-      </el-col>
-    </el-row>
     <el-row :gutter="20" class="control-row timeline-row">
-      <el-col :span="2" class="title-col">
+      <el-col :span="4" class="title-col">
         时间线：
       </el-col>
-      <el-col :span="22">
+      <el-col :span="20">
         <div class="timeline-container">
           <div class="activity-bar-wrapper">
             <div
@@ -529,6 +817,113 @@ onMounted(() => {
               {{ h - 1 < 10 ? '0' : '' }}{{ h - 1 }}
             </span>
           </div>
+        </div>
+      </el-col>
+    </el-row>
+    <el-row :gutter="20" class="control-row health-check-row">
+      <el-col :span="4">
+        <el-card
+          shadow="hover"
+          class="diag-card health-check-card"
+          :class="`status-${healthCheckResult.status}`"
+          @click="isChecking ? null : runHealthCheck()"
+        >
+          <div class="diag-title">
+            系统健康检查
+          </div>
+          <div v-if="!isChecking && checkProgress < 100" class="check-initial">
+            {{ healthCheckResult.message }}
+            <el-icon><i-ep-check /></el-icon>
+          </div>
+          <div v-else-if="isChecking" class="check-progress-container">
+            <el-progress
+              :percentage="checkProgress"
+              :stroke-width="10"
+              :show-text="false"
+              :color="getStatusColor('warning')"
+            />
+            <div class="checking-text">
+              正在检查中...
+            </div>
+          </div>
+          <div v-else class="check-completed">
+            <el-icon :style="{ color: getStatusColor(healthCheckResult.status) }">
+              <component :is="getStatusIcon(healthCheckResult.status)" />
+            </el-icon>
+            <span class="result-message">
+              {{ healthCheckResult.message }}
+            </span>
+            <el-button
+              type="primary"
+              link
+              size="small"
+              class="view-detail-btn"
+              @click.stop="showHealthCheckResult"
+            >
+              查看明细
+            </el-button>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col
+        v-for="(item, key) in diagnostics"
+        :key="key"
+        :span="4"
+      >
+        <el-card
+          shadow="hover"
+          class="diag-card"
+          :class="`status-${item.status}`"
+          @click="showDetail(key)"
+        >
+          <div class="diag-title">
+            {{ item.title }}
+          </div>
+          <div class="diag-value">
+            <el-tag :type="getTagType(item.status)" size="large">
+              {{ item.value }}
+            </el-tag>
+          </div>
+          <el-icon class="diag-icon">
+            <i-ep-arrow-right />
+          </el-icon>
+        </el-card>
+      </el-col>
+    </el-row>
+    <el-row :gutter="20" class="control-row">
+      <el-col :span="4" class="title-col">
+        交易码推荐：
+      </el-col>
+      <el-col :span="20">
+        <div class="button-group">
+          <el-button
+            v-for="code in transactionCodes"
+            :key="code"
+            plain
+            size="small"
+            @click="handleCodeClick(code)"
+          >
+            {{ code }}
+          </el-button>
+        </div>
+      </el-col>
+    </el-row>
+    <el-row :gutter="20" class="control-row">
+      <el-col :span="4" class="title-col">
+        省市推荐：
+      </el-col>
+      <el-col :span="20">
+        <div class="button-group">
+          <el-button
+            v-for="province in provinces"
+            :key="province"
+            type="primary"
+            plain
+            size="small"
+            @click="handleProvinceClick(province)"
+          >
+            {{ province }}
+          </el-button>
         </div>
       </el-col>
     </el-row>
@@ -571,7 +966,6 @@ onMounted(() => {
           </el-menu>
         </el-card>
       </el-col>
-
       <el-col :span="12">
         <el-card class="topology-card" shadow="never">
           <template #header>
@@ -676,6 +1070,44 @@ onMounted(() => {
           </el-table>
         </el-card>
       </el-col>
+    </el-row><el-row :gutter="20" class="filter-controls-row">
+      <el-col :span="24">
+        <el-card shadow="never" class="filter-card">
+          <div class="card-header-title">
+            监控维度筛选
+          </div>
+          <el-row :gutter="20">
+            <el-col
+              v-for="filter in dimensionFilters"
+              :key="filter.key"
+              :span="4"
+              class="filter-item-col"
+            >
+              <div class="filter-label">
+                {{ filter.label }}:
+              </div>
+              <el-select
+                v-model="filter.selected"
+                :multiple="filter.multiple"
+                :placeholder="`请选择${filter.label}`"
+                size="default"
+                style="width: 100%;"
+                @change="(val) => handleFilterChange(filter.key, val)"
+              >
+                <el-option
+                  v-for="item in filter.options"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                  :disabled="item.disabled"
+                />
+              </el-select>
+            </el-col>
+            <el-col :span="4" />
+            <el-col :span="4" />
+          </el-row>
+        </el-card>
+      </el-col>
     </el-row>
     <el-row :gutter="20" class="control-row analysis-controls-row">
       <el-col :span="2" class="title-col">
@@ -776,6 +1208,45 @@ onMounted(() => {
       </el-col>
     </el-row>
   </div>
+
+  <el-drawer
+    v-model="drawerVisible"
+    :title="currentDetailTitle"
+    direction="rtl"
+    size="50%"
+  >
+    <el-table v-if="currentDetail && currentDetail.length > 0" :data="currentDetail" border>
+      <template v-for="(value, key) in currentDetail[0]" :key="key">
+        <el-table-column
+          :prop="key.toString()"
+          :label="key.toString().toUpperCase()"
+          sortable
+        />
+      </template>
+    </el-table>
+    <el-empty v-else description="无明细数据" />
+  </el-drawer>
+
+  <el-drawer
+    v-model="checkResultDrawerVisible"
+    title="系统健康检查结果明细"
+    direction="rtl"
+    size="40%"
+  >
+    <el-alert :title="healthCheckResult.message" :type="healthCheckResult.status" show-icon :closable="false" style="margin-bottom: 20px;" />
+    <el-table :data="healthCheckResult.summary" border>
+      <el-table-column prop="name" label="模块名称" width="120" />
+      <el-table-column label="检查状态" width="120">
+        <template #default="{ row }">
+          <el-tag :type="getTagType(row.status)">
+            {{ row.status === 'success' ? '正常' : row.status === 'warning' ? '警告' : row.status === 'danger' ? '异常' : '信息' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="time" label="检查耗时" width="100" />
+      <el-table-column prop="detail" label="详细信息" />
+    </el-table>
+  </el-drawer>
 </template>
 
 <style scoped>
@@ -1043,5 +1514,75 @@ onMounted(() => {
 .echarts-container {
   width: 100%;
   height: 340px;
+}
+/* --- 新增：健康检查和诊断板块样式 --- */
+.health-check-row {
+  margin-bottom: 20px;
+}
+.health-check-row .title-col {
+  /* 调整按钮区域，让按钮居中或对齐 */
+  display: flex;
+  align-items: center;
+}
+.diag-card {
+  height: 90px;
+  cursor: pointer;
+  border-left: 6px solid #e4e7ed; /* 默认边框 */
+  transition: all 0.3s;
+  position: relative;
+}
+.diag-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+.diag-card.status-success {
+  border-left-color: #67c23a;
+}
+.diag-card.status-warning {
+  border-left-color: #e6a23c;
+}
+.diag-card.status-danger {
+  border-left-color: #f56c6c;
+}
+.diag-title {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 5px;
+}
+.diag-value {
+  font-size: 24px;
+  font-weight: bold;
+}
+.diag-icon {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #dcdfe6;
+}
+/* --- 新增：筛选面板样式 --- */
+.filter-controls-row {
+  margin-bottom: 20px;
+}
+.filter-card {
+  border: none;
+  padding-bottom: 5px; /* 调整内部填充 */
+}
+.filter-item-col {
+  /* 确保筛选器能均匀分布在每行，并且有足够的空间 */
+  margin-bottom: 10px;
+}
+.filter-label {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+/* 调整卡片头部标题样式 */
+.card-header-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 10px; /* 确保标题和筛选器之间有间距 */
 }
 </style>
