@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { onUnmounted } from 'vue'
 
+import ActivityTimeline from '../../components/SpecialCareView/ActivityTimeline.vue'
+import ChangeTopology from '../../components/SpecialCareView/ChangeTopology.vue'
+
+import MetricCharts from '../../components/SpecialCareView/MetricCharts.vue'
+// 导入子组件
+import TopControls from '../../components/SpecialCareView/TopControls.vue'
 import { useChartLogic } from '../../hooks/SpecialCareView/useChartLogic'
 // 导入 Hooks
 import { useDataAndState } from '../../hooks/SpecialCareView/useDataAndState'
-
-import ActivityTimeline from './components/SpecialCareView/ActivityTimeline.vue'
-import ChangeTopology from './components/SpecialCareView/ChangeTopology.vue'
-import MetricCharts from './components/SpecialCareView/MetricCharts.vue'
-// 导入子组件
-import TopControls from './components/SpecialCareView/TopControls.vue'
 
 // --- 状态和逻辑初始化 ---
 const {
@@ -127,7 +127,7 @@ onUnmounted(() => {
     <MetricCharts
       v-model:time-range="timeRange"
       v-model:baseline-offset="baselineOffset"
-      :default-time="defaultTime"
+      :default-time="defaultTime as [Date, Date]"
       :init-chart="initChart"
       :fetch-chart-data="fetchChartData"
       :resize-charts="resizeCharts"

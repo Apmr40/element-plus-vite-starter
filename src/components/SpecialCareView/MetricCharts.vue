@@ -57,7 +57,7 @@ onMounted(() => {
       </el-col>
       <el-col :span="10">
         <el-date-picker
-          :model-value="timeRange.map(date => date.toISOString())"
+          :model-value="timeRange.map((date: Date) => date.toISOString())"
           type="datetimerange"
           start-placeholder="开始时间"
           end-placeholder="结束时间"
@@ -76,9 +76,9 @@ onMounted(() => {
           size="default"
           @update:model-value="$emit('update:baselineOffset', $event as string)"
         >
-          <el-radio-button label="T-1" />
-          <el-radio-button label="T-3" />
-          <el-radio-button label="T-7" />
+          <el-radio-button value="T-1" />
+          <el-radio-button value="T-3" />
+          <el-radio-button value="T-7" />
         </el-radio-group>
       </el-col>
       <el-col :span="6">

@@ -89,7 +89,7 @@ function handleClose(key: string, keyPath: string[]) {
         应用模块巡检首页
       </template>
     </el-menu-item>
-    <el-menu-item index="/nav/special-care-view">
+    <el-menu-item index="/nav/specialCareView">
       <el-icon>
         <Setting />
       </el-icon>
