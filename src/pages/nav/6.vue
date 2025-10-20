@@ -47,6 +47,9 @@ interface ChangeEvent {
   endTime: number
   type: 'program' | 'config' | 'data'
   tasks: Task[]
+  summary: string
+  submitter: { name: string, contact: string }
+  implementer: { name: string, contact: string }
 }
 
 interface ChartDataItem {
@@ -60,27 +63,27 @@ interface ChartDataItem {
 // --- 统一的变更数据源 ---
 const allChanges: Ref<ChangeEvent[]> = ref([
   // 周二 (2025-10-07, 2025-10-14, 2025-10-21, 2025-10-28)
-  { id: 'C10001', name: '核心系统升级-阶段1', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 20.5, type: 'program', tasks: [{ id: 'T1', status: 'SUCCESS', label: '部署' }] },
-  { id: 'C10014', name: '核心系统参数调整', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 19, type: 'config', tasks: [{ id: 'T2', status: 'SUCCESS', label: '配置' }] },
-  { id: 'C10002', name: '支付网关配置更新', systemId: 'SYS-B', date: '2025-10-07', startTime: 21, endTime: 21.5, type: 'config', tasks: [{ id: 'T3', status: 'SUCCESS', label: '更新' }] },
-  { id: 'C10003', name: '信用卡积分规则调整', systemId: 'SYS-C', date: '2025-10-14', startTime: 19, endTime: 22, type: 'program', tasks: [{ id: 'T4', status: 'SUCCESS', label: '规则下发' }] },
+  { id: 'C10001', name: '核心系统升级-阶段1', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 20.5, type: 'program', tasks: [{ id: 'T1', status: 'SUCCESS', label: '部署' }], summary: '对分布式核心系统进行V2.5版本升级，涉及交易、账务等多个模块。', submitter: { name: '张三', contact: 'zhang.san@example.com' }, implementer: { name: '李四', contact: 'li.si@example.com' } },
+  { id: 'C10014', name: '核心系统参数调整', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 19, type: 'config', tasks: [{ id: 'T2', status: 'SUCCESS', label: '配置' }], summary: '调整核心系统缓存参数，提升性能。', submitter: { name: '王五', contact: 'wang.wu@example.com' }, implementer: { name: '赵六', contact: 'zhao.liu@example.com' } },
+  { id: 'C10002', name: '支付网关配置更新', systemId: 'SYS-B', date: '2025-10-07', startTime: 21, endTime: 21.5, type: 'config', tasks: [{ id: 'T3', status: 'SUCCESS', label: '更新' }], summary: '新增第三方支付渠道配置。', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '周八', contact: 'zhou.ba@example.com' } },
+  { id: 'C10003', name: '信用卡积分规则调整', systemId: 'SYS-C', date: '2025-10-14', startTime: 19, endTime: 22, type: 'program', tasks: [{ id: 'T4', status: 'SUCCESS', label: '规则下发' }], summary: '国庆活动积分规则上线。', submitter: { name: '吴九', contact: 'wu.jiu@example.com' }, implementer: { name: '郑十', contact: 'zheng.shi@example.com' } },
 
   // 周四晚到周五晨 (2025-10-09 ~ 2025-10-10)
-  { id: 'C10004', name: '信贷模型批量部署', systemId: 'SYS-D', date: '2025-10-09', startTime: 18, endTime: 23.5, type: 'program', tasks: [{ id: 'T5', status: 'SUCCESS', label: '模型A' }, { id: 'T6', status: 'FAILED', label: '模型B' }] },
-  { id: 'C10015', name: '信贷风控规则更新', systemId: 'SYS-D', date: '2025-10-09', startTime: 19, endTime: 21, type: 'config', tasks: [{ id: 'T7', status: 'SUCCESS', label: '规则更新' }] },
-  { id: 'C10005', name: '数据仓库ETL优化', systemId: 'SYS-E', date: '2025-10-10', startTime: 1, endTime: 4, type: 'data', tasks: [{ id: 'T8', status: 'SUCCESS', label: 'ETL' }] },
-  { id: 'C10006', name: '手机银行新功能发布', systemId: 'SYS-G', date: '2025-10-09', startTime: 22, endTime: 23, type: 'program', tasks: [{ id: 'T9', status: 'SUCCESS', label: '发布' }] },
-  { id: 'C10007', name: '网上银行安全补丁', systemId: 'SYS-H', date: '2025-10-10', startTime: 2, endTime: 5.5, type: 'program', tasks: [{ id: 'T10', status: 'SUCCESS', label: '补丁' }] },
+  { id: 'C10004', name: '信贷模型批量部署', systemId: 'SYS-D', date: '2025-10-09', startTime: 18, endTime: 23.5, type: 'program', tasks: [{ id: 'T5', status: 'SUCCESS', label: '模型A' }, { id: 'T6', status: 'FAILED', label: '模型B' }], summary: '部署最新的客户信用评级模型。', submitter: { name: '陈经理', contact: 'chen.manager@example.com' }, implementer: { name: '小林', contact: 'xiao.lin@example.com' } },
+  { id: 'C10015', name: '信贷风控规则更新', systemId: 'SYS-D', date: '2025-10-09', startTime: 19, endTime: 21, type: 'config', tasks: [{ id: 'T7', status: 'SUCCESS', label: '规则更新' }], summary: '更新反欺诈规则集。', submitter: { name: '风控部', contact: 'risk.dept@example.com' }, implementer: { name: '小张', contact: 'xiao.zhang@example.com' } },
+  { id: 'C10005', name: '数据仓库ETL优化', systemId: 'SYS-E', date: '2025-10-10', startTime: 1, endTime: 4, type: 'data', tasks: [{ id: 'T8', status: 'SUCCESS', label: 'ETL' }], summary: '优化夜间ETL处理流程，缩短处理时间。', submitter: { name: '数据平台组', contact: 'dp@example.com' }, implementer: { name: '数据平台组', contact: 'dp@example.com' } },
+  { id: 'C10006', name: '手机银行新功能发布', systemId: 'SYS-G', date: '2025-10-09', startTime: 22, endTime: 23, type: 'program', tasks: [{ id: 'T9', status: 'SUCCESS', label: '发布' }], summary: '手机银行V5.2版本发布，上线理财推荐功能。', submitter: { name: '产品部', contact: 'product@example.com' }, implementer: { name: '移动开发组', contact: 'mobile.dev@example.com' } },
+  { id: 'C10007', name: '网上银行安全补丁', systemId: 'SYS-H', date: '2025-10-10', startTime: 2, endTime: 5.5, type: 'program', tasks: [{ id: 'T10', status: 'SUCCESS', label: '补丁' }], summary: '修复Log4j安全漏洞。', submitter: { name: '安全部', contact: 'security@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
 
   // 周六晚到周日晨 (2025-10-11 ~ 2025-10-12)
-  { id: 'C10008', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-11', startTime: 20, endTime: 23.9, type: 'data', tasks: [{ id: 'T11', status: 'SUCCESS', label: '迁移' }] },
-  { id: 'C10009', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-12', startTime: 0, endTime: 6, type: 'data', tasks: [{ id: 'T12', status: 'SUCCESS', label: '验证' }] },
-  { id: 'C10010', name: '风险预警平台升级', systemId: 'SYS-I', date: '2025-10-11', startTime: 18, endTime: 21, type: 'program', tasks: [{ id: 'T13', status: 'SUCCESS', label: '升级' }] },
+  { id: 'C10008', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-11', startTime: 20, endTime: 23.9, type: 'data', tasks: [{ id: 'T11', status: 'SUCCESS', label: '迁移' }], summary: '核心数据库从Oracle迁移至TiDB，第一阶段。', submitter: { name: '架构组', contact: 'arch@example.com' }, implementer: { name: 'DBA团队', contact: 'dba@example.com' } },
+  { id: 'C10009', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-12', startTime: 0, endTime: 6, type: 'data', tasks: [{ id: 'T12', status: 'SUCCESS', label: '验证' }], summary: '核心数据库从Oracle迁移至TiDB，第二阶段验证。', submitter: { name: '架构组', contact: 'arch@example.com' }, implementer: { name: 'DBA团队', contact: 'dba@example.com' } },
+  { id: 'C10010', name: '风险预警平台升级', systemId: 'SYS-I', date: '2025-10-11', startTime: 18, endTime: 21, type: 'program', tasks: [{ id: 'T13', status: 'SUCCESS', label: '升级' }], summary: '升级风险引擎至V3.0。', submitter: { name: '风控部', contact: 'risk.dept@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
 
   // 其他数据
-  { id: 'C10011', name: '柜面系统常规维护', systemId: 'SYS-F', date: '2025-10-15', startTime: 2, endTime: 4, type: 'program', tasks: [{ id: 'T14', status: 'SUCCESS', label: '维护' }] },
-  { id: 'C10012', name: 'CRM客户数据清洗', systemId: 'SYS-J', date: '2025-10-20', startTime: 1, endTime: 5, type: 'data', tasks: [{ id: 'T15', status: 'SUCCESS', label: '清洗' }] },
-  { id: 'C10013', name: '支付平台证书更换', systemId: 'SYS-B', date: '2025-10-22', startTime: 20, endTime: 21, type: 'config', tasks: [{ id: 'T16', status: 'SUCCESS', label: '更换' }] },
+  { id: 'C10011', name: '柜面系统常规维护', systemId: 'SYS-F', date: '2025-10-15', startTime: 2, endTime: 4, type: 'program', tasks: [{ id: 'T14', status: 'SUCCESS', label: '维护' }], summary: '常规系统补丁和维护。', submitter: { name: '运维部', contact: 'ops@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
+  { id: 'C10012', name: 'CRM客户数据清洗', systemId: 'SYS-J', date: '2025-10-20', startTime: 1, endTime: 5, type: 'data', tasks: [{ id: 'T15', status: 'SUCCESS', label: '清洗' }], summary: '清洗重复及无效客户数据。', submitter: { name: '数据治理', contact: 'data.gov@example.com' }, implementer: { name: '数据治理', contact: 'data.gov@example.com' } },
+  { id: 'C10013', name: '支付平台证书更换', systemId: 'SYS-B', date: '2025-10-22', startTime: 20, endTime: 21, type: 'config', tasks: [{ id: 'T16', status: 'SUCCESS', label: '更换' }], summary: '更换即将过期的SSL证书。', submitter: { name: '安全部', contact: 'security@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
 ])
 
 // --- 派生数据 ---
@@ -293,6 +296,11 @@ const calendarDates = computed<CalendarDateItem[]>(() => {
 
 const selectedChangeId: Ref<string> = ref('C10001')
 const changeSearchText: Ref<string> = ref('')
+
+// 新增：根据ID获取完整的变更信息
+const selectedChange = computed(() => {
+  return allChanges.value.find(c => c.id === selectedChangeId.value)
+})
 
 // 变更列表 (根据 allChanges, selectedSystemId, selectedCalendarDate 动态生成)
 const changeList = computed<ChangeItem[]>(() => {
@@ -882,7 +890,7 @@ function handleFilterChange(key: string, value: string | string[]) {
             <div class="sidebar-search">
               <el-input
                 v-model="searchText"
-                placeholder="请输入系统名称进行筛选"
+                placeholder="系统名称"
                 clearable
               >
                 <template #prefix>
@@ -1113,7 +1121,7 @@ function handleFilterChange(key: string, value: string | string[]) {
             <div class="sidebar-search">
               <el-input
                 v-model="changeSearchText"
-                placeholder="Cxxxxxx 模糊查询"
+                placeholder="变更单号"
                 clearable
               >
                 <template #prefix>
@@ -1153,9 +1161,29 @@ function handleFilterChange(key: string, value: string | string[]) {
       <el-col :span="12">
         <el-card class="topology-card" shadow="never">
           <template #header>
-            <div class="card-header-title">
-              变更拓扑图：{{ selectedChangeId }}
-            </div>
+            <el-descriptions
+              :column="2"
+              :title="`变更单：${selectedChangeId}`"
+              border
+              size="small"
+              class="change-summary-descriptions"
+            >
+              <el-descriptions-item label="变更摘要" :span="2">
+                <el-tooltip :content="selectedChange?.summary" placement="top">
+                  <span>{{ selectedChange?.name }}</span>
+                </el-tooltip>
+              </el-descriptions-item>
+              <el-descriptions-item label="提交人">
+                <el-tooltip :content="`联系方式: ${selectedChange?.submitter.contact}`" placement="top">
+                  <span>{{ selectedChange?.submitter.name }}</span>
+                </el-tooltip>
+              </el-descriptions-item>
+              <el-descriptions-item label="实施人">
+                <el-tooltip :content="`联系方式: ${selectedChange?.implementer.contact}`" placement="top">
+                  <span>{{ selectedChange?.implementer.name }}</span>
+                </el-tooltip>
+              </el-descriptions-item>
+            </el-descriptions>
           </template>
           <div class="topology-container">
             <div class="connector top-line" />
@@ -1654,6 +1682,11 @@ function handleFilterChange(key: string, value: string | string[]) {
   font-weight: bold;
   font-size: 16px;
 }
+.change-summary-descriptions {
+  :deep(.el-descriptions__title) {
+    font-size: 16px;
+  }
+}
 .change-menu-item-content {
   display: flex;
   justify-content: space-between;
@@ -1679,10 +1712,11 @@ function handleFilterChange(key: string, value: string | string[]) {
   position: relative;
   padding: 20px 0;
 }
+
 .connector {
   position: absolute;
   height: 2px;
-  background-color: #dcdfe6;
+  background-color: var(--el-border-color);
   top: 50%;
   transform: translateY(-50%);
   width: 30%;
@@ -1695,6 +1729,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   right: 0;
   width: 50%;
 }
+
 .topo-step {
   display: flex;
   flex-direction: column;
@@ -1704,26 +1739,30 @@ function handleFilterChange(key: string, value: string | string[]) {
   position: relative;
   z-index: 2;
 }
+
 .topo-step.current {
   width: 60%;
 }
+
 .tasks-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
 }
+
 .topo-node {
   padding: 8px 12px;
   margin-bottom: 5px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: bold;
-  color: #303133;
+  color: var(--el-text-color-primary);
   border: 1px solid #dcdfe6;
   background-color: #f4f4f5;
   white-space: nowrap;
 }
+
 .topo-task {
   cursor: pointer;
   transition: all 0.2s;
@@ -1732,24 +1771,28 @@ function handleFilterChange(key: string, value: string | string[]) {
   align-items: center;
   min-width: 80px;
 }
+
 .topo-task.is-selected {
-  border-color: #409eff;
+  border-color: var(--el-color-primary);
   box-shadow: 0 0 5px rgba(64, 158, 255, 0.5);
 }
+
 .topo-task.success {
   background-color: #e1f3d8;
   border-color: #67c23a;
 }
+
 .topo-task.failed {
   background-color: #fde2e2;
   border-color: #f56c6c;
 }
+
 .topo-task.running {
   background-color: #fdf6ec;
   border-color: #e6a23c;
 }
 
-/* --- ECharts 分析区样式 --- */
+/* --- 5. ECharts 分析区 --- */
 .analysis-controls-row {
   margin-top: 20px;
   margin-bottom: 10px;
