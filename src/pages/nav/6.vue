@@ -1,173 +1,314 @@
-<script setup>
+<script setup lang="ts">
+import type { Ref } from 'vue'
 import * as echarts from 'echarts'
 import { computed, nextTick, onMounted, ref } from 'vue'
 // 如果你的项目未配置自动导入，请确保 Element Plus 组件在此处被正确导入
 
-// --- 模拟数据和逻辑 (顶部/中间部分) ---
-const selectedCalendarDate = ref('2025-10-09')
-const selectedActivityIndex = ref(null)
-const timelineData = ref({
-  '2025-10-09': [
-    { start: 1, end: 3.5, label: '变更区间1' },
-    { start: 7, end: 10, label: '变更区间2' },
-    { start: 14.25, end: 16, label: '变更区间3' },
-    { start: 20, end: 23.9, label: '变更区间4' },
-  ],
-  // ... 其他日期
+// --- 类型定义 ---
+interface TimelineActivity {
+  start: number
+  end: number
+  label: string
+  changeId: string // 关联变更ID
+}
+
+interface SystemItem {
+  id: string
+  name: string
+  code: string
+}
+
+interface CalendarDateItem {
+  day: string
+  date: string
+  isCurrentMonth: boolean
+  activityCount: number
+  hasEvent: boolean
+}
+
+interface ChangeItem {
+  id: string
+  name: string
+  type: 'program' | 'config' | 'data'
+}
+
+interface Task {
+  id: string
+  status: 'SUCCESS' | 'FAILED' | 'RUNNING' | 'PENDING'
+  label: string
+}
+
+interface ChangeEvent {
+  id: string
+  name: string
+  systemId: string
+  date: string
+  startTime: number
+  endTime: number
+  type: 'program' | 'config' | 'data'
+  tasks: Task[]
+}
+
+interface ChartDataItem {
+  time: string
+  volume: number
+  successRate: string | number
+  latency: number
+  [key: string]: any // Allow other properties
+}
+
+// --- 统一的变更数据源 ---
+const allChanges: Ref<ChangeEvent[]> = ref([
+  // 周二 (2025-10-07, 2025-10-14, 2025-10-21, 2025-10-28)
+  { id: 'C10001', name: '核心系统升级-阶段1', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 20.5, type: 'program', tasks: [{ id: 'T1', status: 'SUCCESS', label: '部署' }] },
+  { id: 'C10014', name: '核心系统参数调整', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 19, type: 'config', tasks: [{ id: 'T2', status: 'SUCCESS', label: '配置' }] },
+  { id: 'C10002', name: '支付网关配置更新', systemId: 'SYS-B', date: '2025-10-07', startTime: 21, endTime: 21.5, type: 'config', tasks: [{ id: 'T3', status: 'SUCCESS', label: '更新' }] },
+  { id: 'C10003', name: '信用卡积分规则调整', systemId: 'SYS-C', date: '2025-10-14', startTime: 19, endTime: 22, type: 'program', tasks: [{ id: 'T4', status: 'SUCCESS', label: '规则下发' }] },
+
+  // 周四晚到周五晨 (2025-10-09 ~ 2025-10-10)
+  { id: 'C10004', name: '信贷模型批量部署', systemId: 'SYS-D', date: '2025-10-09', startTime: 18, endTime: 23.5, type: 'program', tasks: [{ id: 'T5', status: 'SUCCESS', label: '模型A' }, { id: 'T6', status: 'FAILED', label: '模型B' }] },
+  { id: 'C10015', name: '信贷风控规则更新', systemId: 'SYS-D', date: '2025-10-09', startTime: 19, endTime: 21, type: 'config', tasks: [{ id: 'T7', status: 'SUCCESS', label: '规则更新' }] },
+  { id: 'C10005', name: '数据仓库ETL优化', systemId: 'SYS-E', date: '2025-10-10', startTime: 1, endTime: 4, type: 'data', tasks: [{ id: 'T8', status: 'SUCCESS', label: 'ETL' }] },
+  { id: 'C10006', name: '手机银行新功能发布', systemId: 'SYS-G', date: '2025-10-09', startTime: 22, endTime: 23, type: 'program', tasks: [{ id: 'T9', status: 'SUCCESS', label: '发布' }] },
+  { id: 'C10007', name: '网上银行安全补丁', systemId: 'SYS-H', date: '2025-10-10', startTime: 2, endTime: 5.5, type: 'program', tasks: [{ id: 'T10', status: 'SUCCESS', label: '补丁' }] },
+
+  // 周六晚到周日晨 (2025-10-11 ~ 2025-10-12)
+  { id: 'C10008', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-11', startTime: 20, endTime: 23.9, type: 'data', tasks: [{ id: 'T11', status: 'SUCCESS', label: '迁移' }] },
+  { id: 'C10009', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-12', startTime: 0, endTime: 6, type: 'data', tasks: [{ id: 'T12', status: 'SUCCESS', label: '验证' }] },
+  { id: 'C10010', name: '风险预警平台升级', systemId: 'SYS-I', date: '2025-10-11', startTime: 18, endTime: 21, type: 'program', tasks: [{ id: 'T13', status: 'SUCCESS', label: '升级' }] },
+
+  // 其他数据
+  { id: 'C10011', name: '柜面系统常规维护', systemId: 'SYS-F', date: '2025-10-15', startTime: 2, endTime: 4, type: 'program', tasks: [{ id: 'T14', status: 'SUCCESS', label: '维护' }] },
+  { id: 'C10012', name: 'CRM客户数据清洗', systemId: 'SYS-J', date: '2025-10-20', startTime: 1, endTime: 5, type: 'data', tasks: [{ id: 'T15', status: 'SUCCESS', label: '清洗' }] },
+  { id: 'C10013', name: '支付平台证书更换', systemId: 'SYS-B', date: '2025-10-22', startTime: 20, endTime: 21, type: 'config', tasks: [{ id: 'T16', status: 'SUCCESS', label: '更换' }] },
+])
+
+// --- 派生数据 ---
+
+// 日历事件 (根据 allChanges 动态生成)
+const calendarEvents = computed<Record<string, Record<string, number>>>(() => {
+  const events: Record<string, Record<string, number>> = {}
+  for (const change of allChanges.value) {
+    if (!events[change.systemId]) {
+      events[change.systemId] = {}
+    }
+    events[change.systemId][change.date] = (events[change.systemId][change.date] || 0) + 1
+  }
+  return events
 })
-const currentTimelineActivities = computed(() => timelineData.value[selectedCalendarDate.value] || [])
-function getActivityStyle(activity) {
-  const startPercentage = (activity.start / 24) * 100
-  const durationPercentage = ((activity.end - activity.start) / 24) * 100
+
+// 时间轴数据 (根据 allChanges 动态生成)
+const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
+  const activities: Record<string, TimelineActivity[]> = {}
+  for (const change of allChanges.value) {
+    if (!activities[change.date]) {
+      activities[change.date] = []
+    }
+    activities[change.date].push({
+      start: change.startTime,
+      end: change.endTime,
+      label: change.name,
+      changeId: change.id,
+    })
+  }
+  return activities
+})
+// --- 模拟数据和逻辑 (顶部/中间部分) ---
+const selectedCalendarDate: Ref<string> = ref('2025-10-09')
+const selectedActivityIndex: Ref<number | null> = ref(null)
+
+interface TimelineSegment {
+  start: number
+  end: number
+  status: 'success' | 'failed'
+  changes: ChangeEvent[]
+}
+
+const timelineSegments = computed<TimelineSegment[]>(() => {
+  const changesOnDate = allChanges.value.filter(c => c.date === selectedCalendarDate.value && c.systemId === selectedSystemId.value)
+  if (!changesOnDate.length)
+    return []
+
+  // 按开始时间排序
+  changesOnDate.sort((a, b) => a.startTime - b.startTime)
+
+  const segments: TimelineSegment[] = []
+  for (const change of changesOnDate) {
+    const status = change.tasks.some(t => t.status === 'FAILED') ? 'failed' : 'success'
+    segments.push({
+      start: change.startTime,
+      end: change.endTime,
+      status,
+      changes: [change],
+    })
+  }
+
+  return segments
+})
+function getSegmentStyle(segment: TimelineSegment): { left: string, width: string } {
+  const startPercentage = (segment.start / 24) * 100
+  const durationPercentage = ((segment.end - segment.start) / 24) * 100
   return { left: `${startPercentage}%`, width: `${durationPercentage}%` }
 }
-function handleDateSelect(date) {
+function handleDateSelect(date: string) {
   if (selectedCalendarDate.value === date)
     return
   selectedCalendarDate.value = date
   selectedActivityIndex.value = null
   fetchChartData()
 }
-function handleActivitySelect(index) {
-  selectedActivityIndex.value = index
+function handleSegmentSelect(segment: TimelineSegment) {
+  // 选中一个时间段时，默认关联到该时间段的第一个变更
+  const firstChange = segment.changes[0]
+  if (firstChange) {
+    selectedChangeId.value = firstChange.id
+  }
 }
 
 const searchText = ref('')
 const transactionCodes = ref(['PSDCO001', 'PSDCO002', 'PSDCO003', 'PSDCO004', 'PSDCO005', 'PSDCO006', 'PSDCO007', 'PSDCO008'])
 const provinces = ref(['北京', '上海', '广东', '江苏', '浙江', '四川', '湖南'])
-function handleCodeClick(code) {
+function handleCodeClick(code: string) {
   console.warn(`选择交易码: ${code}`)
 }
-function handleProvinceClick(province) {
+function handleProvinceClick(province: string) {
   console.warn(`选择省市: ${province}`)
 }
 
 const systemList = ref([
-  { id: 'SYS-A', name: '分布式核心总控', code: '10.0.9x-A(P)' },
-  { id: 'SYS-B', name: '个人负债', code: 'A(CR)' },
-  { id: 'SYS-C', name: '信用卡', code: 'A(RDP)-PSTF-G(H)' },
-  { id: 'SYS-D', name: '基金', code: 'A(RDP)-PSTF-G-LIST(H)' },
-  { id: 'SYS-E', nßame: '储蓄国债', code: 'A(RDP)-PSTF-G-VIEW(H)' },
+  { id: 'SYS-A', name: '分布式核心', code: 'CORE-A(P)' },
+  { id: 'SYS-B', name: '统一支付平台', code: 'PAY-G(H)' },
+  { id: 'SYS-C', name: '信用卡核心', code: 'CREDIT-C(R)' },
+  { id: 'SYS-D', name: '信贷管理系统', code: 'LOAN-M(P)' },
+  { id: 'SYS-E', name: '数据仓库', code: 'DW-H(S)' },
+  { id: 'SYS-F', name: '柜面交易系统', code: 'TELLER-F(P)' },
+  { id: 'SYS-G', name: '手机银行', code: 'MBANK-A(C)' },
+  { id: 'SYS-H', name: '网上银行', code: 'EBANK-W(C)' },
+  { id: 'SYS-I', name: '风险预警平台', code: 'RISK-E(P)' },
+  { id: 'SYS-J', name: '客户关系管理', code: 'CRM-S(P)' },
 ])
-const filteredSystemList = computed(() => {
+
+const filteredSystemList = computed<SystemItem[]>(() => {
   if (!searchText.value)
     return systemList.value
   const searchLower = searchText.value.toLowerCase()
-  return systemList.value.filter(system =>
+  return systemList.value.filter((system: SystemItem) =>
     system.name.toLowerCase().includes(searchLower) || system.code.toLowerCase().includes(searchLower),
   )
 })
 const selectedSystemId = ref('SYS-A')
-function handleMenuSelect(index) {
+function handleMenuSelect(index: string) {
   selectedSystemId.value = index
   fetchChartData()
 }
 
-const calendarEvents = ref({
-  'SYS-A': {
-    '2025-10-09': 5, // 示例：10月9日有 5 个活动
-    '2025-10-15': 2, // 示例：10月15日有 2 个活动
-    '2025-10-20': 1, // 示例：10月20日有 1 个活动
-    // ... 其他系统和日期的事件
-  },
-  // ...
-})
-const currentSystemEvents = computed(() => calendarEvents.value[selectedSystemId.value] || {})
-const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+const currentSystemEvents = computed<Record<string, number>>(() => calendarEvents.value[selectedSystemId.value] || {})
+const weekDays: string[] = ['日', '一', '二', '三', '四', '五', '六']
 // 新增：模拟当前日历视图是 2025年10月
-const calendarYear = ref(2025)
-const calendarMonth = ref(10) // 10月
+const calendarYear: Ref<number> = ref(2025)
+const calendarMonth: Ref<number> = ref(10) // 10月
+
+function prevMonth() {
+  if (calendarMonth.value === 1) {
+    calendarMonth.value = 12
+    calendarYear.value--
+  }
+  else { calendarMonth.value-- }
+}
+function nextMonth() {
+  if (calendarMonth.value === 12) {
+    calendarMonth.value = 1
+    calendarYear.value++
+  }
+  else { calendarMonth.value++ }
+}
+function goToToday() {
+  calendarYear.value = 2025
+  calendarMonth.value = 10
+  handleDateSelect('2025-10-09')
+}
+
+/**
+ * 获取指定系统在当前月份的总变更数量
+ * @param systemId 系统ID
+ */
+function getSystemChangeCountInMonth(systemId: string): number {
+  const systemEvents = calendarEvents.value[systemId]
+  if (!systemEvents)
+    return 0
+
+  const year = calendarYear.value
+  const month = calendarMonth.value
+  const monthPrefix = `${year}-${String(month).padStart(2, '0')}`
+
+  return Object.entries(systemEvents)
+    .filter(([date]) => date.startsWith(monthPrefix))
+    .reduce((sum, [, count]) => sum + count, 0)
+}
 
 // ✅ 修正后的 calendarDates 计算属性
-const calendarDates = computed(() => {
+const calendarDates = computed<CalendarDateItem[]>(() => {
   const year = calendarYear.value
-  const month = calendarMonth.value // 目标月份 (1-12)
+  const month = calendarMonth.value
 
-  // 1. 获取目标月份的第一天
-  // JS Date 中的月份是从 0 (一月) 开始的，所以需要 month - 1
-  const firstDayOfMonth = new Date(year, month - 1, 1)
+  const firstDay = new Date(year, month - 1, 1)
+  const firstDayOfWeek = firstDay.getDay() // 0 for Sunday, 1 for Monday, etc.
 
-  // 2. 获取目标月份第一天是星期几 (0:周日, 1:周一...)
-  const firstDayOfWeek = firstDayOfMonth.getDay()
-
-  // 3. 计算需要从上个月显示多少天来填充日历网格
-  // 如果周日是第一天，firstDayOfWeek 是 0，需要 0 天。
-  const daysFromPrevMonth = firstDayOfWeek
-
-  // 4. 获取目标月份总共有多少天 (0 表示上个月的最后一天)
   const daysInMonth = new Date(year, month, 0).getDate()
 
-  const dates = []
+  const dates: CalendarDateItem[] = []
+  const startDate = new Date(firstDay)
+  startDate.setDate(1 - firstDayOfWeek) // Start from the first day of the week grid
 
-  // === 填充上个月的日期（如果需要）===
-  const prevMonth = month === 1 ? 12 : month - 1
-  const prevYear = month === 1 ? year - 1 : year
-  const daysInPrevMonth = new Date(prevYear, prevMonth, 0).getDate()
+  // Generate 42 days for a 6x7 grid
+  for (let i = 0; i < 42; i++) {
+    const currentDate = new Date(startDate)
+    currentDate.setDate(startDate.getDate() + i)
 
-  for (let i = 0; i < daysFromPrevMonth; i++) {
-    const day = daysInPrevMonth - daysFromPrevMonth + i + 1
-    const dateStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const dateYear = currentDate.getFullYear()
+    const dateMonth = currentDate.getMonth() + 1
+    const dateDay = currentDate.getDate()
+
+    const dateStr = `${dateYear}-${String(dateMonth).padStart(2, '0')}-${String(dateDay).padStart(2, '0')}`
+
     dates.push({
-      day: String(day),
+      day: String(dateDay),
       date: dateStr,
-      isCurrentMonth: false, // 不是当前月
+      isCurrentMonth: dateMonth === month,
       activityCount: currentSystemEvents.value[dateStr] || 0,
       hasEvent: currentSystemEvents.value[dateStr] > 0,
     })
   }
 
-  // === 填充当前月份的日期 ===
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(i).padStart(2, '0')}`
-    dates.push({
-      day: String(i),
-      date: dateStr,
-      isCurrentMonth: true, // 是当前月
-      activityCount: currentSystemEvents.value[dateStr] || 0,
-      hasEvent: currentSystemEvents.value[dateStr] > 0,
-      // 保持之前的选中逻辑
-      // isSelected 和 hasEvent 的计算逻辑需要在循环结束后
-    })
+  // 检查最后一行是否完全是下个月的日期
+  const lastRow = dates.slice(35)
+  const lastRowIsAllNextMonth = lastRow.every(date => !date.isCurrentMonth)
+
+  if (lastRowIsAllNextMonth) {
+    return dates.slice(0, 35)
   }
 
-  // === 填充下个月的日期（以保证完整的 6 周网格，如果需要）===
-  const totalCells = 42 // 日历网格通常是 6 行 x 7 列 = 42 个单元格
-  const daysFromNextMonth = totalCells - dates.length
-  const nextMonth = month === 12 ? 1 : month + 1
-  const nextYear = month === 12 ? year + 1 : year
-
-  for (let i = 1; i <= daysFromNextMonth; i++) {
-    const dateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(i).padStart(2, '0')}`
-    dates.push({
-      day: String(i),
-      date: dateStr,
-      isCurrentMonth: false,
-      activityCount: currentSystemEvents.value[dateStr] || 0,
-      hasEvent: currentSystemEvents.value[dateStr] > 0,
-    })
-  }
-
-  // 如果只需要 5 行 (35个单元格)，可以在这里截断
-  return dates.slice(0, 42) // 返回 6 行日历，共 42 天
+  return dates
 })
 
-const selectedChangeId = ref('C10001')
-const selectedTaskId = ref('T10002') // Move this declaration here
-const changeSearchText = ref('')
-const changeList = ref([
-  { id: 'C10001', name: '核心系统升级-第一阶段' },
-  { id: 'C10002', name: '人员用户管理模块热修复' },
-  { id: 'C10003', name: '数据库集群扩容' },
-])
-const filteredChangeList = computed(() => {
+const selectedChangeId: Ref<string> = ref('C10001')
+const changeSearchText: Ref<string> = ref('')
+
+// 变更列表 (根据 allChanges, selectedSystemId, selectedCalendarDate 动态生成)
+const changeList = computed<ChangeItem[]>(() => {
+  return allChanges.value
+    .filter(c => c.systemId === selectedSystemId.value && c.date === selectedCalendarDate.value)
+    .map(c => ({ id: c.id, name: c.name, type: c.type }))
+})
+
+const filteredChangeList = computed<ChangeItem[]>(() => {
   if (!changeSearchText.value)
     return changeList.value
   const searchLower = changeSearchText.value.toLowerCase()
-  return changeList.value.filter(change => change.id.toLowerCase().includes(searchLower) || change.name.toLowerCase().includes(searchLower))
+  return changeList.value.filter((change: ChangeItem) => change.id.toLowerCase().includes(searchLower) || change.name.toLowerCase().includes(searchLower))
 })
-function handleChangeSelect(index) {
+function handleChangeSelect(index: string) {
   selectedChangeId.value = index
-  selectedTaskId.value = index === 'C10002' ? 'T20002' : 'T10002'
 }
 const topologyData = computed(() => {
   if (selectedChangeId.value === 'C10002') {
@@ -183,7 +324,26 @@ const topologyData = computed(() => {
     successors: [{ id: 'C10007', name: '安全检查' }],
   }
 })
-function handleTaskSelect(taskId) {
+
+const selectedTaskId = computed(() => {
+  const currentChange = topologyData.value.currentChange
+  return currentChange.tasks?.find(t => t.status === 'RUNNING' || t.status === 'FAILED')?.id || currentChange.tasks?.[0]?.id || ''
+})
+
+function getChangeTypeInfo(type: 'program' | 'config' | 'data'): { text: string, tagType: 'primary' | 'success' | 'warning' } {
+  switch (type) {
+    case 'program':
+      return { text: '程序', tagType: 'primary' }
+    case 'config':
+      return { text: '配置', tagType: 'success' }
+    case 'data':
+      return { text: '数据', tagType: 'warning' }
+    default:
+      return { text: '未知', tagType: 'info' }
+  }
+}
+
+function handleTaskSelect(taskId: string) {
   selectedTaskId.value = taskId
 }
 const k8sDetailData = computed(() => {
@@ -192,7 +352,7 @@ const k8sDetailData = computed(() => {
   }
   return [{ component: 'core-api', namespace: 'prod-ns', cluster: 'SH-K8S02', status: 'SUCCESS' }, { component: 'data-sync', namespace: 'dev-ns', cluster: 'SH-K8S02', status: 'SUCCESS' }]
 })
-function handleDetailClick(prop, value) {
+function handleDetailClick(prop: string, value: string) {
   console.warn(`点击了属性：${prop}，值：${value}`)
 }
 
@@ -201,31 +361,31 @@ function handleDetailClick(prop, value) {
 // 时间选择器数据
 const now = new Date()
 const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
-const timeRange = ref([oneHourAgo, now])
-const defaultTime = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
-const baselineOffset = ref('T-7')
+const timeRange: Ref<[Date, Date]> = ref([oneHourAgo, now])
+const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
+const baselineOffset: Ref<string> = ref('T-7')
 
 // ECharts DOM 引用
-const chartVolumeRef = ref(null)
-const chartRateRef = ref(null)
-const chartLatencyRef = ref(null)
-const chartK8sCpuRef = ref(null)
-const chartK8sMemoryRef = ref(null)
-const chartK8sNetworkRef = ref(null)
-const chartK8sDiskRef = ref(null)
+const chartVolumeRef: Ref<HTMLElement | null> = ref(null)
+const chartRateRef: Ref<HTMLElement | null> = ref(null)
+const chartLatencyRef: Ref<HTMLElement | null> = ref(null)
+const chartK8sCpuRef: Ref<HTMLElement | null> = ref(null)
+const chartK8sMemoryRef: Ref<HTMLElement | null> = ref(null)
+const chartK8sNetworkRef: Ref<HTMLElement | null> = ref(null)
+const chartK8sDiskRef: Ref<HTMLElement | null> = ref(null)
 
 // ECharts 实例
-let chartVolume = null
-let chartRate = null
-let chartLatency = null
-let chartK8sCpu = null
-let chartK8sMemory = null
-let chartK8sNetwork = null
-let chartK8sDisk = null
+let chartVolume: echarts.ECharts | null = null
+let chartRate: echarts.ECharts | null = null
+let chartLatency: echarts.ECharts | null = null
+let chartK8sCpu: echarts.ECharts | null = null
+let chartK8sMemory: echarts.ECharts | null = null
+let chartK8sNetwork: echarts.ECharts | null = null
+let chartK8sDisk: echarts.ECharts | null = null
 
 // 模拟数据生成函数
-function generateMockData(isBaseline = false) {
-  const data = []
+function generateMockData(isBaseline = false): ChartDataItem[] {
+  const data: ChartDataItem[] = []
 
   // --- 交易数据基准 ---
   const volumeBase = isBaseline ? 800 : 1200
@@ -290,7 +450,7 @@ function generateMockData(isBaseline = false) {
 }
 
 // ECharts 初始化函数 (支持 3 条线)
-function initChart(domRef, title, yAxisName, unit = '') {
+function initChart(domRef: Ref<HTMLElement | null>, title: string, yAxisName: string, unit = ''): echarts.ECharts | null {
   if (!domRef.value)
     return null
   const chartInstance = echarts.init(domRef.value)
@@ -299,12 +459,10 @@ function initChart(domRef, title, yAxisName, unit = '') {
     title: { text: title, left: 'center', show: false },
     tooltip: {
       trigger: 'axis',
-      formatter(params) {
+      formatter(params: any[]): string {
         let html = `${params[0].name}<br/>`
-        params.forEach((param) => {
-          const color = param.color
-          const value = param.value
-          const seriesName = param.seriesName
+        params.forEach((param: { color: string, value: string | number, seriesName: string }) => {
+          const { color, value, seriesName } = param
           if (value !== '-') { // 排除用于填充的占位符
             html += `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>${seriesName}: ${value}${unit}<br/>`
           }
@@ -334,15 +492,16 @@ function initChart(domRef, title, yAxisName, unit = '') {
 }
 
 // 辅助函数：提取异常实例的指标数据
-function getAnomalyInstanceData(data, dataKey, anomalyThreshold) {
+function getAnomalyInstanceData(data: ChartDataItem[], dataKey: 'k8sCpu' | 'k8sMemory', anomalyThreshold: number): { name: string, data: (string | number)[] } {
   let maxMetric = -1
-  let anomalyInstanceId = null
+  let anomalyInstanceId: string | null = null
 
   // 1. 找出最异常的实例 ID (简化为找到在整个时间段内值超过阈值且最大的实例)
   data.forEach((d) => {
     d.instanceDetails.forEach((instance) => {
-      if (instance[dataKey] > maxMetric && instance[dataKey] > anomalyThreshold) {
-        maxMetric = instance[dataKey]
+      const metricKey = dataKey === 'k8sCpu' ? 'cpu' : 'memory'
+      if (instance[metricKey] > maxMetric && instance[metricKey] > anomalyThreshold) {
+        maxMetric = instance[metricKey]
         anomalyInstanceId = instance.id
       }
     })
@@ -360,7 +519,8 @@ function getAnomalyInstanceData(data, dataKey, anomalyThreshold) {
   const anomalyData = data.map((d) => {
     const instance = d.instanceDetails.find(inst => inst.id === anomalyInstanceId)
     // 如果该实例未报告数据，则用 '-' (echarts 会忽略 '-')
-    return instance ? instance[dataKey] : '-'
+    const metricKey = dataKey === 'k8sCpu' ? 'cpu' : 'memory'
+    return instance ? instance[metricKey] : '-'
   })
 
   return {
@@ -370,7 +530,7 @@ function getAnomalyInstanceData(data, dataKey, anomalyThreshold) {
 }
 
 // 核心：更新所有图表数据函数
-function updateCharts(data, baselineData) {
+function updateCharts(data: ChartDataItem[], baselineData: ChartDataItem[]) {
   const times = data.map(d => d.time)
 
   // 交易指标和 K8s 聚合指标通用更新函数
@@ -389,7 +549,7 @@ function updateCharts(data, baselineData) {
 
     // 系列 2: 异常实例逻辑
     if (isK8sAnomalyChart) {
-      const anomaly = getAnomalyInstanceData(data, dataKey, anomalyThreshold)
+      const anomaly = getAnomalyInstanceData(data, dataKey as 'k8sCpu' | 'k8sMemory', anomalyThreshold)
       option.series[2].name = anomaly.name
       option.series[2].data = anomaly.data
     }
@@ -495,13 +655,23 @@ const diagnostics = ref({
 })
 
 // 抽屉状态
-const drawerVisible = ref(false)
-const currentDetail = ref(null)
-const currentDetailTitle = ref('')
+const drawerVisible: Ref<boolean> = ref(false)
+const currentDetail: Ref<any[] | null> = ref(null)
+const currentDetailTitle: Ref<string> = ref('')
+
+/**
+ * 点击诊断卡片时显示详情抽屉
+ * @param key 诊断项的键名
+ */
+function showDetail(key: keyof typeof diagnostics.value) {
+  currentDetailTitle.value = diagnostics.value[key].title
+  currentDetail.value = diagnostics.value[key].detail
+  drawerVisible.value = true
+}
 
 // --- 新增：健康检查流程状态 ---
-const isChecking = ref(false) // 是否正在检查
-const checkProgress = ref(0) // 进度条百分比
+const isChecking: Ref<boolean> = ref(false) // 是否正在检查
+const checkProgress: Ref<number> = ref(0) // 进度条百分比
 const healthCheckResult = ref({
   status: 'info', // overall status: success, warning, danger, info
   message: '点击发起系统健康检查',
@@ -511,7 +681,7 @@ const healthCheckResult = ref({
     { name: 'K8s集群', status: 'warning', time: '3.1s', detail: '部分Pod CPU使用率偏高，建议关注' },
   ],
 })
-const checkResultDrawerVisible = ref(false) // 结果抽屉
+const checkResultDrawerVisible: Ref<boolean> = ref(false) // 结果抽屉
 
 /**
  * 统一发起健康检查和数据更新 (修改为流程控制)
@@ -566,7 +736,7 @@ function showHealthCheckResult() {
 }
 
 // 辅助函数：获取状态对应的图标
-function getStatusIcon(status) {
+function getStatusIcon(status: string): string {
   if (status === 'success')
     return 'i-ep-circle-check-filled'
   if (status === 'warning')
@@ -577,7 +747,7 @@ function getStatusIcon(status) {
 }
 
 // 辅助函数，将 status 映射到 Element Plus 的 Tag 类型
-function getTagType(status) {
+function getTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
   if (status === 'success')
     return 'success'
   if (status === 'warning')
@@ -588,7 +758,7 @@ function getTagType(status) {
 }
 
 // 辅助函数：获取状态对应的颜色
-function getStatusColor(status) {
+function getStatusColor(status: string): string {
   if (status === 'success')
     return '#67c23a'
   if (status === 'warning')
@@ -609,7 +779,7 @@ function getStatusColor(status) {
 // }
 
 // 定义每个筛选器的数据结构和状态
-const dimensionFilters = ref([
+const dimensionFilters: Ref<any[]> = ref([
   {
     label: '省市',
     key: 'province',
@@ -688,7 +858,7 @@ const dimensionFilters = ref([
  * @param key 筛选器的唯一键
  * @param value 新的选中值
  */
-function handleFilterChange(key, value) {
+function handleFilterChange(key: string, value: string | string[]) {
   const filterItem = dimensionFilters.value.find(f => f.key === key)
   if (filterItem) {
     // 强制更新 selected 状态
@@ -734,8 +904,13 @@ function handleFilterChange(key, value) {
               :index="system.id"
               :title="system.name"
             >
-              <el-icon><i-ep-star /></el-icon>
-              <span>{{ system.name }}</span>
+              <div class="menu-item-content">
+                <div class="menu-item-left">
+                  <el-icon><i-ep-star /></el-icon>
+                  <span class="system-name">{{ system.name }}</span>
+                </div>
+                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" />
+              </div>
             </el-menu-item>
 
             <el-empty
@@ -750,19 +925,25 @@ function handleFilterChange(key, value) {
       <el-col :span="12">
         <el-card class="calendar-card" shadow="never">
           <div class="calendar-header">
-            <span>2025年 10月 (模拟)</span>
+            <div class="calendar-header-left">
+              <el-button-group>
+                <el-button type="primary" @click="goToToday">
+                  今天
+                </el-button>
+              </el-button-group>
+            </div>
+            <div class="calendar-header-center">
+              <span>{{ calendarYear }}年 {{ calendarMonth }}月</span>
+            </div>
             <div class="header-right">
-              <el-button link>
-                上翻
-              </el-button>
-              <el-divider direction="vertical" />
-              <el-button link>
-                下翻
-              </el-button>
-              <el-divider direction="vertical" />
-              <el-button link>
-                今天
-              </el-button>
+              <el-button-group>
+                <el-button @click="prevMonth">
+                  上个月
+                </el-button>
+                <el-button @click="nextMonth">
+                  下个月
+                </el-button>
+              </el-button-group>
             </div>
           </div>
 
@@ -776,7 +957,7 @@ function handleFilterChange(key, value) {
               :key="dateItem.date"
               class="date-cell"
               :class="{
-                'current-month': dateItem.isCurrentMonth,
+                'not-current-month': !dateItem.isCurrentMonth,
                 'is-selected': dateItem.date === selectedCalendarDate,
                 'has-event': dateItem.hasEvent,
               }"
@@ -801,16 +982,14 @@ function handleFilterChange(key, value) {
       <el-col :span="20">
         <div class="timeline-container">
           <div class="activity-bar-wrapper">
-            <div
-              v-for="(activity, index) in currentTimelineActivities"
+            <el-tooltip
+              v-for="(segment, index) in timelineSegments"
               :key="index"
-              class="activity-segment"
-              :class="{ 'is-active': selectedActivityIndex === index }"
-              :style="getActivityStyle(activity)"
-              @click="handleActivitySelect(index)"
+              :content="segment.changes.map(c => c.name).join(', ')"
+              placement="top"
             >
-              <span class="activity-info">{{ activity.label }}</span>
-            </div>
+              <div class="activity-segment" :class="`status-${segment.status}`" :style="getSegmentStyle(segment)" @click="handleSegmentSelect(segment)" />
+            </el-tooltip>
           </div>
           <div class="hour-markers">
             <span v-for="h in 25" :key="h" class="hour-label">
@@ -955,8 +1134,13 @@ function handleFilterChange(key, value) {
               :index="change.id"
               :title="change.name"
             >
-              <el-icon><i-ep-document /></el-icon>
-              <span class="change-id">{{ change.id }}</span>
+              <div class="change-menu-item-content">
+                <el-icon><i-ep-document /></el-icon>
+                <span class="change-id">{{ change.id }}</span>
+                <el-tag :type="getChangeTypeInfo(change.type).tagType" size="small" effect="light" style="margin-left: auto;">
+                  {{ getChangeTypeInfo(change.type).text }}
+                </el-tag>
+              </div>
             </el-menu-item>
             <el-empty
               v-if="filteredChangeList.length === 0"
@@ -1289,6 +1473,22 @@ function handleFilterChange(key, value) {
   border: none;
   height: 100%;
 }
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid #ebeef5;
+}
+.calendar-header-center {
+  font-weight: bold;
+  font-size: 16px;
+}
+.calendar-header-left,
+.calendar-header-right {
+  display: flex;
+  align-items: center;
+}
 .sidebar-search {
   padding-bottom: 5px;
 }
@@ -1297,6 +1497,25 @@ function handleFilterChange(key, value) {
   max-height: 400px;
   overflow-y: auto;
 }
+.menu-item-content {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+.menu-item-left {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  overflow: hidden;
+}
+.system-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-left: 5px;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -1310,20 +1529,22 @@ function handleFilterChange(key, value) {
   padding: 8px 0;
   font-weight: bold;
   font-size: 12px;
+  color: #909399;
 }
 .date-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   background-color: #fff;
-  padding: 5px 0;
+  padding: 5px;
   cursor: pointer;
   font-size: 12px;
   position: relative;
   transition: background-color 0.3s;
-  height: 40px;
+  min-height: 50px;
 }
-.date-cell.is-selected {
-  background-color: #ecf5ff;
-  border: 1px solid #409eff;
-  margin: -1px;
+.date-cell.not-current-month .date-number {
+  color: #c0c4cc;
 }
 .date-number {
   text-align: right;
@@ -1331,17 +1552,28 @@ function handleFilterChange(key, value) {
   font-weight: bold;
   color: #606266;
 }
+.date-cell.is-selected {
+  background-color: #ecf5ff;
+  border: 1px solid #409eff;
+  margin: -1px; /* 避免选中时边框导致布局错位 */
+}
 .date-cell.has-event {
-  background-color: #f0f9eb;
+  background-color: #fdf6ec;
 }
 .activity-count {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 16px;
+  bottom: 2px;
+  right: 4px;
+  font-size: 10px;
   font-weight: bold;
   color: #409eff;
+  background-color: #d9ecff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border: 1px solid #a0cfff;
 }
 
 /* --- 时间线样式 --- */
@@ -1371,7 +1603,7 @@ function handleFilterChange(key, value) {
   border-radius: 3px;
 }
 .activity-segment.is-active {
-  background-color: #409eff;
+  background-color: #e6a23c;
   border: 2px solid #3a8ee6;
   z-index: 10;
 }
@@ -1422,6 +1654,24 @@ function handleFilterChange(key, value) {
   font-weight: bold;
   font-size: 16px;
 }
+.change-menu-item-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.change-menu-item-left {
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  overflow: hidden;
+  gap: 5px;
+}
+.change-id {
+  margin-left: 5px;
+  flex-grow: 1;
+}
+
 .topology-container {
   display: flex;
   justify-content: space-between;
