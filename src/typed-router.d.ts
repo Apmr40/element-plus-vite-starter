@@ -65,13 +65,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/nav/SpecialCareView': RouteRecordInfo<
-      '/nav/SpecialCareView',
-      '/nav/SpecialCareView',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
   }
 
   /**
@@ -118,12 +111,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/nav/6.vue': {
       routes:
         | '/nav/6'
-      views:
-        | never
-    }
-    'src/pages/nav/SpecialCareView.vue': {
-      routes:
-        | '/nav/SpecialCareView'
       views:
         | never
     }

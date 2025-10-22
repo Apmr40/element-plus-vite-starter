@@ -8,10 +8,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    ActivityTimeline: typeof import('./components/SpecialCareView/ActivityTimeline.vue')['default']
     BaseHeader: typeof import('./components/layouts/BaseHeader.vue')['default']
     BaseSide: typeof import('./components/layouts/BaseSide.vue')['default']
-    ChangeTopology: typeof import('./components/SpecialCareView/ChangeTopology.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -44,11 +42,9 @@ declare module 'vue' {
     HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     Logos: typeof import('./components/Logos.vue')['default']
     MessageBoxDemo: typeof import('./components/MessageBoxDemo.vue')['default']
-    MetricCharts: typeof import('./components/SpecialCareView/MetricCharts.vue')['default']
     MyCustomCard: typeof import('./components/MyCustomCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    TopControls: typeof import('./components/SpecialCareView/TopControls.vue')['default']
     Trans: typeof import('./components/trans.vue')['default']
   }
 }

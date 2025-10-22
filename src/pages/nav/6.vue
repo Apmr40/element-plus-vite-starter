@@ -2,24 +2,9 @@
 import type { Ref } from 'vue'
 import * as echarts from 'echarts'
 import { computed, nextTick, onMounted, ref } from 'vue'
-import CalendarView from './components/CalendarView.vue'
-import ChangeTopology from './components/ChangeTopology.vue'
-import ChartArea from './components/ChartArea.vue'
-import Diagnostics from './components/Diagnostics.vue'
-import FilterControls from './components/FilterControls.vue'
-import HealthCheck from './components/HealthCheck.vue'
-import K8sDetailTable from './components/K8sDetailTable.vue'
 // 如果你的项目未配置自动导入，请确保 Element Plus 组件在此处被正确导入
-import SystemList from './components/SystemList.vue'
-import TimelineView from './components/TimelineView.vue'
-import { useCalendar } from './composables/useCalendar'
-import { useCharts } from './composables/useCharts'
-import { useFilters } from './composables/useFilters'
-import { useTimeline } from './composables/useTimeline'
-import { dataService } from './services/dataService'
 
 // --- 类型定义 ---
-
 interface TimelineActivity {
   start: number
   end: number
@@ -134,7 +119,6 @@ const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
   }
   return activities
 })
-
 // --- 模拟数据和逻辑 (顶部/中间部分) ---
 const selectedCalendarDate: Ref<string | null> = ref(null)
 const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
@@ -167,13 +151,11 @@ const timelineSegments = computed<TimelineSegment[]>(() => {
 
   return segments
 })
-
 function getSegmentStyle(segment: TimelineSegment): { left: string, width: string } {
   const startPercentage = (segment.start / 24) * 100
   const durationPercentage = ((segment.end - segment.start) / 24) * 100
   return { left: `${startPercentage}%`, width: `${durationPercentage}%` }
 }
-
 function handleDateSelect(date: string) {
   if (selectedCalendarDate.value === date)
     return
@@ -181,7 +163,6 @@ function handleDateSelect(date: string) {
   selectedActivityIndex.value = null
   fetchChartData()
 }
-
 function handleSegmentSelect(segment: TimelineSegment) {
   // 选中一个时间段时，默认关联到该时间段的第一个变更
   const firstChange = segment.changes[0]
@@ -191,13 +172,11 @@ function handleSegmentSelect(segment: TimelineSegment) {
 }
 
 const searchText = ref('')
-
 const transactionCodes = ref(['PSDCO001', 'PSDCO002', 'PSDCO003', 'PSDCO004', 'PSDCO005', 'PSDCO006', 'PSDCO007', 'PSDCO008'])
 const provinces = ref(['北京', '上海', '广东', '江苏', '浙江', '四川', '湖南'])
 function handleCodeClick(code: string) {
   console.warn(`选择交易码: ${code}`)
 }
-
 function handleProvinceClick(province: string) {
   console.warn(`选择省市: ${province}`)
 }
@@ -223,7 +202,6 @@ const filteredSystemList = computed<SystemItem[]>(() => {
     system.name.toLowerCase().includes(searchLower) || system.code.toLowerCase().includes(searchLower),
   )
 })
-
 const selectedSystemId = ref('SYS-A')
 function handleMenuSelect(index: string) {
   selectedSystemId.value = index
@@ -233,7 +211,6 @@ function handleMenuSelect(index: string) {
 const currentSystemEvents = computed<Record<string, number>>(() => calendarEvents.value[selectedSystemId.value] || {})
 const weekDays: string[] = ['日', '一', '二', '三', '四', '五', '六']
 // 新增：模拟当前日历视图是 2025年10月
-const calendarYear: Ref<number> = ref(2025)
 const calendarYear: Ref<number> = ref(2025)
 const calendarMonth: Ref<number> = ref(10) // 10月
 
@@ -251,7 +228,6 @@ function nextMonth() {
   }
   else { calendarMonth.value++ }
 }
-
 function goToToday() {
   calendarYear.value = 2025
   calendarMonth.value = 10
@@ -477,7 +453,6 @@ function handleDetailClick(prop: string, value: string) {
 // 时间选择器数据
 const now = new Date()
 const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
-
 const timeRange: Ref<[Date, Date]> = ref([oneHourAgo, now])
 const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
 const baselineOffset: Ref<string> = ref('T-7')
@@ -563,7 +538,6 @@ function generateMockData(isBaseline = false): ChartDataItem[] {
       instanceDetails.push({
         id: `pod-${j}`,
         cpu,
-
         memory,
       })
     }
@@ -740,7 +714,6 @@ function fetchChartData() {
 }
 
 // 挂载后初始化图表
-
 onMounted(() => {
   nextTick(() => {
     // 仅在 onMounted 时调用一次 fetchChartData，后续由用户交互触发
