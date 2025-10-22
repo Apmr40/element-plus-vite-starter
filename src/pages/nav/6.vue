@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import type { Ref } from 'vue'
+import * as G6 from '@antv/g6'
 import * as echarts from 'echarts'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import {
+  computed,
+  defineComponent,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue'
+
 // 如果你的项目未配置自动导入，请确保 Element Plus 组件在此处被正确导入
 
 // --- 类型定义 ---
@@ -63,6 +73,13 @@ interface ChartDataItem {
   [key: string]: any // Allow other properties
 }
 
+// 定义 props
+const props = withDefaults(defineProps<{
+  data?: any
+}>(), {
+  data: () => ({ nodes: [], edges: [] }),
+})
+
 // --- 统一的变更数据源 ---
 const allChanges: Ref<ChangeEvent[]> = ref([
   // 周二 (2025-10-07, 2025-10-14, 2025-10-21, 2025-10-28)
@@ -120,7 +137,7 @@ const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
   return activities
 })
 // --- 模拟数据和逻辑 (顶部/中间部分) ---
-const selectedCalendarDate: Ref<string | null> = ref(null)
+const selectedCalendarDate: Ref<string | null> = ref('2025-10-07')
 const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
 
 interface TimelineSegment {
@@ -297,7 +314,7 @@ const calendarDates = computed<CalendarDateItem[]>(() => {
   return dates
 })
 
-const selectedChangeId: Ref<string | null> = ref(null)
+const selectedChangeId: Ref<string | null> = ref('C10001')
 const changeSearchText: Ref<string> = ref('')
 
 // 新增：根据ID获取完整的变更信息
@@ -322,47 +339,278 @@ function handleChangeSelect(index: string) {
   selectedChangeId.value = index
 }
 
-const topologyData = computed(() => {
-  if (selectedChangeId.value === 'C10002') {
-    return {
-      predecessors: [{ id: 'C99999', name: '网络策略调整', linksTo: ['T20001'] }, { id: 'C99997', name: '防火墙规则下发', linksTo: ['T20001'] }],
-      currentChange: {
-        id: 'C10002',
-        tasks: [ // 任务现在是二维数组，代表串行步骤
-          [ // 步骤1: 单个任务
-            { id: 'T20001', status: 'SUCCESS', label: '配置更新', name: '支付渠道配置更新', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '周八', contact: 'zhou.ba@example.com' } },
-          ],
-          [ // 步骤2: 两个并行任务
-            { id: 'T20002', status: 'RUNNING', label: '核心部署', name: '核心服务部署', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '运维小队A', contact: 'ops-a@example.com' } },
-            { id: 'T20004', status: 'RUNNING', label: '网关部署', name: 'API网关部署', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '运维小队A', contact: 'ops-a@example.com' } },
-          ],
-          [ // 步骤3: 单个任务
-            { id: 'T20003', status: 'PENDING', label: '验证回归', name: '业务验证回归', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '测试组', contact: 'qa@example.com' } },
-          ],
-        ],
-      },
-      successors: [{ id: 'C10007', name: '监控告警屏蔽', linksTo: ['T20003'] }, { id: 'C10011', name: '日志规则调整', linksTo: ['T20003'] }],
+interface G6Node {
+  id: string
+  label: string
+  [key: string]: any // 添加索引签名以兼容 G6 NodeData 结构
+}
+
+interface G6Edge {
+  source: string
+  target: string
+  style?: any
+  [key: string]: any // 添加索引签名以兼容 G6 EdgeData 结构
+}
+
+interface G6Data {
+  nodes: G6Node[]
+  edges: G6Edge[]
+}
+
+function transformTopologyData(topologyData: any): G6Data {
+  if (!topologyData || !topologyData.predecessors || !topologyData.successors) {
+    return { nodes: [], edges: [] } // 返回空图数据
+  }
+
+  const nodes: G6Node[] = []
+  const edges: G6Edge[] = []
+  const nodeIds = new Set<string>() // 用于跟踪已添加的节点ID
+
+  // 添加节点的辅助函数
+  const addNode = (id: string, label: string) => {
+    if (!nodeIds.has(id)) {
+      nodes.push({ id, label, clazz: 'change-node' })
+      nodeIds.add(id)
     }
   }
-  return {
-    predecessors: [{ id: 'C99998', name: '前置审批', linksTo: ['T10001'] }, { id: 'C99996', name: '资源申请', linksTo: ['T10001'] }],
-    currentChange: {
-      id: selectedChangeId.value,
-      tasks: [
-        [ // 步骤1
-          { id: 'T10001', status: 'SUCCESS', label: 'DB变更', name: '数据库结构变更', submitter: { name: 'DBA团队', contact: 'dba@example.com' }, implementer: { name: 'DBA-小王', contact: 'dba.wang@example.com' } },
+
+  const addNodesAndEdges = (items: any[], isPredecessor: boolean) => {
+    items.forEach((item: any) => {
+      addNode(item.id, item.name) // 确保源节点存在
+      if (item.linksTo) {
+        item.linksTo.forEach((targetId: string) => {
+          // 确保目标节点也存在（如果尚未添加）
+          if (!nodeIds.has(targetId)) {
+            // 为未明确添加的节点创建占位符
+            addNode(targetId, `Task-${targetId}`)
+          }
+          edges.push({ source: item.id, target: targetId })
+        })
+      }
+    })
+  }
+
+  // 处理前置节点
+  addNodesAndEdges(topologyData.predecessors, true)
+
+  // 处理当前变更的任务节点
+  if (topologyData.currentChange && topologyData.currentChange.tasks) {
+    topologyData.currentChange.tasks.flat().forEach((task: any) => {
+      addNode(task.id, task.label) // 确保当前任务节点存在
+    })
+  }
+
+  // 处理后继节点
+  addNodesAndEdges(topologyData.successors, false)
+
+  return { nodes, edges }
+}
+
+const topologyData = computed(() => {
+  if (!selectedChangeId.value) {
+    return {
+      predecessors: [],
+      currentChange: { id: '', tasks: [] },
+      successors: [],
+    }
+  }
+
+  // 为特定变更ID定义不同的拓扑数据
+  switch (selectedChangeId.value) {
+    case 'C10002':
+      return {
+        predecessors: [
+          {
+            id: 'C99999',
+            name: '网络策略调整',
+            linksTo: ['T20001'],
+          },
+          {
+            id: 'C99997',
+            name: '防火墙规则下发',
+            linksTo: ['T20001'],
+          },
         ],
-        [ // 步骤2
-          { id: 'T10002', status: 'SUCCESS', label: '服务A发布', name: '用户服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小李', contact: 'app.li@example.com' } },
-          { id: 'T10003', status: 'FAILED', label: '服务B发布', name: '订单服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小张', contact: 'app.zhang@example.com' } },
+        currentChange: {
+          id: 'C10002',
+          tasks: [
+            [
+              {
+                id: 'T20001',
+                status: 'SUCCESS',
+                label: '配置更新',
+                name: '支付渠道配置更新',
+                submitter: { name: '孙七', contact: 'sun.qi@example.com' },
+                implementer: { name: '周八', contact: 'zhou.ba@example.com' },
+              },
+            ],
+            [
+              {
+                id: 'T20002',
+                status: 'RUNNING',
+                label: '核心部署',
+                name: '核心服务部署',
+                submitter: { name: '孙七', contact: 'sun.qi@example.com' },
+                implementer: { name: '运维小队A', contact: 'ops-a@example.com' },
+              },
+              {
+                id: 'T20004',
+                status: 'RUNNING',
+                label: '网关部署',
+                name: 'API网关部署',
+                submitter: { name: '孙七', contact: 'sun.qi@example.com' },
+                implementer: { name: '运维小队A', contact: 'ops-a@example.com' },
+              },
+            ],
+            [
+              {
+                id: 'T20003',
+                status: 'PENDING',
+                label: '验证回归',
+                name: '业务验证回归',
+                submitter: { name: '孙七', contact: 'sun.qi@example.com' },
+                implementer: { name: '测试组', contact: 'qa@example.com' },
+              },
+            ],
+          ],
+        },
+        successors: [
+          {
+            id: 'C10007',
+            name: '监控告警屏蔽',
+            linksTo: ['T20003'],
+          },
+          {
+            id: 'C10011',
+            name: '日志规则调整',
+            linksTo: ['T20003'],
+          },
         ],
-        [ // 步骤3
-          { id: 'T10004', status: 'PENDING', label: '服务C发布', name: '库存服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小刘', contact: 'app.liu@example.com' } },
-          { id: 'T10005', status: 'PENDING', label: '服务D发布', name: '物流服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小刘', contact: 'app.liu@example.com' } },
+      }
+
+    // 添加新的变更拓扑数据示例
+    case 'C10001':
+      return {
+        predecessors: [
+          {
+            id: 'C00001',
+            name: '需求评审',
+            linksTo: ['T1001'],
+          },
         ],
-      ],
-    },
-    successors: [{ id: 'C10007', name: '安全检查', linksTo: ['T10004', 'T10005'] }, { id: 'C10010', name: '容量压测', linksTo: ['T10005'] }],
+        currentChange: {
+          id: 'C10001',
+          tasks: [
+            [
+              {
+                id: 'T1001',
+                status: 'SUCCESS',
+                label: '设计',
+                name: '系统架构设计',
+                submitter: { name: '架构师', contact: 'architect@example.com' },
+                implementer: { name: '架构师', contact: 'architect@example.com' },
+              },
+            ],
+            [
+              {
+                id: 'T1002',
+                status: 'RUNNING',
+                label: '开发',
+                name: '核心模块开发',
+                submitter: { name: '开发经理', contact: 'dev.manager@example.com' },
+                implementer: { name: '开发团队', contact: 'dev.team@example.com' },
+              },
+            ],
+          ],
+        },
+        successors: [
+          {
+            id: 'C20001',
+            name: '测试准备',
+            linksTo: ['T1002'],
+          },
+        ],
+      }
+
+    // 默认拓扑数据
+    default:
+      return {
+        predecessors: [
+          {
+            id: 'C99998',
+            name: '前置审批',
+            linksTo: ['T10001'],
+          },
+          {
+            id: 'C99996',
+            name: '资源申请',
+            linksTo: ['T10001'],
+          },
+        ],
+        currentChange: {
+          id: selectedChangeId.value,
+          tasks: [
+            [
+              {
+                id: 'T10001',
+                status: 'SUCCESS',
+                label: 'DB变更',
+                name: '数据库结构变更',
+                submitter: { name: 'DBA团队', contact: 'dba@example.com' },
+                implementer: { name: 'DBA-小王', contact: 'dba.wang@example.com' },
+              },
+            ],
+            [
+              {
+                id: 'T10002',
+                status: 'SUCCESS',
+                label: '服务A发布',
+                name: '用户服务发布',
+                submitter: { name: '应用组', contact: 'app@example.com' },
+                implementer: { name: '应用-小李', contact: 'app.li@example.com' },
+              },
+              {
+                id: 'T10003',
+                status: 'FAILED',
+                label: '服务B发布',
+                name: '订单服务发布',
+                submitter: { name: '应用组', contact: 'app@example.com' },
+                implementer: { name: '应用-小张', contact: 'app.zhang@example.com' },
+              },
+            ],
+            [
+              {
+                id: 'T10004',
+                status: 'PENDING',
+                label: '服务C发布',
+                name: '库存服务发布',
+                submitter: { name: '应用组', contact: 'app@example.com' },
+                implementer: { name: '应用-小刘', contact: 'app.liu@example.com' },
+              },
+              {
+                id: 'T10005',
+                status: 'PENDING',
+                label: '服务D发布',
+                name: '物流服务发布',
+                submitter: { name: '应用组', contact: 'app@example.com' },
+                implementer: { name: '应用-小刘', contact: 'app.liu@example.com' },
+              },
+            ],
+          ],
+        },
+        successors: [
+          {
+            id: 'C10007',
+            name: '安全检查',
+            linksTo: ['T10004', 'T10005'],
+          },
+          {
+            id: 'C10010',
+            name: '容量压测',
+            linksTo: ['T10005'],
+          },
+        ],
+      }
   }
 })
 
@@ -478,13 +726,13 @@ const chartRefs: Record<string, Ref<HTMLElement | null>> = {
 }
 
 // ECharts 实例
-let chartVolume: echarts.ECharts | null = null
-let chartRate: echarts.ECharts | null = null
-let chartLatency: echarts.ECharts | null = null
-let chartK8sCpu: echarts.ECharts | null = null
-let chartK8sMemory: echarts.ECharts | null = null
-let chartK8sNetwork: echarts.ECharts | null = null
-let chartK8sDisk: echarts.ECharts | null = null
+const chartVolume: echarts.ECharts | null = null
+const chartRate: echarts.ECharts | null = null
+const chartLatency: echarts.ECharts | null = null
+const chartK8sCpu: echarts.ECharts | null = null
+const chartK8sMemory: echarts.ECharts | null = null
+const chartK8sNetwork: echarts.ECharts | null = null
+const chartK8sDisk: echarts.ECharts | null = null
 
 // 将实例统一管理
 const chartInstances: Record<string, echarts.ECharts | null> = {
@@ -577,7 +825,7 @@ function initChart(domRef: Ref<HTMLElement | null>, title: string, yAxisName: st
         let html = `${params[0].name}<br/>`
         params.forEach((param: { color: string, value: string | number, seriesName: string }) => {
           const { color, value, seriesName } = param
-          if (value !== '-') { // 排除用于填充的占位符
+          if (value !== '-' && seriesName !== '' && seriesName !== 'N/A') { // 排除用于填充的占位符
             html += `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>${seriesName}: ${value}${unit}<br/>`
           }
         })
@@ -585,7 +833,7 @@ function initChart(domRef: Ref<HTMLElement | null>, title: string, yAxisName: st
       },
     },
     legend: {
-      data: ['当前时段 (均值)', '基准时段 (均值)', '异常突变实例'],
+      data: ['当前时段 (均值)', '基准时段 (均值)', ''], // 初始时第三项为空
       bottom: 0,
     },
     grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
@@ -597,7 +845,7 @@ function initChart(domRef: Ref<HTMLElement | null>, title: string, yAxisName: st
       // 系列 1: 基准均值 (背景线)
       { name: '基准时段 (均值)', type: 'line', smooth: true, data: [], lineStyle: { type: 'dashed', color: '#ccc' } },
       // 系列 2: 异常实例 (突出显示)
-      { name: '异常突变实例', type: 'line', smooth: true, data: [], lineStyle: { color: 'red', width: 2.5, shadowBlur: 5, shadowColor: 'rgba(255,0,0,0.5)' } },
+      { name: 'N/A', type: 'line', smooth: true, data: [], lineStyle: { color: 'red', width: 2.5, shadowBlur: 5, shadowColor: 'rgba(255,0,0,0.5)' } },
     ],
   }
 
@@ -710,67 +958,34 @@ function fetchChartData() {
   const currentData = generateMockData(false)
   const baselineData = generateMockData(true)
   updateChartsData(currentData, baselineData)
-  console.warn(`正在分析时间范围：(模拟数据)，基线为 ${baselineOffset.value}。K8s CPU/内存图表已启用异常实例突出显示。`)
+  // console.warn(`正在分析时间范围：(模拟数据)，基线为 ${baselineOffset.value}。K8s CPU/内存图表已启用异常实例突出显示。`)
 }
-
-// 挂载后初始化图表
-onMounted(() => {
-  nextTick(() => {
-    // 仅在 onMounted 时调用一次 fetchChartData，后续由用户交互触发
-    if (selectedCalendarDate.value) {
-      fetchChartData()
-    }
-
-    // 统一处理 resize
-    const resizeAllCharts = () => {
-      Object.values(chartInstances).forEach((chart) => {
-        if (chart) {
-          chart.resize()
-        }
-      })
-    }
-
-    // 绑定窗口resize事件
-    window.addEventListener('resize', resizeAllCharts)
-  })
-})
 
 // --- 新增：诊断指标数据和抽屉状态 ---
 const diagnostics = ref({
   mockVerification: {
     title: '自动化验证',
-    value: '852 / 1000',
-    status: 'success', // success, warning, danger
-    detail: [
-      { id: 1, type: 'SUCCESS', count: 852, msg: '验证成功' },
-      { id: 2, type: 'FAILED', count: 148, msg: '超时或响应码错误' },
-    ],
-  },
-  anomalyLog: {
-    title: '日志详情',
-    value: '42 条',
-    status: 'warning',
-    detail: [
-      { id: 101, type: 'ERROR', timestamp: '10:05:32', content: 'NPE: Null pointer exception in core service' },
-      { id: 102, type: 'WARN', timestamp: '10:10:55', content: 'Database connection pool usage high' },
-    ],
+    value: '8 / 10',
+    status: 'success',
+    detail: [],
   },
   suppressedAlarm: {
     title: '告警详情',
-    value: '0 个',
-    status: 'success',
-    detail: [
-      { id: 201, type: 'INFO', count: 0, content: '无被屏蔽告警' },
-    ],
+    value: '3 个',
+    status: 'warning',
+    detail: [],
+  },
+  anomalyLog: {
+    title: '日志详情',
+    value: '2 类',
+    status: 'warning',
+    detail: [], // 不再使用原来的detail结构
   },
   anomalyTransaction: {
     title: '交易信息',
-    value: '22 笔',
+    value: '4 笔',
     status: 'danger',
-    detail: [
-      { id: 301, type: 'TIMEOUT', time: '10:08:15', code: 'PSDCO003', region: '上海' },
-      { id: 302, type: 'FAILED', time: '10:09:40', code: 'PSDCO001', region: '北京' },
-    ],
+    detail: [], // 不再使用原来的detail结构
   },
 })
 
@@ -794,7 +1009,7 @@ const isChecking: Ref<boolean> = ref(false) // 是否正在检查
 const checkProgress: Ref<number> = ref(0) // 进度条百分比
 const healthCheckResult = ref({
   status: 'info', // overall status: success, warning, danger, info
-  message: '点击开始',
+  message: '',
   summary: [
     { name: '交易系统', status: 'success', time: '5.2s' },
     { name: '数据同步', status: 'success', time: '1.8s' },
@@ -834,7 +1049,7 @@ function runHealthCheck() {
     // 2. 模拟设置检查结果
     const isSuccess = Math.random() > 0.2 // 80% 概率成功
     healthCheckResult.value.status = isSuccess ? 'success' : 'danger'
-    healthCheckResult.value.message = isSuccess ? '核心系统运行健康。' : '发现严重异常，请立即关注。'
+    healthCheckResult.value.message = isSuccess ? '正常' : '异常'
   }, 5000)
 }
 
@@ -991,6 +1206,325 @@ function handleFilterChange(key: string, value: string | string[]) {
     // fetchChartData()
   }
 }
+const graphContainer: Ref<HTMLElement | null> = ref(null)
+let graph: G6.Graph | null = null
+
+onMounted(() => {
+  nextTick(() => {
+    // 延迟初始化以确保 DOM 渲染完成
+    setTimeout(() => {
+      initGraph()
+      if (selectedCalendarDate.value) {
+        fetchChartData()
+      }
+    }, 100)
+    // 仅在 onMounted 时调用一次 fetchChartData，后续由用户交互触发
+    if (selectedCalendarDate.value) {
+      fetchChartData()
+    }
+    // 统一处理 resize
+    const resizeAllCharts = () => {
+      Object.values(chartInstances).forEach((chart) => {
+        if (chart) {
+          chart.resize()
+        }
+      })
+    }
+
+    // 绑定窗口resize事件
+    window.addEventListener('resize', resizeAllCharts)
+
+    // 添加窗口大小变化监听
+    window.addEventListener('resize', handleResize)
+  })
+})
+
+onBeforeUnmount(() => {
+  if (graph) {
+    graph.destroy()
+    graph = null
+  }
+  // 移除事件监听器
+  window.removeEventListener('resize', handleResize)
+})
+
+function handleResize() {
+  if (graph && graphContainer.value) {
+    graph.setSize(graphContainer.value.offsetWidth || 500, graphContainer.value.offsetHeight || 300)
+  }
+}
+
+// 监听 selectedChangeId 变化，更新图表
+watch(selectedChangeId, () => {
+  nextTick(() => {
+    updateGraph()
+  })
+})
+
+// 监听容器变化
+watch(graphContainer, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      initGraph()
+    })
+  }
+})
+
+// 监听 topologyData 变化，更新图表
+watch(topologyData, (newData) => {
+  if (graph && newData && graphContainer.value) {
+    const graphData = transformTopologyData(newData)
+    graph.setData(graphData)
+    graph.render()
+  }
+}, { deep: true })
+
+// 初始化图表函数
+function initGraph() {
+  if (!graphContainer.value)
+    return
+
+  // 确保容器有尺寸
+  const width = graphContainer.value.offsetWidth || 600
+  const height = graphContainer.value.offsetHeight || 400
+
+  if (width === 0 || height === 0)
+    return
+
+  // 如果图表已存在，先销毁
+  if (graph) {
+    graph.destroy()
+  }
+
+  graph = new G6.Graph({
+    container: graphContainer.value,
+    width,
+    height,
+  })
+
+  // 初始渲染数据
+  updateGraph()
+}
+
+// 更新图表的辅助函数
+function updateGraph() {
+  if (graph && topologyData.value && graphContainer.value) {
+    const graphData = transformTopologyData(topologyData.value)
+    graph.setData(graphData)
+    graph.render()
+  }
+}
+// 自动化验证详情数据
+const mockVerificationDetails = ref([
+  {
+    id: 1,
+    strategyName: '服务可用性检查',
+    resource: 'prod-cluster/deployment/user-service',
+    status: 'SUCCESS',
+    detail: '服务响应正常，HTTP状态码200',
+  },
+  {
+    id: 2,
+    strategyName: '数据库连接检查',
+    resource: 'prod-cluster/statefulset/mysql-master',
+    status: 'FAILED',
+    detail: '连接超时，无法建立数据库连接',
+  },
+  {
+    id: 3,
+    strategyName: 'API接口测试',
+    resource: 'test-cluster/deployment/api-gateway',
+    status: 'RUNNING',
+    detail: '正在执行接口测试用例...',
+  },
+  {
+    id: 4,
+    strategyName: '内存使用率检查',
+    resource: 'prod-cluster/node/worker-01',
+    status: 'SUCCESS',
+    detail: '内存使用率65%，在正常范围内',
+  },
+  {
+    id: 5,
+    strategyName: '磁盘空间检查',
+    resource: 'prod-cluster/pv/storage-pv',
+    status: 'WARNING',
+    detail: '磁盘使用率85%，接近阈值',
+  },
+])
+
+// 验证状态类型映射
+function getVerificationStatusType(status: string): 'success' | 'warning' | 'danger' | 'info' {
+  switch (status) {
+    case 'SUCCESS':
+      return 'success'
+    case 'FAILED':
+      return 'danger'
+    case 'WARNING':
+      return 'warning'
+    case 'RUNNING':
+      return 'info'
+    default:
+      return 'info'
+  }
+}
+
+// 验证状态文本映射
+function getVerificationStatusText(status: string): string {
+  switch (status) {
+    case 'SUCCESS':
+      return '成功'
+    case 'FAILED':
+      return '失败'
+    case 'WARNING':
+      return '警告'
+    case 'RUNNING':
+      return '进行中'
+    default:
+      return '未知'
+  }
+}
+
+// 查看验证详情
+function showVerificationDetail(row: any) {
+  ElMessage.info(`详情: ${row.detail}`)
+}
+
+// 告警详情数据
+const alarmDetails = ref({
+  mainAlarms: [
+    {
+      id: 1,
+      time: '2025-10-09 10:30:15',
+      content: '核心服务CPU使用率超过90%',
+      detail: 'user-service在prod-cluster集群中CPU使用率达到92.5%，超过阈值90%',
+    },
+    {
+      id: 2,
+      time: '2025-10-09 11:15:22',
+      content: '数据库连接数达到上限',
+      detail: 'mysql-master数据库连接数达到1000，接近上限1000',
+    },
+  ],
+  infoAlarms: [
+    {
+      id: 3,
+      time: '2025-10-09 09:45:30',
+      content: '内存使用率接近阈值',
+      detail: 'cache-service内存使用率78%，接近阈值80%',
+    },
+    {
+      id: 4,
+      time: '2025-10-09 12:20:10',
+      content: '磁盘IO等待时间增加',
+      detail: 'storage-node-01磁盘IO等待时间从5ms增加到12ms',
+    },
+  ],
+  suppressedAlarms: [
+    {
+      id: 5,
+      time: '2025-10-09 08:30:45',
+      content: '网络延迟轻微波动',
+      detail: 'api-gateway到user-service网络延迟从20ms增加到35ms，但仍在可接受范围内',
+    },
+  ],
+})
+
+// 查看告警详情
+function showAlarmDetail(detail: string) {
+  ElMessage.info(`告警详情: ${detail}`)
+}
+
+// 日志详情数据
+const logDetails = ref({
+  keywords: [
+    {
+      id: 1,
+      keyword: 'NullPointerException',
+      topic: 'core-service',
+      count: 25,
+      detail: '在用户服务模块中检测到空指针异常，主要发生在用户信息查询接口',
+    },
+    {
+      id: 2,
+      keyword: 'ConnectionTimeout',
+      topic: 'database',
+      count: 18,
+      detail: '数据库连接超时，可能由于连接池配置不足导致',
+    },
+    {
+      id: 3,
+      keyword: 'OutOfMemoryError',
+      topic: 'payment-service',
+      count: 5,
+      detail: '支付服务内存溢出错误，建议检查内存分配和垃圾回收',
+    },
+  ],
+  errorCodes: [
+    {
+      id: 1,
+      tradeCode: 'PSDCO001',
+      errorCode: 'E5001',
+      trend: '+15%',
+      detail: '交易码PSDCO001错误码E5001出现频率增加15%，需要关注',
+    },
+    {
+      id: 2,
+      tradeCode: 'PSDCO003',
+      errorCode: 'E4002',
+      trend: '-8%',
+      detail: '交易码PSDCO003错误码E4002出现频率减少8%，问题已缓解',
+    },
+    {
+      id: 3,
+      tradeCode: 'PSDCO005',
+      errorCode: 'E3005',
+      trend: '+22%',
+      detail: '交易码PSDCO005错误码E3005出现频率激增22%，需要紧急处理',
+    },
+  ],
+})
+
+// 查看日志详情
+function showLogDetail(detail: string) {
+  ElMessage.info(`日志详情: ${detail}`)
+}
+// 交易详情数据
+const transactionDetails = ref([
+  {
+    id: 1,
+    tradeCode: 'PSDCO001',
+    time: '2025-10-09 10:15:30',
+    count: 5,
+    detail: '交易码PSDCO001在10:15:30发生5笔未知状态交易，可能由于网络超时导致',
+  },
+  {
+    id: 2,
+    tradeCode: 'PSDCO003',
+    time: '2025-10-09 11:30:45',
+    count: 3,
+    detail: '交易码PSDCO003在11:30:45发生3笔未知状态交易，需要检查支付网关状态',
+  },
+  {
+    id: 3,
+    tradeCode: 'PSDCO005',
+    time: '2025-10-09 14:22:18',
+    count: 7,
+    detail: '交易码PSDCO005在14:22:18发生7笔未知状态交易，建议检查数据库连接',
+  },
+  {
+    id: 4,
+    tradeCode: 'PSDCO002',
+    time: '2025-10-09 16:45:12',
+    count: 2,
+    detail: '交易码PSDCO002在16:45:12发生2笔未知状态交易，可能由于服务重启导致',
+  },
+])
+
+// 查看交易详情
+function showTransactionDetail(detail: string) {
+  ElMessage.info(`交易详情: ${detail}`)
+}
 </script>
 
 <template>
@@ -1000,11 +1534,7 @@ function handleFilterChange(key: string, value: string | string[]) {
         <el-card class="system-list-card" shadow="never">
           <template #header>
             <div class="sidebar-search">
-              <el-input
-                v-model="searchText"
-                placeholder="系统名称"
-                clearable
-              >
+              <el-input v-model="searchText" placeholder="系统名称" clearable>
                 <template #prefix>
                   <el-icon><i-ep-search /></el-icon>
                 </template>
@@ -1013,31 +1543,19 @@ function handleFilterChange(key: string, value: string | string[]) {
           </template>
 
           <el-menu
-            :default-active="selectedSystemId"
-            class="el-menu-vertical-demo"
-            :collapse="false"
+            :default-active="selectedSystemId" class="el-menu-vertical-demo" :collapse="false"
             @select="handleMenuSelect"
           >
-            <el-menu-item
-              v-for="system in filteredSystemList"
-              :key="system.id"
-              :index="system.id"
-              :title="system.name"
-            >
+            <el-menu-item v-for="system in filteredSystemList" :key="system.id" :index="system.id" :title="system.name">
               <div class="menu-item-content">
                 <div class="menu-item-left">
-                  <el-icon><i-ep-star /></el-icon>
                   <span class="system-name">{{ system.name }}</span>
                 </div>
                 <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" class="menu-item-badge" />
               </div>
             </el-menu-item>
 
-            <el-empty
-              v-if="filteredSystemList.length === 0"
-              description="无匹配系统"
-              :image-size="50"
-            />
+            <el-empty v-if="filteredSystemList.length === 0" description="无匹配系统" :image-size="50" />
           </el-menu>
         </el-card>
       </el-col>
@@ -1073,15 +1591,11 @@ function handleFilterChange(key: string, value: string | string[]) {
             </div>
 
             <div
-              v-for="dateItem in calendarDates"
-              :key="dateItem.date"
-              class="date-cell"
-              :class="{
+              v-for="dateItem in calendarDates" :key="dateItem.date" class="date-cell" :class="{
                 'not-current-month': !dateItem.isCurrentMonth,
                 'is-selected': dateItem.date === selectedCalendarDate,
                 'has-event': dateItem.hasEvent,
-              }"
-              @click="handleDateSelect(dateItem.date)"
+              }" @click="handleDateSelect(dateItem.date)"
             >
               <div class="date-number">
                 {{ dateItem.day }}
@@ -1103,18 +1617,18 @@ function handleFilterChange(key: string, value: string | string[]) {
         <div class="timeline-container">
           <div class="activity-bar-wrapper">
             <el-tooltip
-              v-for="(segment, index) in timelineSegments"
-              :key="index"
-              :content="segment.changes.map(c => c.name).join(', ')"
-              placement="top"
+              v-for="(segment, index) in timelineSegments" :key="index"
+              :content="segment.changes.map(c => c.name).join(', ')" placement="top"
             >
-              <div class="activity-segment" :class="`status-${segment.status}`" :style="getSegmentStyle(segment)" @click="handleSegmentSelect(segment)" />
+              <div
+                class="activity-segment" :class="`status-${segment.status}`" :style="getSegmentStyle(segment)"
+                @click="handleSegmentSelect(segment)"
+              />
             </el-tooltip>
           </div>
           <div class="hour-markers">
             <span v-for="h in 25" :key="h" class="hour-label">
-              {{ h - 1 < 10 ? '0' : '' }}{{ h - 1 }}
-            </span>
+              {{ h - 1 < 10 ? '0' : '' }}{{ h - 1 }} </span>
           </div>
         </div>
       </el-col>
@@ -1125,58 +1639,35 @@ function handleFilterChange(key: string, value: string | string[]) {
       </el-col>
       <el-col :span="4">
         <el-card
-          class="diag-card health-check-card"
-          :class="`status-${healthCheckResult.status}`"
+          class="diag-card health-check-card" :class="`status-${healthCheckResult.status}`"
           @click="isChecking ? null : runHealthCheck()"
         >
           <div class="diag-title">
             系统健康检查
           </div>
-          <div v-if="!isChecking && checkProgress < 100" class="check-initial">
-            {{ healthCheckResult.message }}
-            <el-icon><i-ep-check /></el-icon>
+          <div v-if="!isChecking && checkProgress < 100" class="diag-value">
+            <el-tag type="info" size="large">
+              <span>开始检查</span>
+            </el-tag>
           </div>
           <div v-else-if="isChecking" class="check-progress-container">
             <el-progress
-              :percentage="checkProgress"
-              :stroke-width="10"
-              :show-text="false"
+              :percentage="checkProgress" :stroke-width="10" :show-text="false"
               :color="getStatusColor('warning')"
             />
             <div class="checking-text">
               正在检查中...
             </div>
           </div>
-          <div v-else class="check-completed">
-            <el-icon :style="{ color: getStatusColor(healthCheckResult.status) }">
-              <component :is="getStatusIcon(healthCheckResult.status)" />
-            </el-icon>
-            <span class="result-message">
-              {{ healthCheckResult.message }}
-            </span>
-            <el-button
-              type="primary"
-              link
-              size="small"
-              class="view-detail-btn"
-              @click.stop="showHealthCheckResult"
-            >
-              查看明细
-            </el-button>
+          <div v-else class="diag-value" @click.stop="showHealthCheckResult">
+            <el-tag :type="getTagType(healthCheckResult.status)" size="large">
+              <span>{{ healthCheckResult.message }}</span>
+            </el-tag>
           </div>
         </el-card>
       </el-col>
-      <el-col
-        v-for="(item, key) in diagnostics"
-        :key="key"
-        :span="4"
-      >
-        <el-card
-          shadow="hover"
-          class="diag-card"
-          :class="`status-${item.status}`"
-          @click="showDetail(key)"
-        >
+      <el-col v-for="(item, key) in diagnostics" :key="key" :span="4">
+        <el-card shadow="hover" class="diag-card" :class="`status-${item.status}`" @click="showDetail(key)">
           <div class="diag-title">
             {{ item.title }}
           </div>
@@ -1185,9 +1676,6 @@ function handleFilterChange(key: string, value: string | string[]) {
               {{ item.value }}
             </el-tag>
           </div>
-          <el-icon class="diag-icon">
-            <i-ep-arrow-right />
-          </el-icon>
         </el-card>
       </el-col>
     </el-row>
@@ -1197,13 +1685,7 @@ function handleFilterChange(key: string, value: string | string[]) {
       </el-col>
       <el-col :span="20">
         <div class="button-group">
-          <el-button
-            v-for="code in transactionCodes"
-            :key="code"
-            plain
-            size="small"
-            @click="handleCodeClick(code)"
-          >
+          <el-button v-for="code in transactionCodes" :key="code" plain size="small" @click="handleCodeClick(code)">
             {{ code }}
           </el-button>
         </div>
@@ -1216,11 +1698,7 @@ function handleFilterChange(key: string, value: string | string[]) {
       <el-col :span="20">
         <div class="button-group">
           <el-button
-            v-for="province in provinces"
-            :key="province"
-            type="primary"
-            plain
-            size="small"
+            v-for="province in provinces" :key="province" type="primary" plain size="small"
             @click="handleProvinceClick(province)"
           >
             {{ province }}
@@ -1228,16 +1706,13 @@ function handleFilterChange(key: string, value: string | string[]) {
         </div>
       </el-col>
     </el-row>
+
     <el-row v-if="selectedChangeId" :gutter="20" class="bottom-content-area">
       <el-col :span="4">
         <el-card class="change-list-card" shadow="never">
           <template #header>
             <div class="sidebar-search">
-              <el-input
-                v-model="changeSearchText"
-                placeholder="变更单号"
-                clearable
-              >
+              <el-input v-model="changeSearchText" placeholder="变更单号" clearable>
                 <template #prefix>
                   <el-icon><i-ep-search /></el-icon>
                 </template>
@@ -1245,30 +1720,21 @@ function handleFilterChange(key: string, value: string | string[]) {
             </div>
           </template>
           <el-menu
-            :default-active="selectedChangeId"
-            class="el-menu-vertical-change"
-            :collapse="false"
+            :default-active="selectedChangeId" class="el-menu-vertical-change" :collapse="false"
             @select="handleChangeSelect"
           >
-            <el-menu-item
-              v-for="change in filteredChangeList"
-              :key="change.id"
-              :index="change.id"
-              :title="change.name"
-            >
+            <el-menu-item v-for="change in filteredChangeList" :key="change.id" :index="change.id" :title="change.name">
               <div class="change-menu-item-content">
-                <el-icon><i-ep-document /></el-icon>
                 <span class="change-id">{{ change.id }}</span>
-                <el-tag :type="getChangeTypeInfo(change.type).tagType" size="small" effect="light" style="margin-left: auto;">
+                <el-tag
+                  :type="getChangeTypeInfo(change.type).tagType" size="small" effect="light"
+                  style="margin-left: auto;"
+                >
                   {{ getChangeTypeInfo(change.type).text }}
                 </el-tag>
               </div>
             </el-menu-item>
-            <el-empty
-              v-if="filteredChangeList.length === 0"
-              description="无匹配变更"
-              :image-size="50"
-            />
+            <el-empty v-if="filteredChangeList.length === 0" description="无匹配变更" :image-size="50" />
           </el-menu>
         </el-card>
       </el-col>
@@ -1276,10 +1742,7 @@ function handleFilterChange(key: string, value: string | string[]) {
         <el-card class="topology-card" shadow="never">
           <template #header>
             <el-descriptions
-              :column="2"
-              :title="`变更单：${selectedChangeId}`"
-              border
-              size="small"
+              :column="2" :title="`变更单：${selectedChangeId}`" border size="small"
               class="change-summary-descriptions"
             >
               <el-descriptions-item label="变更摘要" :span="2">
@@ -1299,64 +1762,7 @@ function handleFilterChange(key: string, value: string | string[]) {
               </el-descriptions-item>
             </el-descriptions>
           </template>
-          <div class="topology-container">
-            <div class="connector top-line" />
-            <div class="connector bottom-line" />
-
-            <div class="topo-step predecessor">
-              <div class="step-title">
-                前置变更
-              </div>
-              <div
-                v-for="pred in topologyData.predecessors"
-                :id="`topo-node-${pred.id}`"
-                :key="pred.id"
-                class="topo-node topo-change"
-              >
-                {{ pred.id }}
-              </div>
-            </div>
-
-            <div class="topo-step current">
-              <div class="step-title">
-                当前变更: {{ topologyData.currentChange.id }}
-              </div>
-              <div class="tasks-flow-container">
-                <template v-for="(taskGroup, groupIndex) in topologyData.currentChange.tasks" :key="groupIndex">
-                  <div class="tasks-group">
-                    <div
-                      v-for="task in taskGroup"
-                      :id="`topo-node-${task.id}`"
-                      :key="task.id"
-                      class="topo-node topo-task"
-                      :class="[task.status.toLowerCase(), { 'is-selected': task.id === selectedTaskId }]"
-                      @click="handleTaskSelect(task.id)"
-                    >
-                      <span class="task-id">{{ task.id }}</span>
-                      <span class="task-label">{{ task.label }}</span>
-                    </div>
-                  </div>
-                  <div v-if="groupIndex < topologyData.currentChange.tasks.length - 1" class="flow-arrow">
-                    →
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <div class="topo-step successor">
-              <div class="step-title">
-                后续变更
-              </div>
-              <div
-                v-for="succ in topologyData.successors"
-                :id="`topo-node-${succ.id}`"
-                :key="succ.id"
-                class="topo-node topo-change"
-              >
-                {{ succ.id }}
-              </div>
-            </div>
-          </div>
+          <div id="graph" ref="graphContainer" style="width: 100%; height: 300px;" />
         </el-card>
       </el-col>
 
@@ -1364,10 +1770,7 @@ function handleFilterChange(key: string, value: string | string[]) {
         <el-card class="detail-card" shadow="never">
           <template #header>
             <el-descriptions
-              :column="2"
-              :title="`任务单：${selectedTaskId}`"
-              border
-              size="small"
+              :column="2" :title="`任务单：${selectedTaskId}`" border size="small"
               class="change-summary-descriptions"
             >
               <el-descriptions-item label="任务名称" :span="2">
@@ -1386,11 +1789,7 @@ function handleFilterChange(key: string, value: string | string[]) {
             </el-descriptions>
           </template>
           <el-table
-            :data="k8sDetailData"
-            border
-            style="width: 100%;"
-            max-height="350"
-            size="small"
+            :data="k8sDetailData" border style="width: 100%;" max-height="350" size="small"
             class="k8s-detail-table"
           >
             <el-table-column prop="component" label="组件">
@@ -1435,28 +1834,16 @@ function handleFilterChange(key: string, value: string | string[]) {
               监控维度筛选
             </div>
             <el-row :gutter="20">
-              <el-col
-                v-for="filter in dimensionFilters"
-                :key="filter.key"
-                :span="4"
-                class="filter-item-col"
-              >
+              <el-col v-for="filter in dimensionFilters" :key="filter.key" :span="4" class="filter-item-col">
                 <div class="filter-label">
                   {{ filter.label }}:
                 </div>
                 <el-select
-                  v-model="filter.selected"
-                  :multiple="filter.multiple"
-                  :placeholder="`请选择${filter.label}`"
-                  size="default"
-                  style="width: 100%;"
-                  @change="(val) => handleFilterChange(filter.key, val)"
+                  v-model="filter.selected" :multiple="filter.multiple" :placeholder="`请选择${filter.label}`"
+                  size="default" style="width: 100%;" @change="(val) => handleFilterChange(filter.key, val)"
                 >
                   <el-option
-                    v-for="item in filter.options"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
+                    v-for="item in filter.options" :key="item.value" :label="item.label" :value="item.value"
                     :disabled="item.disabled"
                   />
                 </el-select>
@@ -1473,12 +1860,8 @@ function handleFilterChange(key: string, value: string | string[]) {
         </el-col>
         <el-col :span="8">
           <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            start-placeholder="开始时间"
-            end-placeholder="结束时间"
-            :default-time="defaultTime"
-            size="default"
+            v-model="timeRange" type="datetimerange" start-placeholder="开始时间" end-placeholder="结束时间"
+            :default-time="defaultTime" size="default"
           />
         </el-col>
 
@@ -1568,47 +1951,186 @@ function handleFilterChange(key: string, value: string | string[]) {
     </div>
   </template>
 
-  <el-empty
-    v-if="!selectedCalendarDate"
-    description="请先从日历中选择一个日期以查看相关活动和指标"
-    style="margin-top: 50px;"
-  >
+  <el-empty v-if="!selectedCalendarDate" description="请先从日历中选择一个日期以查看相关活动和指标" style="margin-top: 50px;">
     <el-icon :size="48">
       <i-ep-calendar />
     </el-icon>
   </el-empty>
 
-  <el-drawer
-    v-model="drawerVisible"
-    :title="currentDetailTitle"
-    direction="rtl"
-    size="50%"
-  >
+  <el-drawer v-model="drawerVisible" :title="currentDetailTitle" direction="rtl" size="80%">
+    <!-- 自动化验证专用表格 -->
+    <div v-if="currentDetailTitle === '自动化验证'">
+      <el-table :data="mockVerificationDetails" border>
+        <el-table-column prop="strategyName" label="验证策略名称" />
+        <el-table-column prop="resource" label="所在资源" />
+        <el-table-column prop="status" label="验证状态">
+          <template #default="{ row }">
+            <el-tag :type="getVerificationStatusType(row.status)">
+              {{ getVerificationStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="详情">
+          <template #default="{ row }">
+            <el-button size="small" @click="showVerificationDetail(row)">
+              查看详情
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
+    <!-- 告警详情专用表格 -->
+    <div v-else-if="currentDetailTitle === '告警详情'">
+      <!-- 主要告警 -->
+      <el-card class="alarm-card" shadow="never">
+        <template #header>
+          <div class="alarm-header">
+            <span>主要告警 ({{ alarmDetails.mainAlarms.length }})</span>
+          </div>
+        </template>
+        <el-table :data="alarmDetails.mainAlarms" border>
+          <el-table-column prop="time" label="发生时间" width="180" />
+          <el-table-column prop="content" label="告警内容" />
+          <el-table-column label="详细信息" width="120">
+            <template #default="{ row }">
+              <el-button size="small" @click="showAlarmDetail(row.detail)">
+                查看详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <!-- 提示告警 -->
+      <el-card class="alarm-card" shadow="never" style="margin-top: 20px;">
+        <template #header>
+          <div class="alarm-header">
+            <span>提示告警 ({{ alarmDetails.infoAlarms.length }})</span>
+          </div>
+        </template>
+        <el-table :data="alarmDetails.infoAlarms" border>
+          <el-table-column prop="time" label="发生时间" width="180" />
+          <el-table-column prop="content" label="告警内容" />
+          <el-table-column label="详细信息" width="120">
+            <template #default="{ row }">
+              <el-button size="small" @click="showAlarmDetail(row.detail)">
+                查看详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <!-- 被屏蔽告警 -->
+      <el-card class="alarm-card" shadow="never" style="margin-top: 20px;">
+        <template #header>
+          <div class="alarm-header">
+            <span>被屏蔽告警 ({{ alarmDetails.suppressedAlarms.length }})</span>
+          </div>
+        </template>
+        <el-table :data="alarmDetails.suppressedAlarms" border>
+          <el-table-column prop="time" label="发生时间" width="180" />
+          <el-table-column prop="content" label="告警内容" />
+          <el-table-column label="详细信息" width="120">
+            <template #default="{ row }">
+              <el-button size="small" @click="showAlarmDetail(row.detail)">
+                查看详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </div>
+
+    <!-- 日志详情专用表格 -->
+    <div v-else-if="currentDetailTitle === '日志详情'">
+      <!-- 异常日志关键字 -->
+      <el-card class="log-card" shadow="never">
+        <template #header>
+          <div class="log-header">
+            <span>异常日志关键字 ({{ logDetails.keywords.length }})</span>
+          </div>
+        </template>
+        <el-table :data="logDetails.keywords" border>
+          <el-table-column prop="keyword" label="关键字" />
+          <el-table-column prop="topic" label="Topic" />
+          <el-table-column prop="count" label="数量" />
+          <el-table-column label="详细信息" width="120">
+            <template #default="{ row }">
+              <el-button size="small" @click="showLogDetail(row.detail)">
+                查看详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <!-- 异常返回码 -->
+      <el-card class="log-card" shadow="never" style="margin-top: 20px;">
+        <template #header>
+          <div class="log-header">
+            <span>异常返回码 ({{ logDetails.errorCodes.length }})</span>
+          </div>
+        </template>
+        <el-table :data="logDetails.errorCodes" border>
+          <el-table-column prop="tradeCode" label="交易码" />
+          <el-table-column prop="errorCode" label="错误码" />
+          <el-table-column prop="trend" label="变动趋势百分比" />
+          <el-table-column label="详细信息" width="120">
+            <template #default="{ row }">
+              <el-button size="small" @click="showLogDetail(row.detail)">
+                查看详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </div>
+
+    <!-- 交易详情专用表格 -->
+    <div v-else-if="currentDetailTitle === '交易信息'">
+      <el-card class="transaction-card" shadow="never">
+        <template #header>
+          <div class="transaction-header">
+            <span>未知状态交易 ({{ transactionDetails.length }})</span>
+          </div>
+        </template>
+        <el-table :data="transactionDetails" border>
+          <el-table-column prop="tradeCode" label="交易码" />
+          <el-table-column prop="time" label="发生时间" />
+          <el-table-column prop="count" label="笔数" />
+          <el-table-column label="详细信息" width="120">
+            <template #default="{ row }">
+              <el-button size="small" @click="showTransactionDetail(row.detail)">
+                查看详情
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </div>
+
     <el-table v-if="currentDetail && currentDetail.length > 0" :data="currentDetail" border>
       <template v-for="(value, key) in currentDetail[0]" :key="key">
-        <el-table-column
-          :prop="key.toString()"
-          :label="key.toString().toUpperCase()"
-          sortable
-        />
+        <el-table-column :prop="key.toString()" :label="key.toString().toUpperCase()" sortable />
       </template>
     </el-table>
     <el-empty v-else description="无明细数据" />
   </el-drawer>
 
-  <el-drawer
-    v-model="checkResultDrawerVisible"
-    title="系统健康检查结果明细"
-    direction="rtl"
-    size="40%"
-  >
-    <el-alert :title="healthCheckResult.message" :type="healthCheckResult.status" show-icon :closable="false" style="margin-bottom: 20px;" />
+  <el-drawer v-model="checkResultDrawerVisible" title="系统健康检查结果明细" direction="rtl" size="80%">
+    <el-alert
+      :title="healthCheckResult.message" :type="healthCheckResult.status" show-icon :closable="false"
+      style="margin-bottom: 20px;"
+    />
     <el-table :data="healthCheckResult.summary" border>
       <el-table-column prop="name" label="模块名称" width="120" />
       <el-table-column label="检查状态" width="120">
         <template #default="{ row }">
           <el-tag :type="getTagType(row.status)">
-            {{ row.status === 'success' ? '正常' : row.status === 'warning' ? '警告' : row.status === 'danger' ? '异常' : '信息' }}
+            {{ row.status === 'success' ? '正常' : row.status === 'warning' ? '警告' : row.status === 'danger' ? '异常' : '信息'
+            }}
           </el-tag>
         </template>
       </el-table-column>
@@ -1629,21 +2151,25 @@ function handleFilterChange(key: string, value: string | string[]) {
 .top-row {
   margin-bottom: 20px;
 }
+
 .control-row {
   margin-bottom: 10px;
   align-items: center;
 }
+
 .title-col {
   font-weight: bold;
   color: #606266;
   line-height: 32px;
   padding-right: 0 !important;
 }
+
 .button-group {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
+
 .button-group .el-button {
   padding: 8px 15px;
   height: 32px;
@@ -1654,10 +2180,12 @@ function handleFilterChange(key: string, value: string | string[]) {
   border: none;
   height: 100%;
 }
+
 .calendar-card {
   border: none;
   height: 100%;
 }
+
 .calendar-header {
   display: flex;
   justify-content: space-between;
@@ -1665,35 +2193,42 @@ function handleFilterChange(key: string, value: string | string[]) {
   padding: 12px 20px;
   border-bottom: 1px solid #ebeef5;
 }
+
 .calendar-header-center {
   font-weight: bold;
   font-size: 16px;
 }
+
 .calendar-header-left,
 .calendar-header-right {
   display: flex;
   align-items: center;
 }
+
 .sidebar-search {
   padding-bottom: 5px;
 }
+
 .el-menu-vertical-demo {
   border-right: none;
   max-height: 400px;
   overflow-y: auto;
 }
+
 .menu-item-content {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   width: 100%;
 }
+
 .menu-item-left {
   display: flex;
   align-items: center;
   flex-grow: 1;
   overflow: hidden;
 }
+
 /* --- 新增：自定义菜单项角标样式 --- */
 .menu-item-badge :deep(.el-badge__content) {
   font-size: 10px;
@@ -1707,8 +2242,10 @@ function handleFilterChange(key: string, value: string | string[]) {
   text-align: center;
   border: 1px solid #a0cfff;
   padding: 0;
-  right: 0; /* 确保位置正确 */
+  right: 0;
+  /* 确保位置正确 */
 }
+
 .system-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1724,6 +2261,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   border: 1px solid #ebeef5;
   background-color: #ebeef5;
 }
+
 .day-header {
   background-color: #f5f7fa;
   padding: 8px 0;
@@ -1731,6 +2269,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   font-size: 12px;
   color: #909399;
 }
+
 .date-cell {
   display: flex;
   flex-direction: column;
@@ -1743,23 +2282,29 @@ function handleFilterChange(key: string, value: string | string[]) {
   transition: background-color 0.3s;
   min-height: 50px;
 }
+
 .date-cell.not-current-month .date-number {
   color: #c0c4cc;
 }
+
 .date-number {
   text-align: right;
   padding-right: 5px;
   font-weight: bold;
   color: #606266;
 }
+
 .date-cell.is-selected {
   background-color: #ecf5ff;
   border: 1px solid #409eff;
-  margin: -1px; /* 避免选中时边框导致布局错位 */
+  margin: -1px;
+  /* 避免选中时边框导致布局错位 */
 }
+
 .date-cell.has-event {
   background-color: #fdf6ec;
 }
+
 .activity-count {
   position: absolute;
   bottom: 2px;
@@ -1780,6 +2325,7 @@ function handleFilterChange(key: string, value: string | string[]) {
 .timeline-row {
   margin-bottom: 20px;
 }
+
 .timeline-container {
   background-color: #ffffff;
   border: 1px solid #dcdfe6;
@@ -1787,6 +2333,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   padding: 10px 5px;
   position: relative;
 }
+
 .activity-bar-wrapper {
   position: relative;
   height: 25px;
@@ -1794,6 +2341,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   border-radius: 3px;
   margin-bottom: 5px;
 }
+
 .activity-segment {
   position: absolute;
   top: 0;
@@ -1802,11 +2350,13 @@ function handleFilterChange(key: string, value: string | string[]) {
   cursor: pointer;
   border-radius: 3px;
 }
+
 .activity-segment.is-active {
   background-color: #e6a23c;
   border: 2px solid #3a8ee6;
   z-index: 10;
 }
+
 .hour-markers {
   display: grid;
   grid-template-columns: repeat(25, 1fr);
@@ -1816,6 +2366,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   border-top: 1px solid #e4e7ed;
   padding-top: 5px;
 }
+
 .hour-label {
   position: relative;
   text-align: left;
@@ -1823,6 +2374,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   font-size: 10px;
   color: #909399;
 }
+
 .hour-label:before {
   content: '';
   position: absolute;
@@ -1838,6 +2390,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   margin-top: 20px;
   margin-bottom: 20px;
 }
+
 .change-list-card,
 .topology-card,
 .detail-card {
@@ -1845,26 +2398,31 @@ function handleFilterChange(key: string, value: string | string[]) {
   min-height: 450px;
   border: none;
 }
+
 .el-menu-vertical-change {
   border-right: none;
   max-height: 380px;
   overflow-y: auto;
 }
+
 .card-header-title {
   font-weight: bold;
   font-size: 16px;
 }
+
 .change-summary-descriptions {
   :deep(.el-descriptions__title) {
     font-size: 16px;
   }
 }
+
 .change-menu-item-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
 }
+
 .change-menu-item-left {
   display: flex;
   align-items: center;
@@ -1872,6 +2430,7 @@ function handleFilterChange(key: string, value: string | string[]) {
   overflow: hidden;
   gap: 5px;
 }
+
 .change-id {
   margin-left: 5px;
   flex-grow: 1;
@@ -1892,10 +2451,12 @@ function handleFilterChange(key: string, value: string | string[]) {
   top: 50%;
   transform: translateY(-50%);
 }
+
 .top-line {
   left: 0;
   width: 40%;
 }
+
 .bottom-line {
   right: 0;
   width: 40%;
@@ -2001,52 +2562,77 @@ function handleFilterChange(key: string, value: string | string[]) {
   margin-top: 20px;
   margin-bottom: 10px;
 }
+
 .chart-area-row {
   margin-bottom: 20px;
 }
+
 .chart-card {
   border: none;
   height: 400px;
 }
+
 .echarts-container {
   width: 100%;
   height: 340px;
 }
+
 /* --- 新增：健康检查和诊断板块样式 --- */
 .health-check-row {
   margin-bottom: 20px;
 }
 
+/* 调整关注信息行的高度 */
+.health-check-row .title-col {
+  line-height: 120px;
+  /* 与卡片高度保持一致 */
+}
+
 .diag-card {
-  height: 90px;
+  height: 120px;
   cursor: pointer;
-  border-left: 6px solid #e4e7ed; /* 默认边框 */
-  border-left: 6px solid #e4e7ed; /* 默认边框 */
+  border-left: 6px solid #e4e7ed;
+  /* 默认边框 */
   transition: all 0.3s;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 15px 10px;
+  /* 增加内边距 */
 }
+
 .diag-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
+
 .diag-card.status-success {
   border-left-color: #67c23a;
 }
+
 .diag-card.status-warning {
   border-left-color: #e6a23c;
 }
+
 .diag-card.status-danger {
   border-left-color: #f56c6c;
 }
+
 .diag-title {
   font-size: 14px;
   color: #909399;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  /* 增加标题底部间距 */
 }
+
 .diag-value {
   font-size: 24px;
   font-weight: bold;
+  margin-bottom: 5px;
+  /* 增加数值底部间距 */
 }
+
 .diag-icon {
   position: absolute;
   right: 15px;
@@ -2054,29 +2640,140 @@ function handleFilterChange(key: string, value: string | string[]) {
   transform: translateY(-50%);
   color: #dcdfe6;
 }
+
+/* --- 健康检查按钮样式改进 --- */
+.check-initial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.health-check-tag {
+  margin-bottom: 10px;
+  font-weight: 500;
+  transition: all 0.3s;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 10px 16px;
+}
+
+.health-check-tag:hover {
+  transform: scale(1.05);
+}
+
+.check-message {
+  font-size: 12px;
+  color: #909399;
+  text-align: center;
+}
+
+.check-progress-container {
+  padding: 0 15px;
+}
+
+.checking-text {
+  text-align: center;
+  font-size: 12px;
+  color: #909399;
+  margin-top: 10px;
+}
+
+.check-completed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  cursor: pointer;
+}
+
+.check-completed .health-check-tag {
+  margin-bottom: 8px;
+}
+
+.result-message {
+  font-size: 12px;
+  margin: 8px 0;
+  color: #606266;
+}
+
+.result-message.status-success {
+  color: #67c23a;
+}
+
+.result-message.status-danger {
+  color: #f56c6c;
+}
+
+.result-message.status-info {
+  color: #409eff;
+}
+
+.view-detail-btn {
+  margin-top: 8px;
+}
+
 /* --- 新增：筛选面板样式 --- */
 .filter-controls-row {
   margin-bottom: 20px;
 }
+
 .filter-card {
   border: none;
-  padding-bottom: 5px; /* 调整内部填充 */
+  padding-bottom: 5px;
+  /* 调整内部填充 */
 }
+
 .filter-item-col {
   /* 确保筛选器能均匀分布在每行，并且有足够的空间 */
   margin-bottom: 10px;
 }
+
 .filter-label {
   font-size: 14px;
   color: #606266;
   margin-bottom: 5px;
   font-weight: bold;
 }
+
 /* 调整卡片头部标题样式 */
 .card-header-title {
   font-size: 16px;
   font-weight: bold;
   color: #303133;
-  margin-bottom: 10px; /* 确保标题和筛选器之间有间距 */
+  margin-bottom: 10px;
+  /* 确保标题和筛选器之间有间距 */
+}
+
+.alarm-card {
+  border: 1px solid #ebeef5;
+}
+
+.alarm-header {
+  font-weight: bold;
+  color: #606266;
+}
+
+/* 添加日志卡片样式 */
+.log-card {
+  border: 1px solid #ebeef5;
+}
+
+.log-header {
+  font-weight: bold;
+  color: #606266;
+}
+
+/* 添加交易卡片样式 */
+.transaction-card {
+  border: 1px solid #ebeef5;
+}
+
+.transaction-header {
+  font-weight: bold;
+  color: #606266;
 }
 </style>

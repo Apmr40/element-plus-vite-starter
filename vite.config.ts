@@ -43,9 +43,6 @@ export default defineConfig({
     Icons({
       autoInstall: true,
       compiler: 'vue3',
-      collections: {
-        ep: () => import('@iconify-json/ep/icons.json'),
-      },
     }),
 
     Components({
@@ -60,7 +57,7 @@ export default defineConfig({
         // ✨ 2. Icons Resolver 配置保持不变 (这是正确的)
         IconsResolver({
           // 'ep' 是 element-plus 的默认图标集别名
-          prefix: 'i-ep', // 确保解析 <i-ep-search>
+          prefix: 'i', // 确保解析 <i-ep-search>
         }),
       ],
       dts: 'src/components.d.ts',
