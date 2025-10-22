@@ -1,25 +1,121 @@
-<script setup lang="ts">
+import { computed } from 'vue'
 import type { Ref } from 'vue'
-import * as echarts from 'echarts'
-import { computed, nextTick, onMounted, ref } from 'vue'
-import CalendarView from './components/CalendarView.vue'
-import ChangeTopology from './components/ChangeTopology.vue'
-import ChartArea from './components/ChartArea.vue'
-import Diagnostics from './components/Diagnostics.vue'
-import FilterControls from './components/FilterControls.vue'
-import HealthCheck from './components/HealthCheck.vue'
-import K8sDetailTable from './components/K8sDetailTable.vue'
-// 如果你的项目未配置自动导入，请确保 Element Plus 组件在此处被正确导入
-import SystemList from './components/SystemList.vue'
-import TimelineView from './components/TimelineView.vue'
-import { useCalendar } from './composables/useCalendar'
-import { useCharts } from './composables/useCharts'
-import { useFilters } from './composables/useFilters'
-import { useTimeline } from './composables/useTimeline'
-import { dataService } from './services/dataService'
+import type { ChangeEvent, ChangeItem } from './useDataState'
+
+export function useChangeTopology(
+  allChanges: Ref<ChangeEvent[]>,
+  selectedSystemId: Ref<string>,
+  selectedCalendarDate: Ref<string | null>,
+  selectedChangeId: Ref<string | null>,
+  changeSearchText: Ref<string>,
+) {
+  // 根据ID获取完整的变更信息
+  const selectedChange = computed(() => {
+    return allChanges.value.find(c => c.id === selectedChangeId.value)
+  })
+
+  // 变更列表 (根据 allChanges, selectedSystemId, selectedCalendarDate 动态生成)
+  const changeList = computed<ChangeItem[]>(() => {
+    return allChanges.value
+      .filter(c => c.systemId === selectedSystemId.value && c.date === selectedCalendarDate.value)
+      .map(c => ({ id: c.id, name: c.name, type: c.type }))
+  })
+
+  const filteredChangeList = computed<ChangeItem[]>(() => {
+    if (!changeSearchText.value)
+      return changeList.value
+    const searchLower = changeSearchText.value.toLowerCase()
+    return changeList.value.filter((change: ChangeItem) => change.id.toLowerCase().includes(searchLower) || change.name.toLowerCase().includes(searchLower))
+  })
+
+  const topologyData = computed(() => {
+    if (selectedChangeId.value === 'C10002') {
+      return {
+        predecessors: [{ id: 'C99999', name: '网络策略调整', linksTo: ['T20001'] }, { id: 'C99997', name: '防火墙规则下发', linksTo: ['T20001'] }],
+        currentChange: {
+          id: 'C10002',
+          tasks: [ // 任务现在是二维数组，代表串行步骤
+            [ // 步骤1: 单个任务
+              { id: 'T20001', status: 'SUCCESS', label: '配置更新', name: '支付渠道配置更新', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '周八', contact: 'zhou.ba@example.com' } },
+            ],
+            [ // 步骤2: 两个并行任务
+              { id: 'T20002', status: 'RUNNING', label: '核心部署', name: '核心服务部署', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '运维小队A', contact: 'ops-a@example.com' } },
+              { id: 'T20004', status: 'RUNNING', label: '网关部署', name: 'API网关部署', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '运维小队A', contact: 'ops-a@example.com' } },
+            ],
+            [ // 步骤3: 单个任务
+              { id: 'T20003', status: 'PENDING', label: '验证回归', name: '业务验证回归', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '测试组', contact: 'qa@example.com' } },
+            ],
+          ],
+        },
+        successors: [{ id: 'C10007', name: '监控告警屏蔽', linksTo: ['T20003'] }, { id: 'C10011', name: '日志规则调整', linksTo: ['T20003'] }],
+      }
+    }
+    return {
+      predecessors: [{ id: 'C99998', name: '前置审批', linksTo: ['T10001'] }, { id: 'C99996', name: '资源申请', linksTo: ['T10001'] }],
+      currentChange: {
+        id: selectedChangeId.value,
+        tasks: [
+          [ // 步骤1
+            { id: 'T10001', status: 'SUCCESS', label: 'DB变更', name: '数据库结构变更', submitter: { name: 'DBA团队', contact: 'dba@example.com' }, implementer: { name: 'DBA-小王', contact: 'dba.wang@example.com' } },
+          ],
+          [ // 步骤2
+            { id: 'T10002', status: 'SUCCESS', label: '服务A发布', name: '用户服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小李', contact: 'app.li@example.com' } },
+            { id: 'T10003', status: 'FAILED', label: '服务B发布', name: '订单服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小张', contact: 'app.zhang@example.com' } },
+          ],
+          [ // 步骤3
+            { id: 'T10004', status: 'PENDING', label: '服务C发布', name: '库存服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小刘', contact: 'app.liu@example.com' } },
+            { id: 'T10005', status: 'PENDING', label: '服务D发布', name: '物流服务发布', submitter: { name: '应用组', contact: 'app@example.com' }, implementer: { name: '应用-小刘', contact: 'app.liu@example.com' } },
+          ],
+        ],
+      },
+      successors: [{ id: 'C10007', name: '安全检查', linksTo: ['T10004', 'T10005'] }, { id: 'C10010', name: '容量压测', linksTo: ['T10005'] }],
+    }
+  })
+
+  const selectedTaskId = computed(() => {
+    const currentChange = topologyData.value.currentChange
+    const allTasks = currentChange.tasks?.flat() || []
+    return allTasks.find(t => t.status === 'RUNNING' || t.status === 'FAILED')?.id || allTasks[0]?.id || ''
+  })
+
+  const selectedTaskDetail = computed(() => {
+    const currentTasks = topologyData.value.currentChange.tasks?.flat() || []
+    return currentTasks.find(t => t.id === selectedTaskId.value)
+  })
+
+  const k8sDetailData = computed(() => {
+    if (selectedTaskId.value === 'T10003') {
+      return [{ component: 'user-service', namespace: 'prod-ns', cluster: 'GZ-K8S01', status: 'FAILED' }, { component: 'auth-gateway', namespace: 'prod-ns', cluster: 'GZ-K8S01', status: 'SUCCESS' }]
+    }
+    return [{ component: 'core-api', namespace: 'prod-ns', cluster: 'SH-K8S02', status: 'SUCCESS' }, { component: 'data-sync', namespace: 'dev-ns', cluster: 'SH-K8S02', status: 'SUCCESS' }]
+  })
+
+  function getChangeTypeInfo(type: 'program' | 'config' | 'data'): { text: string, tagType: 'primary' | 'success' | 'warning' } {
+    switch (type) {
+      case 'program':
+        return { text: '程序', tagType: 'primary' }
+      case 'config':
+        return { text: '配置', tagType: 'success' }
+      case 'data':
+        return { text: '数据', tagType: 'warning' }
+      default:
+        return { text: '未知', tagType: 'info' }
+    }
+  }
+
+  return {
+    selectedChange,
+    changeList,
+    filteredChangeList,
+    topologyData,
+    selectedTaskId,
+    selectedTaskDetail,
+    k8sDetailData,
+    getChangeTypeInfo,
+  }
+}
 
 // --- 类型定义 ---
-
 interface TimelineActivity {
   start: number
   end: number
@@ -134,7 +230,6 @@ const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
   }
   return activities
 })
-
 // --- 模拟数据和逻辑 (顶部/中间部分) ---
 const selectedCalendarDate: Ref<string | null> = ref(null)
 const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
@@ -167,13 +262,11 @@ const timelineSegments = computed<TimelineSegment[]>(() => {
 
   return segments
 })
-
 function getSegmentStyle(segment: TimelineSegment): { left: string, width: string } {
   const startPercentage = (segment.start / 24) * 100
   const durationPercentage = ((segment.end - segment.start) / 24) * 100
   return { left: `${startPercentage}%`, width: `${durationPercentage}%` }
 }
-
 function handleDateSelect(date: string) {
   if (selectedCalendarDate.value === date)
     return
@@ -181,7 +274,6 @@ function handleDateSelect(date: string) {
   selectedActivityIndex.value = null
   fetchChartData()
 }
-
 function handleSegmentSelect(segment: TimelineSegment) {
   // 选中一个时间段时，默认关联到该时间段的第一个变更
   const firstChange = segment.changes[0]
@@ -191,13 +283,11 @@ function handleSegmentSelect(segment: TimelineSegment) {
 }
 
 const searchText = ref('')
-
 const transactionCodes = ref(['PSDCO001', 'PSDCO002', 'PSDCO003', 'PSDCO004', 'PSDCO005', 'PSDCO006', 'PSDCO007', 'PSDCO008'])
 const provinces = ref(['北京', '上海', '广东', '江苏', '浙江', '四川', '湖南'])
 function handleCodeClick(code: string) {
   console.warn(`选择交易码: ${code}`)
 }
-
 function handleProvinceClick(province: string) {
   console.warn(`选择省市: ${province}`)
 }
@@ -223,7 +313,6 @@ const filteredSystemList = computed<SystemItem[]>(() => {
     system.name.toLowerCase().includes(searchLower) || system.code.toLowerCase().includes(searchLower),
   )
 })
-
 const selectedSystemId = ref('SYS-A')
 function handleMenuSelect(index: string) {
   selectedSystemId.value = index
@@ -233,7 +322,6 @@ function handleMenuSelect(index: string) {
 const currentSystemEvents = computed<Record<string, number>>(() => calendarEvents.value[selectedSystemId.value] || {})
 const weekDays: string[] = ['日', '一', '二', '三', '四', '五', '六']
 // 新增：模拟当前日历视图是 2025年10月
-const calendarYear: Ref<number> = ref(2025)
 const calendarYear: Ref<number> = ref(2025)
 const calendarMonth: Ref<number> = ref(10) // 10月
 
@@ -251,7 +339,6 @@ function nextMonth() {
   }
   else { calendarMonth.value++ }
 }
-
 function goToToday() {
   calendarYear.value = 2025
   calendarMonth.value = 10
@@ -477,7 +564,6 @@ function handleDetailClick(prop: string, value: string) {
 // 时间选择器数据
 const now = new Date()
 const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
-
 const timeRange: Ref<[Date, Date]> = ref([oneHourAgo, now])
 const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
 const baselineOffset: Ref<string> = ref('T-7')
@@ -563,7 +649,6 @@ function generateMockData(isBaseline = false): ChartDataItem[] {
       instanceDetails.push({
         id: `pod-${j}`,
         cpu,
-
         memory,
       })
     }
@@ -670,7 +755,7 @@ function getAnomalyInstanceData(data: ChartDataItem[], dataKey: 'k8sCpu' | 'k8sM
 }
 
 // 核心：更新所有图表数据函数
-function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) {
+function updateCharts(data: ChartDataItem[], baselineData: ChartDataItem[]) {
   const times = data.map(d => d.time)
 
   // 定义图表配置
@@ -685,7 +770,7 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
   ]
 
   // 交易指标和 K8s 聚合指标通用更新函数
-  const updateChart = (chartName: string, dataKey: keyof ChartDataItem, yAxisName: string, unit: string, isK8sAnomalyChart = false, anomalyThreshold = 0, times: string[]) => {
+  const updateChart = (chartName: string, dataKey: keyof ChartDataItem, yAxisName: string, unit: string, isK8sAnomalyChart = false, anomalyThreshold = 0) => {
     let chartInstance = chartInstances[chartName]
     // 如果实例不存在，尝试初始化
     if (!chartInstance) {
@@ -727,7 +812,7 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
   }
 
   chartConfigs.forEach((config) => {
-    updateChart(config.name, config.dataKey as keyof ChartDataItem, config.yAxis, config.unit || '', config.isK8sAnomaly, config.threshold, times)
+    updateChart(config.name, config.dataKey as keyof ChartDataItem, config.yAxis, config.unit || '', config.isK8sAnomaly, config.threshold)
   })
 }
 
@@ -735,12 +820,11 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
 function fetchChartData() {
   const currentData = generateMockData(false)
   const baselineData = generateMockData(true)
-  updateChartsData(currentData, baselineData)
+  updateCharts(currentData, baselineData)
   console.warn(`正在分析时间范围：(模拟数据)，基线为 ${baselineOffset.value}。K8s CPU/内存图表已启用异常实例突出显示。`)
 }
 
 // 挂载后初始化图表
-
 onMounted(() => {
   nextTick(() => {
     // 仅在 onMounted 时调用一次 fetchChartData，后续由用户交互触发
@@ -774,7 +858,7 @@ const diagnostics = ref({
     ],
   },
   anomalyLog: {
-    title: '日志详情',
+    title: '日志情况',
     value: '42 条',
     status: 'warning',
     detail: [
@@ -783,7 +867,7 @@ const diagnostics = ref({
     ],
   },
   suppressedAlarm: {
-    title: '告警详情',
+    title: '告警情况',
     value: '0 个',
     status: 'success',
     detail: [
@@ -791,7 +875,7 @@ const diagnostics = ref({
     ],
   },
   anomalyTransaction: {
-    title: '交易信息',
+    title: '交易情况',
     value: '22 笔',
     status: 'danger',
     detail: [
@@ -821,7 +905,7 @@ const isChecking: Ref<boolean> = ref(false) // 是否正在检查
 const checkProgress: Ref<number> = ref(0) // 进度条百分比
 const healthCheckResult = ref({
   status: 'info', // overall status: success, warning, danger, info
-  message: '点击开始',
+  message: '点击发起系统健康检查',
   summary: [
     { name: '交易系统', status: 'success', time: '5.2s' },
     { name: '数据同步', status: 'success', time: '1.8s' },
@@ -1056,7 +1140,7 @@ function handleFilterChange(key: string, value: string | string[]) {
                   <el-icon><i-ep-star /></el-icon>
                   <span class="system-name">{{ system.name }}</span>
                 </div>
-                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" class="menu-item-badge" />
+                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" />
               </div>
             </el-menu-item>
 
@@ -1124,7 +1208,7 @@ function handleFilterChange(key: string, value: string | string[]) {
 
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row timeline-row">
       <el-col :span="4" class="title-col">
-        时间线
+        时间线：
       </el-col>
       <el-col :span="20">
         <div class="timeline-container">
@@ -1147,11 +1231,9 @@ function handleFilterChange(key: string, value: string | string[]) {
       </el-col>
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row health-check-row">
-      <el-col :span="4" class="title-col">
-        关注信息
-      </el-col>
       <el-col :span="4">
         <el-card
+          shadow="hover"
           class="diag-card health-check-card"
           :class="`status-${healthCheckResult.status}`"
           @click="isChecking ? null : runHealthCheck()"
@@ -1220,7 +1302,7 @@ function handleFilterChange(key: string, value: string | string[]) {
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
       <el-col :span="4" class="title-col">
-        交易码推荐
+        交易码推荐：
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1238,7 +1320,7 @@ function handleFilterChange(key: string, value: string | string[]) {
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
       <el-col :span="4" class="title-col">
-        省市推荐
+        省市推荐：
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1369,16 +1451,25 @@ function handleFilterChange(key: string, value: string | string[]) {
                 </template>
               </div>
             </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+              </div>
+            </div>
 
             <div class="topo-step successor">
               <div class="step-title">
                 后续变更
               </div>
+
               <div
                 v-for="succ in topologyData.successors"
-                :id="`topo-node-${succ.id}`"
                 :key="succ.id"
                 class="topo-node topo-change"
+              :id="`topo-node-${succ.id}`"
               >
                 {{ succ.id }}
               </div>
@@ -1451,10 +1542,9 @@ function handleFilterChange(key: string, value: string | string[]) {
           </el-table>
         </el-card>
       </el-col>
+
     </el-row>
-  </div>
-  <template v-if="selectedCalendarDate">
-    <div class="special-care-view-adjusted">
+    <template v-if="selectedCalendarDate">
       <el-row :gutter="20" class="filter-controls-row">
         <el-col :span="24">
           <el-card shadow="never" class="filter-card">
@@ -1498,7 +1588,7 @@ function handleFilterChange(key: string, value: string | string[]) {
         <el-col :span="2" class="title-col">
           时间范围：
         </el-col>
-        <el-col :span="8">
+        <el-col :span="10">
           <el-date-picker
             v-model="timeRange"
             type="datetimerange"
@@ -1510,16 +1600,16 @@ function handleFilterChange(key: string, value: string | string[]) {
         </el-col>
 
         <el-col :span="2" class="title-col">
-          对比基线：
+          基线选择：
         </el-col>
-        <el-col :span="8">
+        <el-col :span="4">
           <el-radio-group v-model="baselineOffset" size="default">
             <el-radio-button label="T-1" />
             <el-radio-button label="T-3" />
             <el-radio-button label="T-7" />
           </el-radio-group>
         </el-col>
-        <el-col :span="4">
+        <el-col :span="6">
           <el-button type="primary" plain @click="fetchChartData">
             查询分析
           </el-button>
@@ -1592,18 +1682,18 @@ function handleFilterChange(key: string, value: string | string[]) {
           </el-card>
         </el-col>
       </el-row>
-    </div>
-  </template>
+    </template>
 
-  <el-empty
-    v-if="!selectedCalendarDate"
-    description="请先从日历中选择一个日期以查看相关活动和指标"
-    style="margin-top: 50px;"
-  >
-    <el-icon :size="48">
-      <i-ep-calendar />
-    </el-icon>
-  </el-empty>
+    <el-empty
+      v-if="!selectedCalendarDate"
+      description="请先从日历中选择一个日期以查看相关活动和指标"
+      style="margin-top: 50px;"
+    >
+      <el-icon :size="48">
+        <i-ep-calendar />
+      </el-icon>
+    </el-empty>
+  </div>
 
   <el-drawer
     v-model="drawerVisible"
@@ -1720,21 +1810,6 @@ function handleFilterChange(key: string, value: string | string[]) {
   align-items: center;
   flex-grow: 1;
   overflow: hidden;
-}
-/* --- 新增：自定义菜单项角标样式 --- */
-.menu-item-badge :deep(.el-badge__content) {
-  font-size: 10px;
-  font-weight: bold;
-  color: #409eff;
-  background-color: #d9ecff;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  line-height: 18px;
-  text-align: center;
-  border: 1px solid #a0cfff;
-  padding: 0;
-  right: 0; /* 确保位置正确 */
 }
 .system-name {
   overflow: hidden;
@@ -2043,11 +2118,14 @@ function handleFilterChange(key: string, value: string | string[]) {
 .health-check-row {
   margin-bottom: 20px;
 }
-
+.health-check-row .title-col {
+  /* 调整按钮区域，让按钮居中或对齐 */
+  display: flex;
+  align-items: center;
+}
 .diag-card {
   height: 90px;
   cursor: pointer;
-  border-left: 6px solid #e4e7ed; /* 默认边框 */
   border-left: 6px solid #e4e7ed; /* 默认边框 */
   transition: all 0.3s;
   position: relative;

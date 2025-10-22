@@ -1,25 +1,286 @@
-<script setup lang="ts">
 import type { Ref } from 'vue'
 import * as echarts from 'echarts'
-import { computed, nextTick, onMounted, ref } from 'vue'
-import CalendarView from './components/CalendarView.vue'
-import ChangeTopology from './components/ChangeTopology.vue'
-import ChartArea from './components/ChartArea.vue'
-import Diagnostics from './components/Diagnostics.vue'
-import FilterControls from './components/FilterControls.vue'
-import HealthCheck from './components/HealthCheck.vue'
-import K8sDetailTable from './components/K8sDetailTable.vue'
-// 如果你的项目未配置自动导入，请确保 Element Plus 组件在此处被正确导入
-import SystemList from './components/SystemList.vue'
-import TimelineView from './components/TimelineView.vue'
-import { useCalendar } from './composables/useCalendar'
-import { useCharts } from './composables/useCharts'
-import { useFilters } from './composables/useFilters'
-import { useTimeline } from './composables/useTimeline'
-import { dataService } from './services/dataService'
+import { nextTick, ref } from 'vue'
+import type { ChartDataItem } from './useDataState'
+
+export function useCharts() {
+  // 时间选择器数据
+  const now = new Date()
+  const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
+  const timeRange: Ref<[Date, Date]> = ref([oneHourAgo, now])
+  const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
+  const baselineOffset: Ref<string> = ref('T-7')
+
+  // ECharts DOM 引用
+  const chartVolumeRef: Ref<HTMLElement | null> = ref(null)
+  const chartRateRef: Ref<HTMLElement | null> = ref(null)
+  const chartLatencyRef: Ref<HTMLElement | null> = ref(null)
+  const chartK8sCpuRef: Ref<HTMLElement | null> = ref(null)
+  const chartK8sMemoryRef: Ref<HTMLElement | null> = ref(null)
+  const chartK8sNetworkRef: Ref<HTMLElement | null> = ref(null)
+  const chartK8sDiskRef: Ref<HTMLElement | null> = ref(null)
+
+  // 将 refs 统一管理，方便按名称查找
+  const chartRefs: Record<string, Ref<HTMLElement | null>> = {
+    chartVolume: chartVolumeRef,
+    chartRate: chartRateRef,
+    chartLatency: chartLatencyRef,
+    chartK8sCpu: chartK8sCpuRef,
+    chartK8sMemory: chartK8sMemoryRef,
+    chartK8sNetwork: chartK8sNetworkRef,
+    chartK8sDisk: chartK8sDiskRef,
+  }
+
+  // ECharts 实例
+  const chartInstances: Record<string, echarts.ECharts | null> = {
+    chartVolume: null,
+    chartRate: null,
+    chartLatency: null,
+    chartK8sCpu: null,
+    chartK8sMemory: null,
+    chartK8sNetwork: null,
+    chartK8sDisk: null,
+  }
+
+  // 模拟数据生成函数
+  function generateMockData(isBaseline = false): ChartDataItem[] {
+    const data: ChartDataItem[] = []
+
+    // --- 交易数据基准 ---
+    const volumeBase = isBaseline ? 800 : 1200
+    const rateBase = isBaseline ? 99.8 : 99.9
+    const latencyBase = isBaseline ? 150 : 100
+
+    // --- K8s 指标基准 ---
+    const cpuBase = isBaseline ? 0.6 : 0.4
+    const memoryBase = isBaseline ? 75 : 65
+    const networkBase = isBaseline ? 50 : 80
+    const diskBase = isBaseline ? 40 : 30
+
+    // 假设当前时段有 10 个实例在运行
+    const numInstances = 10
+
+    for (let i = 0; i < 60; i++) {
+      const timestamp = new Date(timeRange.value[0].getTime() + i * 60 * 1000)
+
+      let totalCpu = 0
+      let totalMemory = 0
+      const instanceDetails = []
+
+      // 循环生成每个实例的数据 (仅用于当前时段的异常模拟)
+      for (let j = 1; j <= numInstances; j++) {
+        let cpu = Number.parseFloat((cpuBase + (Math.random() * 0.3 - 0.15)).toFixed(2))
+        let memory = Number.parseFloat((memoryBase + (Math.random() * 10 - 5)).toFixed(1))
+
+        // 【关键模拟】: 在当前时段的第 30-40 分钟，实例 3 发生突变
+        if (!isBaseline && j === 3 && i >= 30 && i <= 40) {
+          cpu = 1.5 + Math.random() * 1.0 // CPU 突升到 1.5 - 2.5 核
+          memory = 95 + Math.random() * 3 // 内存突升到 95%
+        }
+
+        totalCpu += cpu
+        totalMemory += memory
+        instanceDetails.push({
+          id: `pod-${j}`,
+          cpu,
+          memory,
+        })
+      }
+
+      data.push({
+        time: timestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+
+        // 交易指标
+        volume: Math.floor(volumeBase + (Math.random() * volumeBase * 0.4 - volumeBase * 0.2)),
+        successRate: (rateBase + Math.random() * 0.2 - 0.1).toFixed(2),
+        latency: Math.floor(latencyBase + Math.random() * 60 - 30),
+
+        // K8s 聚合指标 (平均值)
+        k8sCpu: (totalCpu / numInstances).toFixed(2),
+        k8sMemory: (totalMemory / numInstances).toFixed(1),
+        k8sNetwork: (networkBase + (Math.random() * 40 - 20)).toFixed(1),
+        k8sDisk: (diskBase + (Math.random() * 20 - 10)).toFixed(1),
+
+        // 保存实例详情，用于筛选异常
+        instanceDetails,
+      })
+    }
+    return data
+  }
+
+  // ECharts 初始化函数 (支持 3 条线)
+  function initChart(domRef: Ref<HTMLElement | null>, title: string, yAxisName: string, unit = ''): echarts.ECharts | null {
+    if (!domRef.value)
+      return null
+    const chartInstance = echarts.init(domRef.value)
+
+    const option = {
+      title: { text: title, left: 'center', show: false },
+      tooltip: {
+        trigger: 'axis',
+        formatter(params: any[]): string {
+          let html = `${params[0].name}<br/>`
+          params.forEach((param: { color: string, value: string | number, seriesName: string }) => {
+            const { color, value, seriesName } = param
+            if (value !== '-') { // 排除用于填充的占位符
+              html += `<span style="display:inline-block;margin-right:4px;border-radius:10px;width:10px;height:10px;background-color:${color};"></span>${seriesName}: ${value}${unit}<br/>`
+            }
+          })
+          return html
+        },
+      },
+      legend: {
+        data: ['当前时段 (均值)', '基准时段 (均值)', '异常突变实例'],
+        bottom: 0,
+      },
+      grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+      xAxis: { type: 'category', boundaryGap: false, data: [] },
+      yAxis: { type: 'value', name: yAxisName },
+      series: [
+        // 系列 0: 当前均值 (主线)
+        { name: '当前时段 (均值)', type: 'line', smooth: true, data: [], lineStyle: { width: 3 } },
+        // 系列 1: 基准均值 (背景线)
+        { name: '基准时段 (均值)', type: 'line', smooth: true, data: [], lineStyle: { type: 'dashed', color: '#ccc' } },
+        // 系列 2: 异常实例 (突出显示)
+        { name: '异常突变实例', type: 'line', smooth: true, data: [], lineStyle: { color: 'red', width: 2.5, shadowBlur: 5, shadowColor: 'rgba(255,0,0,0.5)' } },
+      ],
+    }
+
+    chartInstance.setOption(option)
+    return chartInstance
+  }
+
+  // 辅助函数：提取异常实例的指标数据
+  function getAnomalyInstanceData(data: ChartDataItem[], dataKey: 'k8sCpu' | 'k8sMemory', anomalyThreshold: number): { name: string, data: (string | number)[] } {
+    let maxMetric = -1
+    let anomalyInstanceId: string | null = null
+
+    // 1. 找出最异常的实例 ID (简化为找到在整个时间段内值超过阈值且最大的实例)
+    data.forEach((d) => {
+      d.instanceDetails.forEach((instance) => {
+        const metricKey = dataKey === 'k8sCpu' ? 'cpu' : 'memory'
+        if (instance[metricKey] > maxMetric && instance[metricKey] > anomalyThreshold) {
+          maxMetric = instance[metricKey]
+          anomalyInstanceId = instance.id
+        }
+      })
+    })
+
+    if (!anomalyInstanceId) {
+      // 如果没有找到明显异常的实例
+      return {
+        name: '无明显异常',
+        data: data.map(() => '-'), // 返回占位符，图表不会绘制
+      }
+    }
+
+    // 2. 提取该实例在所有时间点的数据
+    const anomalyData = data.map((d) => {
+      const instance = d.instanceDetails.find(inst => inst.id === anomalyInstanceId)
+      // 如果该实例未报告数据，则用 '-' (echarts 会忽略 '-')
+      const metricKey = dataKey === 'k8sCpu' ? 'cpu' : 'memory'
+      return instance ? instance[metricKey] : '-'
+    })
+
+    return {
+      name: `异常实例: ${anomalyInstanceId}`,
+      data: anomalyData,
+    }
+  }
+
+  // 核心：更新所有图表数据函数
+  function updateCharts(data: ChartDataItem[], baselineData: ChartDataItem[]) {
+    const times = data.map(d => d.time)
+
+    // 定义图表配置
+    const chartConfigs = [
+      { name: 'chartVolume', dataKey: 'volume', yAxis: '交易量 (次)', unit: '次' },
+      { name: 'chartRate', dataKey: 'successRate', yAxis: '成功率 (%)', unit: '%' },
+      { name: 'chartLatency', dataKey: 'latency', yAxis: '延时 (ms)', unit: 'ms' },
+      { name: 'chartK8sCpu', dataKey: 'k8sCpu', yAxis: 'CPU (核)', unit: '核', isK8sAnomaly: true, threshold: 1.0 },
+      { name: 'chartK8sMemory', dataKey: 'k8sMemory', yAxis: '内存 (%)', unit: '%', isK8sAnomaly: true, threshold: 85.0 },
+      { name: 'chartK8sNetwork', dataKey: 'k8sNetwork', yAxis: '流量 (MB/s)', unit: 'MB/s' },
+      { name: 'chartK8sDisk', dataKey: 'k8sDisk', yAxis: 'I/O (MB/s)', unit: 'MB/s' },
+    ]
+
+    // 交易指标和 K8s 聚合指标通用更新函数
+    const updateChart = (chartName: string, dataKey: keyof ChartDataItem, yAxisName: string, unit: string, isK8sAnomalyChart = false, anomalyThreshold = 0) => {
+      let chartInstance = chartInstances[chartName]
+      // 如果实例不存在，尝试初始化
+      if (!chartInstance) {
+        const domRef = chartRefs[chartName]
+        if (domRef.value) {
+          chartInstance = initChart(domRef, chartName, yAxisName, unit)
+          chartInstances[chartName] = chartInstance
+        }
+      }
+      // 如果仍然不存在（例如DOM不可见），则直接返回
+      if (!chartInstance)
+        return
+
+      const option = chartInstance.getOption()
+
+      option.xAxis[0].data = times
+
+      // 系列 0: 当前均值
+      option.series[0].name = '当前时段 (均值)'
+      option.series[0].data = data.map(d => d[dataKey])
+
+      // 系列 1: 基线均值
+      option.series[1].name = '基准时段 (均值)'
+      option.series[1].data = baselineData.map(d => d[dataKey])
+
+      // 系列 2: 异常实例逻辑
+      if (isK8sAnomalyChart) {
+        const anomaly = getAnomalyInstanceData(data, dataKey as 'k8sCpu' | 'k8sMemory', anomalyThreshold)
+        option.series[2].name = anomaly.name
+        option.series[2].data = anomaly.data
+      }
+      else {
+        // 交易指标和不突出异常的 K8s 指标，隐藏第三条线
+        option.series[2].name = 'N/A'
+        option.series[2].data = data.map(() => '-')
+      }
+
+      chartInstance.setOption(option, true)
+    }
+
+    chartConfigs.forEach((config) => {
+      updateChart(config.name, config.dataKey as keyof ChartDataItem, config.yAxis, config.unit || '', config.isK8sAnomaly, config.threshold)
+    })
+  }
+
+  // 按钮点击：获取数据并更新图表
+  function fetchChartData() {
+    const currentData = generateMockData(false)
+    const baselineData = generateMockData(true)
+    updateCharts(currentData, baselineData)
+    console.warn(`正在分析时间范围：(模拟数据)，基线为 ${baselineOffset.value}。K8s CPU/内存图表已启用异常实例突出显示。`)
+  }
+
+  function resizeAllCharts() {
+    nextTick(() => {
+      Object.values(chartInstances).forEach((chart) => {
+        if (chart) {
+          chart.resize()
+        }
+      })
+    })
+  }
+
+  return {
+    timeRange,
+    defaultTime,
+    baselineOffset,
+    chartRefs,
+    chartInstances,
+    initChart,
+    fetchChartData,
+    resizeAllCharts,
+  }
+}
 
 // --- 类型定义 ---
-
 interface TimelineActivity {
   start: number
   end: number
@@ -134,7 +395,6 @@ const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
   }
   return activities
 })
-
 // --- 模拟数据和逻辑 (顶部/中间部分) ---
 const selectedCalendarDate: Ref<string | null> = ref(null)
 const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
@@ -167,13 +427,11 @@ const timelineSegments = computed<TimelineSegment[]>(() => {
 
   return segments
 })
-
 function getSegmentStyle(segment: TimelineSegment): { left: string, width: string } {
   const startPercentage = (segment.start / 24) * 100
   const durationPercentage = ((segment.end - segment.start) / 24) * 100
   return { left: `${startPercentage}%`, width: `${durationPercentage}%` }
 }
-
 function handleDateSelect(date: string) {
   if (selectedCalendarDate.value === date)
     return
@@ -181,7 +439,6 @@ function handleDateSelect(date: string) {
   selectedActivityIndex.value = null
   fetchChartData()
 }
-
 function handleSegmentSelect(segment: TimelineSegment) {
   // 选中一个时间段时，默认关联到该时间段的第一个变更
   const firstChange = segment.changes[0]
@@ -191,13 +448,11 @@ function handleSegmentSelect(segment: TimelineSegment) {
 }
 
 const searchText = ref('')
-
 const transactionCodes = ref(['PSDCO001', 'PSDCO002', 'PSDCO003', 'PSDCO004', 'PSDCO005', 'PSDCO006', 'PSDCO007', 'PSDCO008'])
 const provinces = ref(['北京', '上海', '广东', '江苏', '浙江', '四川', '湖南'])
 function handleCodeClick(code: string) {
   console.warn(`选择交易码: ${code}`)
 }
-
 function handleProvinceClick(province: string) {
   console.warn(`选择省市: ${province}`)
 }
@@ -223,7 +478,6 @@ const filteredSystemList = computed<SystemItem[]>(() => {
     system.name.toLowerCase().includes(searchLower) || system.code.toLowerCase().includes(searchLower),
   )
 })
-
 const selectedSystemId = ref('SYS-A')
 function handleMenuSelect(index: string) {
   selectedSystemId.value = index
@@ -233,7 +487,6 @@ function handleMenuSelect(index: string) {
 const currentSystemEvents = computed<Record<string, number>>(() => calendarEvents.value[selectedSystemId.value] || {})
 const weekDays: string[] = ['日', '一', '二', '三', '四', '五', '六']
 // 新增：模拟当前日历视图是 2025年10月
-const calendarYear: Ref<number> = ref(2025)
 const calendarYear: Ref<number> = ref(2025)
 const calendarMonth: Ref<number> = ref(10) // 10月
 
@@ -251,7 +504,6 @@ function nextMonth() {
   }
   else { calendarMonth.value++ }
 }
-
 function goToToday() {
   calendarYear.value = 2025
   calendarMonth.value = 10
@@ -477,7 +729,6 @@ function handleDetailClick(prop: string, value: string) {
 // 时间选择器数据
 const now = new Date()
 const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
-
 const timeRange: Ref<[Date, Date]> = ref([oneHourAgo, now])
 const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
 const baselineOffset: Ref<string> = ref('T-7')
@@ -563,7 +814,6 @@ function generateMockData(isBaseline = false): ChartDataItem[] {
       instanceDetails.push({
         id: `pod-${j}`,
         cpu,
-
         memory,
       })
     }
@@ -670,7 +920,7 @@ function getAnomalyInstanceData(data: ChartDataItem[], dataKey: 'k8sCpu' | 'k8sM
 }
 
 // 核心：更新所有图表数据函数
-function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) {
+function updateCharts(data: ChartDataItem[], baselineData: ChartDataItem[]) {
   const times = data.map(d => d.time)
 
   // 定义图表配置
@@ -685,7 +935,7 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
   ]
 
   // 交易指标和 K8s 聚合指标通用更新函数
-  const updateChart = (chartName: string, dataKey: keyof ChartDataItem, yAxisName: string, unit: string, isK8sAnomalyChart = false, anomalyThreshold = 0, times: string[]) => {
+  const updateChart = (chartName: string, dataKey: keyof ChartDataItem, yAxisName: string, unit: string, isK8sAnomalyChart = false, anomalyThreshold = 0) => {
     let chartInstance = chartInstances[chartName]
     // 如果实例不存在，尝试初始化
     if (!chartInstance) {
@@ -727,7 +977,7 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
   }
 
   chartConfigs.forEach((config) => {
-    updateChart(config.name, config.dataKey as keyof ChartDataItem, config.yAxis, config.unit || '', config.isK8sAnomaly, config.threshold, times)
+    updateChart(config.name, config.dataKey as keyof ChartDataItem, config.yAxis, config.unit || '', config.isK8sAnomaly, config.threshold)
   })
 }
 
@@ -735,12 +985,11 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
 function fetchChartData() {
   const currentData = generateMockData(false)
   const baselineData = generateMockData(true)
-  updateChartsData(currentData, baselineData)
+  updateCharts(currentData, baselineData)
   console.warn(`正在分析时间范围：(模拟数据)，基线为 ${baselineOffset.value}。K8s CPU/内存图表已启用异常实例突出显示。`)
 }
 
 // 挂载后初始化图表
-
 onMounted(() => {
   nextTick(() => {
     // 仅在 onMounted 时调用一次 fetchChartData，后续由用户交互触发
@@ -774,7 +1023,7 @@ const diagnostics = ref({
     ],
   },
   anomalyLog: {
-    title: '日志详情',
+    title: '日志情况',
     value: '42 条',
     status: 'warning',
     detail: [
@@ -783,7 +1032,7 @@ const diagnostics = ref({
     ],
   },
   suppressedAlarm: {
-    title: '告警详情',
+    title: '告警情况',
     value: '0 个',
     status: 'success',
     detail: [
@@ -791,7 +1040,7 @@ const diagnostics = ref({
     ],
   },
   anomalyTransaction: {
-    title: '交易信息',
+    title: '交易情况',
     value: '22 笔',
     status: 'danger',
     detail: [
@@ -821,7 +1070,7 @@ const isChecking: Ref<boolean> = ref(false) // 是否正在检查
 const checkProgress: Ref<number> = ref(0) // 进度条百分比
 const healthCheckResult = ref({
   status: 'info', // overall status: success, warning, danger, info
-  message: '点击开始',
+  message: '点击发起系统健康检查',
   summary: [
     { name: '交易系统', status: 'success', time: '5.2s' },
     { name: '数据同步', status: 'success', time: '1.8s' },
@@ -1056,7 +1305,7 @@ function handleFilterChange(key: string, value: string | string[]) {
                   <el-icon><i-ep-star /></el-icon>
                   <span class="system-name">{{ system.name }}</span>
                 </div>
-                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" class="menu-item-badge" />
+                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" />
               </div>
             </el-menu-item>
 
@@ -1124,7 +1373,7 @@ function handleFilterChange(key: string, value: string | string[]) {
 
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row timeline-row">
       <el-col :span="4" class="title-col">
-        时间线
+        时间线：
       </el-col>
       <el-col :span="20">
         <div class="timeline-container">
@@ -1147,11 +1396,9 @@ function handleFilterChange(key: string, value: string | string[]) {
       </el-col>
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row health-check-row">
-      <el-col :span="4" class="title-col">
-        关注信息
-      </el-col>
       <el-col :span="4">
         <el-card
+          shadow="hover"
           class="diag-card health-check-card"
           :class="`status-${healthCheckResult.status}`"
           @click="isChecking ? null : runHealthCheck()"
@@ -1220,7 +1467,7 @@ function handleFilterChange(key: string, value: string | string[]) {
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
       <el-col :span="4" class="title-col">
-        交易码推荐
+        交易码推荐：
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1238,7 +1485,7 @@ function handleFilterChange(key: string, value: string | string[]) {
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
       <el-col :span="4" class="title-col">
-        省市推荐
+        省市推荐：
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1369,16 +1616,25 @@ function handleFilterChange(key: string, value: string | string[]) {
                 </template>
               </div>
             </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+              </div>
+            </div>
 
             <div class="topo-step successor">
               <div class="step-title">
                 后续变更
               </div>
+
               <div
                 v-for="succ in topologyData.successors"
-                :id="`topo-node-${succ.id}`"
                 :key="succ.id"
                 class="topo-node topo-change"
+              :id="`topo-node-${succ.id}`"
               >
                 {{ succ.id }}
               </div>
@@ -1451,10 +1707,9 @@ function handleFilterChange(key: string, value: string | string[]) {
           </el-table>
         </el-card>
       </el-col>
+
     </el-row>
-  </div>
-  <template v-if="selectedCalendarDate">
-    <div class="special-care-view-adjusted">
+    <template v-if="selectedCalendarDate">
       <el-row :gutter="20" class="filter-controls-row">
         <el-col :span="24">
           <el-card shadow="never" class="filter-card">
@@ -1498,7 +1753,7 @@ function handleFilterChange(key: string, value: string | string[]) {
         <el-col :span="2" class="title-col">
           时间范围：
         </el-col>
-        <el-col :span="8">
+        <el-col :span="10">
           <el-date-picker
             v-model="timeRange"
             type="datetimerange"
@@ -1510,16 +1765,16 @@ function handleFilterChange(key: string, value: string | string[]) {
         </el-col>
 
         <el-col :span="2" class="title-col">
-          对比基线：
+          基线选择：
         </el-col>
-        <el-col :span="8">
+        <el-col :span="4">
           <el-radio-group v-model="baselineOffset" size="default">
             <el-radio-button label="T-1" />
             <el-radio-button label="T-3" />
             <el-radio-button label="T-7" />
           </el-radio-group>
         </el-col>
-        <el-col :span="4">
+        <el-col :span="6">
           <el-button type="primary" plain @click="fetchChartData">
             查询分析
           </el-button>
@@ -1592,18 +1847,18 @@ function handleFilterChange(key: string, value: string | string[]) {
           </el-card>
         </el-col>
       </el-row>
-    </div>
-  </template>
+    </template>
 
-  <el-empty
-    v-if="!selectedCalendarDate"
-    description="请先从日历中选择一个日期以查看相关活动和指标"
-    style="margin-top: 50px;"
-  >
-    <el-icon :size="48">
-      <i-ep-calendar />
-    </el-icon>
-  </el-empty>
+    <el-empty
+      v-if="!selectedCalendarDate"
+      description="请先从日历中选择一个日期以查看相关活动和指标"
+      style="margin-top: 50px;"
+    >
+      <el-icon :size="48">
+        <i-ep-calendar />
+      </el-icon>
+    </el-empty>
+  </div>
 
   <el-drawer
     v-model="drawerVisible"
@@ -1720,21 +1975,6 @@ function handleFilterChange(key: string, value: string | string[]) {
   align-items: center;
   flex-grow: 1;
   overflow: hidden;
-}
-/* --- 新增：自定义菜单项角标样式 --- */
-.menu-item-badge :deep(.el-badge__content) {
-  font-size: 10px;
-  font-weight: bold;
-  color: #409eff;
-  background-color: #d9ecff;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  line-height: 18px;
-  text-align: center;
-  border: 1px solid #a0cfff;
-  padding: 0;
-  right: 0; /* 确保位置正确 */
 }
 .system-name {
   overflow: hidden;
@@ -2043,11 +2283,14 @@ function handleFilterChange(key: string, value: string | string[]) {
 .health-check-row {
   margin-bottom: 20px;
 }
-
+.health-check-row .title-col {
+  /* 调整按钮区域，让按钮居中或对齐 */
+  display: flex;
+  align-items: center;
+}
 .diag-card {
   height: 90px;
   cursor: pointer;
-  border-left: 6px solid #e4e7ed; /* 默认边框 */
   border-left: 6px solid #e4e7ed; /* 默认边框 */
   transition: all 0.3s;
   position: relative;

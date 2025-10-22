@@ -1,25 +1,175 @@
-<script setup lang="ts">
 import type { Ref } from 'vue'
-import * as echarts from 'echarts'
-import { computed, nextTick, onMounted, ref } from 'vue'
-import CalendarView from './components/CalendarView.vue'
-import ChangeTopology from './components/ChangeTopology.vue'
-import ChartArea from './components/ChartArea.vue'
-import Diagnostics from './components/Diagnostics.vue'
-import FilterControls from './components/FilterControls.vue'
-import HealthCheck from './components/HealthCheck.vue'
-import K8sDetailTable from './components/K8sDetailTable.vue'
-// 如果你的项目未配置自动导入，请确保 Element Plus 组件在此处被正确导入
-import SystemList from './components/SystemList.vue'
-import TimelineView from './components/TimelineView.vue'
-import { useCalendar } from './composables/useCalendar'
-import { useCharts } from './composables/useCharts'
-import { useFilters } from './composables/useFilters'
-import { useTimeline } from './composables/useTimeline'
-import { dataService } from './services/dataService'
+import { computed, ref } from 'vue'
 
 // --- 类型定义 ---
+export interface TimelineActivity {
+  start: number
+  end: number
+  label: string
+  changeId: string // 关联变更ID
+}
 
+export interface SystemItem {
+  id: string
+  name: string
+  code: string
+}
+
+export interface CalendarDateItem {
+  day: string
+  date: string
+  isCurrentMonth: boolean
+  activityCount: number
+  hasEvent: boolean
+}
+
+export interface ChangeItem {
+  id: string
+  name: string
+  type: 'program' | 'config' | 'data'
+}
+
+export interface Task {
+  id: string
+  status: 'SUCCESS' | 'FAILED' | 'RUNNING' | 'PENDING'
+  label: string
+  name: string
+  submitter: { name: string, contact: string }
+  implementer: { name: string, contact: string }
+}
+
+export interface ChangeEvent {
+  id: string
+  name: string
+  systemId: string
+  date: string
+  startTime: number
+  endTime: number
+  type: 'program' | 'config' | 'data'
+  tasks: Task[]
+  summary: string
+  submitter: { name: string, contact: string }
+  implementer: { name: string, contact: string }
+}
+
+export interface ChartDataItem {
+  time: string
+  volume: number
+  successRate: string | number
+  latency: number
+  [key: string]: any // Allow other properties
+}
+
+export function useDataState() {
+  // --- 统一的变更数据源 ---
+  const allChanges: Ref<ChangeEvent[]> = ref([
+    // 周二 (2025-10-07, 2025-10-14, 2025-10-21, 2025-10-28)
+    { id: 'C10001', name: '核心系统升级-阶段1', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 20.5, type: 'program', tasks: [{ id: 'T1', status: 'SUCCESS', label: '部署', name: '核心V2.5部署任务', submitter: { name: '张三', contact: 'zhang.san@example.com' }, implementer: { name: '李四', contact: 'li.si@example.com' } }], summary: '对分布式核心系统进行V2.5版本升级，涉及交易、账务等多个模块。', submitter: { name: '张三', contact: 'zhang.san@example.com' }, implementer: { name: '李四', contact: 'li.si@example.com' } },
+    { id: 'C10014', name: '核心系统参数调整', systemId: 'SYS-A', date: '2025-10-07', startTime: 18, endTime: 19, type: 'config', tasks: [{ id: 'T2', status: 'SUCCESS', label: '配置', name: '核心缓存参数调整', submitter: { name: '王五', contact: 'wang.wu@example.com' }, implementer: { name: '赵六', contact: 'zhao.liu@example.com' } }], summary: '调整核心系统缓存参数，提升性能。', submitter: { name: '王五', contact: 'wang.wu@example.com' }, implementer: { name: '赵六', contact: 'zhao.liu@example.com' } },
+    { id: 'C10002', name: '支付网关配置更新', systemId: 'SYS-B', date: '2025-10-07', startTime: 21, endTime: 21.5, type: 'config', tasks: [{ id: 'T3', status: 'SUCCESS', label: '更新', name: '支付渠道配置更新', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '周八', contact: 'zhou.ba@example.com' } }], summary: '新增第三方支付渠道配置。', submitter: { name: '孙七', contact: 'sun.qi@example.com' }, implementer: { name: '周八', contact: 'zhou.ba@example.com' } },
+    { id: 'C10003', name: '信用卡积分规则调整', systemId: 'SYS-C', date: '2025-10-14', startTime: 19, endTime: 22, type: 'program', tasks: [{ id: 'T4', status: 'SUCCESS', label: '规则下发', name: '国庆活动积分规则', submitter: { name: '吴九', contact: 'wu.jiu@example.com' }, implementer: { name: '郑十', contact: 'zheng.shi@example.com' } }], summary: '国庆活动积分规则上线。', submitter: { name: '吴九', contact: 'wu.jiu@example.com' }, implementer: { name: '郑十', contact: 'zheng.shi@example.com' } },
+
+    // 周四晚到周五晨 (2025-10-09 ~ 2025-10-10)
+    { id: 'C10004', name: '信贷模型批量部署', systemId: 'SYS-D', date: '2025-10-09', startTime: 18, endTime: 23.5, type: 'program', tasks: [{ id: 'T5', status: 'SUCCESS', label: '模型A', name: '部署模型A', submitter: { name: '陈经理', contact: 'chen.manager@example.com' }, implementer: { name: '小林', contact: 'xiao.lin@example.com' } }, { id: 'T6', status: 'FAILED', label: '模型B', name: '部署模型B', submitter: { name: '陈经理', contact: 'chen.manager@example.com' }, implementer: { name: '小林', contact: 'xiao.lin@example.com' } }], summary: '部署最新的客户信用评级模型。', submitter: { name: '陈经理', contact: 'chen.manager@example.com' }, implementer: { name: '小林', contact: 'xiao.lin@example.com' } },
+    { id: 'C10015', name: '信贷风控规则更新', systemId: 'SYS-D', date: '2025-10-09', startTime: 19, endTime: 21, type: 'config', tasks: [{ id: 'T7', status: 'SUCCESS', label: '规则更新', name: '更新反欺诈规则集', submitter: { name: '风控部', contact: 'risk.dept@example.com' }, implementer: { name: '小张', contact: 'xiao.zhang@example.com' } }], summary: '更新反欺诈规则集。', submitter: { name: '风控部', contact: 'risk.dept@example.com' }, implementer: { name: '小张', contact: 'xiao.zhang@example.com' } },
+    { id: 'C10005', name: '数据仓库ETL优化', systemId: 'SYS-E', date: '2025-10-10', startTime: 1, endTime: 4, type: 'data', tasks: [{ id: 'T8', status: 'SUCCESS', label: 'ETL', name: '夜间ETL流程优化', submitter: { name: '数据平台组', contact: 'dp@example.com' }, implementer: { name: '数据平台组', contact: 'dp@example.com' } }], summary: '优化夜间ETL处理流程，缩短处理时间。', submitter: { name: '数据平台组', contact: 'dp@example.com' }, implementer: { name: '数据平台组', contact: 'dp@example.com' } },
+    { id: 'C10006', name: '手机银行新功能发布', systemId: 'SYS-G', date: '2025-10-09', startTime: 22, endTime: 23, type: 'program', tasks: [{ id: 'T9', status: 'SUCCESS', label: '发布', name: '手机银行V5.2发布', submitter: { name: '产品部', contact: 'product@example.com' }, implementer: { name: '移动开发组', contact: 'mobile.dev@example.com' } }], summary: '手机银行V5.2版本发布，上线理财推荐功能。', submitter: { name: '产品部', contact: 'product@example.com' }, implementer: { name: '移动开发组', contact: 'mobile.dev@example.com' } },
+    { id: 'C10007', name: '网上银行安全补丁', systemId: 'SYS-H', date: '2025-10-10', startTime: 2, endTime: 5.5, type: 'program', tasks: [{ id: 'T10', status: 'SUCCESS', label: '补丁', name: 'Log4j安全补丁修复', submitter: { name: '安全部', contact: 'security@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } }], summary: '修复Log4j安全漏洞。', submitter: { name: '安全部', contact: 'security@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
+
+    // 周六晚到周日晨 (2025-10-11 ~ 2025-10-12)
+    { id: 'C10008', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-11', startTime: 20, endTime: 23.9, type: 'data', tasks: [{ id: 'T11', status: 'SUCCESS', label: '迁移', name: '核心DB迁移', submitter: { name: '架构组', contact: 'arch@example.com' }, implementer: { name: 'DBA团队', contact: 'dba@example.com' } }], summary: '核心数据库从Oracle迁移至TiDB，第一阶段。', submitter: { name: '架构组', contact: 'arch@example.com' }, implementer: { name: 'DBA团队', contact: 'dba@example.com' } },
+    { id: 'C10009', name: '分布式核心数据库迁移', systemId: 'SYS-A', date: '2025-10-12', startTime: 0, endTime: 6, type: 'data', tasks: [{ id: 'T12', status: 'SUCCESS', label: '验证', name: '核心DB迁移验证', submitter: { name: '架构组', contact: 'arch@example.com' }, implementer: { name: 'DBA团队', contact: 'dba@example.com' } }], summary: '核心数据库从Oracle迁移至TiDB，第二阶段验证。', submitter: { name: '架构组', contact: 'arch@example.com' }, implementer: { name: 'DBA团队', contact: 'dba@example.com' } },
+    { id: 'C10010', name: '风险预警平台升级', systemId: 'SYS-I', date: '2025-10-11', startTime: 18, endTime: 21, type: 'program', tasks: [{ id: 'T13', status: 'SUCCESS', label: '升级', name: '风险引擎V3.0升级', submitter: { name: '风控部', contact: 'risk.dept@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } }], summary: '升级风险引擎至V3.0。', submitter: { name: '风控部', contact: 'risk.dept@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
+
+    // 其他数据
+    { id: 'C10011', name: '柜面系统常规维护', systemId: 'SYS-F', date: '2025-10-15', startTime: 2, endTime: 4, type: 'program', tasks: [{ id: 'T14', status: 'SUCCESS', label: '维护', name: '柜面系统常规维护', submitter: { name: '运维部', contact: 'ops@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } }], summary: '常规系统补丁和维护。', submitter: { name: '运维部', contact: 'ops@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
+    { id: 'C10012', name: 'CRM客户数据清洗', systemId: 'SYS-J', date: '2025-10-20', startTime: 1, endTime: 5, type: 'data', tasks: [{ id: 'T15', status: 'SUCCESS', label: '清洗', name: 'CRM客户数据清洗', submitter: { name: '数据治理', contact: 'data.gov@example.com' }, implementer: { name: '数据治理', contact: 'data.gov@example.com' } }], summary: '清洗重复及无效客户数据。', submitter: { name: '数据治理', contact: 'data.gov@example.com' }, implementer: { name: '数据治理', contact: 'data.gov@example.com' } },
+    { id: 'C10013', name: '支付平台证书更换', systemId: 'SYS-B', date: '2025-10-22', startTime: 20, endTime: 21, type: 'config', tasks: [{ id: 'T16', status: 'SUCCESS', label: '更换', name: '支付平台SSL证书更换', submitter: { name: '安全部', contact: 'security@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } }], summary: '更换即将过期的SSL证书。', submitter: { name: '安全部', contact: 'security@example.com' }, implementer: { name: '运维部', contact: 'ops@example.com' } },
+  ])
+
+  // --- 派生数据 ---
+
+  // 日历事件 (根据 allChanges 动态生成)
+  const calendarEvents = computed<Record<string, Record<string, number>>>(() => {
+    const events: Record<string, Record<string, number>> = {}
+    for (const change of allChanges.value) {
+      if (!events[change.systemId]) {
+        events[change.systemId] = {}
+      }
+      events[change.systemId][change.date] = (events[change.systemId][change.date] || 0) + 1
+    }
+    return events
+  })
+
+  // 时间轴数据 (根据 allChanges 动态生成)
+  const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
+    const activities: Record<string, TimelineActivity[]> = {}
+    for (const change of allChanges.value) {
+      if (!activities[change.date]) {
+        activities[change.date] = []
+      }
+      activities[change.date].push({
+        start: change.startTime,
+        end: change.endTime,
+        label: change.name,
+        changeId: change.id,
+      })
+    }
+    return activities
+  })
+
+  // --- 模拟数据和逻辑 (顶部/中间部分) ---
+  const selectedCalendarDate: Ref<string | null> = ref(null)
+  const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
+
+  const searchText = ref('')
+  const transactionCodes = ref(['PSDCO001', 'PSDCO002', 'PSDCO003', 'PSDCO004', 'PSDCO005', 'PSDCO006', 'PSDCO007', 'PSDCO008'])
+  const provinces = ref(['北京', '上海', '广东', '江苏', '浙江', '四川', '湖南'])
+
+  const systemList = ref([
+    { id: 'SYS-A', name: '分布式核心', code: 'CORE-A(P)' },
+    { id: 'SYS-B', name: '统一支付平台', code: 'PAY-G(H)' },
+    { id: 'SYS-C', name: '信用卡核心', code: 'CREDIT-C(R)' },
+    { id: 'SYS-D', name: '信贷管理系统', code: 'LOAN-M(P)' },
+    { id: 'SYS-E', name: '数据仓库', code: 'DW-H(S)' },
+    { id: 'SYS-F', name: '柜面交易系统', code: 'TELLER-F(P)' },
+    { id: 'SYS-G', name: '手机银行', code: 'MBANK-A(C)' },
+    { id: 'SYS-H', name: '网上银行', code: 'EBANK-W(C)' },
+    { id: 'SYS-I', name: '风险预警平台', code: 'RISK-E(P)' },
+    { id: 'SYS-J', name: '客户关系管理', code: 'CRM-S(P)' },
+  ])
+
+  const filteredSystemList = computed<SystemItem[]>(() => {
+    if (!searchText.value)
+      return systemList.value
+    const searchLower = searchText.value.toLowerCase()
+    return systemList.value.filter((system: SystemItem) =>
+      system.name.toLowerCase().includes(searchLower) || system.code.toLowerCase().includes(searchLower),
+    )
+  })
+  const selectedSystemId = ref('SYS-A')
+
+  const selectedChangeId: Ref<string | null> = ref(null)
+  const changeSearchText: Ref<string> = ref('')
+
+  return {
+    allChanges,
+    calendarEvents,
+    timelineData,
+    selectedCalendarDate,
+    selectedActivityIndex,
+    searchText,
+    transactionCodes,
+    provinces,
+    systemList,
+    filteredSystemList,
+    selectedSystemId,
+    selectedChangeId,
+    changeSearchText,
+  }
+}
+
+// --- 类型定义 ---
 interface TimelineActivity {
   start: number
   end: number
@@ -134,7 +284,6 @@ const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
   }
   return activities
 })
-
 // --- 模拟数据和逻辑 (顶部/中间部分) ---
 const selectedCalendarDate: Ref<string | null> = ref(null)
 const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
@@ -167,13 +316,11 @@ const timelineSegments = computed<TimelineSegment[]>(() => {
 
   return segments
 })
-
 function getSegmentStyle(segment: TimelineSegment): { left: string, width: string } {
   const startPercentage = (segment.start / 24) * 100
   const durationPercentage = ((segment.end - segment.start) / 24) * 100
   return { left: `${startPercentage}%`, width: `${durationPercentage}%` }
 }
-
 function handleDateSelect(date: string) {
   if (selectedCalendarDate.value === date)
     return
@@ -181,7 +328,6 @@ function handleDateSelect(date: string) {
   selectedActivityIndex.value = null
   fetchChartData()
 }
-
 function handleSegmentSelect(segment: TimelineSegment) {
   // 选中一个时间段时，默认关联到该时间段的第一个变更
   const firstChange = segment.changes[0]
@@ -191,13 +337,11 @@ function handleSegmentSelect(segment: TimelineSegment) {
 }
 
 const searchText = ref('')
-
 const transactionCodes = ref(['PSDCO001', 'PSDCO002', 'PSDCO003', 'PSDCO004', 'PSDCO005', 'PSDCO006', 'PSDCO007', 'PSDCO008'])
 const provinces = ref(['北京', '上海', '广东', '江苏', '浙江', '四川', '湖南'])
 function handleCodeClick(code: string) {
   console.warn(`选择交易码: ${code}`)
 }
-
 function handleProvinceClick(province: string) {
   console.warn(`选择省市: ${province}`)
 }
@@ -223,7 +367,6 @@ const filteredSystemList = computed<SystemItem[]>(() => {
     system.name.toLowerCase().includes(searchLower) || system.code.toLowerCase().includes(searchLower),
   )
 })
-
 const selectedSystemId = ref('SYS-A')
 function handleMenuSelect(index: string) {
   selectedSystemId.value = index
@@ -233,7 +376,6 @@ function handleMenuSelect(index: string) {
 const currentSystemEvents = computed<Record<string, number>>(() => calendarEvents.value[selectedSystemId.value] || {})
 const weekDays: string[] = ['日', '一', '二', '三', '四', '五', '六']
 // 新增：模拟当前日历视图是 2025年10月
-const calendarYear: Ref<number> = ref(2025)
 const calendarYear: Ref<number> = ref(2025)
 const calendarMonth: Ref<number> = ref(10) // 10月
 
@@ -251,7 +393,6 @@ function nextMonth() {
   }
   else { calendarMonth.value++ }
 }
-
 function goToToday() {
   calendarYear.value = 2025
   calendarMonth.value = 10
@@ -477,7 +618,6 @@ function handleDetailClick(prop: string, value: string) {
 // 时间选择器数据
 const now = new Date()
 const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
-
 const timeRange: Ref<[Date, Date]> = ref([oneHourAgo, now])
 const defaultTime: [Date, Date] = [new Date(2000, 1, 1, 0, 0, 0), new Date(2000, 1, 1, 23, 59, 59)]
 const baselineOffset: Ref<string> = ref('T-7')
@@ -563,7 +703,6 @@ function generateMockData(isBaseline = false): ChartDataItem[] {
       instanceDetails.push({
         id: `pod-${j}`,
         cpu,
-
         memory,
       })
     }
@@ -670,7 +809,7 @@ function getAnomalyInstanceData(data: ChartDataItem[], dataKey: 'k8sCpu' | 'k8sM
 }
 
 // 核心：更新所有图表数据函数
-function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) {
+function updateCharts(data: ChartDataItem[], baselineData: ChartDataItem[]) {
   const times = data.map(d => d.time)
 
   // 定义图表配置
@@ -685,7 +824,7 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
   ]
 
   // 交易指标和 K8s 聚合指标通用更新函数
-  const updateChart = (chartName: string, dataKey: keyof ChartDataItem, yAxisName: string, unit: string, isK8sAnomalyChart = false, anomalyThreshold = 0, times: string[]) => {
+  const updateChart = (chartName: string, dataKey: keyof ChartDataItem, yAxisName: string, unit: string, isK8sAnomalyChart = false, anomalyThreshold = 0) => {
     let chartInstance = chartInstances[chartName]
     // 如果实例不存在，尝试初始化
     if (!chartInstance) {
@@ -727,7 +866,7 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
   }
 
   chartConfigs.forEach((config) => {
-    updateChart(config.name, config.dataKey as keyof ChartDataItem, config.yAxis, config.unit || '', config.isK8sAnomaly, config.threshold, times)
+    updateChart(config.name, config.dataKey as keyof ChartDataItem, config.yAxis, config.unit || '', config.isK8sAnomaly, config.threshold)
   })
 }
 
@@ -735,12 +874,11 @@ function updateChartsData(data: ChartDataItem[], baselineData: ChartDataItem[]) 
 function fetchChartData() {
   const currentData = generateMockData(false)
   const baselineData = generateMockData(true)
-  updateChartsData(currentData, baselineData)
+  updateCharts(currentData, baselineData)
   console.warn(`正在分析时间范围：(模拟数据)，基线为 ${baselineOffset.value}。K8s CPU/内存图表已启用异常实例突出显示。`)
 }
 
 // 挂载后初始化图表
-
 onMounted(() => {
   nextTick(() => {
     // 仅在 onMounted 时调用一次 fetchChartData，后续由用户交互触发
@@ -774,7 +912,7 @@ const diagnostics = ref({
     ],
   },
   anomalyLog: {
-    title: '日志详情',
+    title: '日志情况',
     value: '42 条',
     status: 'warning',
     detail: [
@@ -783,7 +921,7 @@ const diagnostics = ref({
     ],
   },
   suppressedAlarm: {
-    title: '告警详情',
+    title: '告警情况',
     value: '0 个',
     status: 'success',
     detail: [
@@ -791,7 +929,7 @@ const diagnostics = ref({
     ],
   },
   anomalyTransaction: {
-    title: '交易信息',
+    title: '交易情况',
     value: '22 笔',
     status: 'danger',
     detail: [
@@ -821,7 +959,7 @@ const isChecking: Ref<boolean> = ref(false) // 是否正在检查
 const checkProgress: Ref<number> = ref(0) // 进度条百分比
 const healthCheckResult = ref({
   status: 'info', // overall status: success, warning, danger, info
-  message: '点击开始',
+  message: '点击发起系统健康检查',
   summary: [
     { name: '交易系统', status: 'success', time: '5.2s' },
     { name: '数据同步', status: 'success', time: '1.8s' },
@@ -1056,7 +1194,7 @@ function handleFilterChange(key: string, value: string | string[]) {
                   <el-icon><i-ep-star /></el-icon>
                   <span class="system-name">{{ system.name }}</span>
                 </div>
-                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" class="menu-item-badge" />
+                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" />
               </div>
             </el-menu-item>
 
@@ -1124,7 +1262,7 @@ function handleFilterChange(key: string, value: string | string[]) {
 
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row timeline-row">
       <el-col :span="4" class="title-col">
-        时间线
+        时间线：
       </el-col>
       <el-col :span="20">
         <div class="timeline-container">
@@ -1147,11 +1285,9 @@ function handleFilterChange(key: string, value: string | string[]) {
       </el-col>
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row health-check-row">
-      <el-col :span="4" class="title-col">
-        关注信息
-      </el-col>
       <el-col :span="4">
         <el-card
+          shadow="hover"
           class="diag-card health-check-card"
           :class="`status-${healthCheckResult.status}`"
           @click="isChecking ? null : runHealthCheck()"
@@ -1220,7 +1356,7 @@ function handleFilterChange(key: string, value: string | string[]) {
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
       <el-col :span="4" class="title-col">
-        交易码推荐
+        交易码推荐：
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1238,7 +1374,7 @@ function handleFilterChange(key: string, value: string | string[]) {
     </el-row>
     <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
       <el-col :span="4" class="title-col">
-        省市推荐
+        省市推荐：
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1369,16 +1505,25 @@ function handleFilterChange(key: string, value: string | string[]) {
                 </template>
               </div>
             </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+  </div>
+</template>
+              </div>
+            </div>
 
             <div class="topo-step successor">
               <div class="step-title">
                 后续变更
               </div>
+
               <div
                 v-for="succ in topologyData.successors"
-                :id="`topo-node-${succ.id}`"
                 :key="succ.id"
                 class="topo-node topo-change"
+              :id="`topo-node-${succ.id}`"
               >
                 {{ succ.id }}
               </div>
@@ -1451,10 +1596,9 @@ function handleFilterChange(key: string, value: string | string[]) {
           </el-table>
         </el-card>
       </el-col>
+
     </el-row>
-  </div>
-  <template v-if="selectedCalendarDate">
-    <div class="special-care-view-adjusted">
+    <template v-if="selectedCalendarDate">
       <el-row :gutter="20" class="filter-controls-row">
         <el-col :span="24">
           <el-card shadow="never" class="filter-card">
@@ -1498,7 +1642,7 @@ function handleFilterChange(key: string, value: string | string[]) {
         <el-col :span="2" class="title-col">
           时间范围：
         </el-col>
-        <el-col :span="8">
+        <el-col :span="10">
           <el-date-picker
             v-model="timeRange"
             type="datetimerange"
@@ -1510,16 +1654,16 @@ function handleFilterChange(key: string, value: string | string[]) {
         </el-col>
 
         <el-col :span="2" class="title-col">
-          对比基线：
+          基线选择：
         </el-col>
-        <el-col :span="8">
+        <el-col :span="4">
           <el-radio-group v-model="baselineOffset" size="default">
             <el-radio-button label="T-1" />
             <el-radio-button label="T-3" />
             <el-radio-button label="T-7" />
           </el-radio-group>
         </el-col>
-        <el-col :span="4">
+        <el-col :span="6">
           <el-button type="primary" plain @click="fetchChartData">
             查询分析
           </el-button>
@@ -1592,18 +1736,18 @@ function handleFilterChange(key: string, value: string | string[]) {
           </el-card>
         </el-col>
       </el-row>
-    </div>
-  </template>
+    </template>
 
-  <el-empty
-    v-if="!selectedCalendarDate"
-    description="请先从日历中选择一个日期以查看相关活动和指标"
-    style="margin-top: 50px;"
-  >
-    <el-icon :size="48">
-      <i-ep-calendar />
-    </el-icon>
-  </el-empty>
+    <el-empty
+      v-if="!selectedCalendarDate"
+      description="请先从日历中选择一个日期以查看相关活动和指标"
+      style="margin-top: 50px;"
+    >
+      <el-icon :size="48">
+        <i-ep-calendar />
+      </el-icon>
+    </el-empty>
+  </div>
 
   <el-drawer
     v-model="drawerVisible"
@@ -1720,21 +1864,6 @@ function handleFilterChange(key: string, value: string | string[]) {
   align-items: center;
   flex-grow: 1;
   overflow: hidden;
-}
-/* --- 新增：自定义菜单项角标样式 --- */
-.menu-item-badge :deep(.el-badge__content) {
-  font-size: 10px;
-  font-weight: bold;
-  color: #409eff;
-  background-color: #d9ecff;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  line-height: 18px;
-  text-align: center;
-  border: 1px solid #a0cfff;
-  padding: 0;
-  right: 0; /* 确保位置正确 */
 }
 .system-name {
   overflow: hidden;
@@ -2043,11 +2172,14 @@ function handleFilterChange(key: string, value: string | string[]) {
 .health-check-row {
   margin-bottom: 20px;
 }
-
+.health-check-row .title-col {
+  /* 调整按钮区域，让按钮居中或对齐 */
+  display: flex;
+  align-items: center;
+}
 .diag-card {
   height: 90px;
   cursor: pointer;
-  border-left: 6px solid #e4e7ed; /* 默认边框 */
   border-left: 6px solid #e4e7ed; /* 默认边框 */
   transition: all 0.3s;
   position: relative;
