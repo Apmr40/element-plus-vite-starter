@@ -18,6 +18,7 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@antv/g6": "^5.0.50",
     "@element-plus/icons-vue": "^2.3.2",
     "@vue-flow/core": "^1.47.0",
     "@vue-flow/minimap": "^1.5.4",
