@@ -138,7 +138,6 @@ const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
 })
 // --- 模拟数据和逻辑 (顶部/中间部分) ---
 const selectedCalendarDate: Ref<string | null> = ref('2025-10-07')
-const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
 
 interface TimelineSegment {
   start: number
@@ -1188,24 +1187,6 @@ const dimensionFilters: Ref<any[]> = ref([
   },
 ])
 
-/**
- * 筛选器值变更处理函数
- * @param key 筛选器的唯一键
- * @param value 新的选中值
- */
-function handleFilterChange(key: string, value: string | string[]) {
-  const filterItem = dimensionFilters.value.find(f => f.key === key)
-  if (filterItem) {
-    // 强制更新 selected 状态
-    filterItem.selected = Array.isArray(value) ? value : [value]
-    console.warn(
-      `筛选器 [${filterItem.label}] 更新为:`,
-      value,
-    )
-    // 可以在这里调用数据查询函数
-    // fetchChartData()
-  }
-}
 const graphContainer: Ref<HTMLElement | null> = ref(null)
 let graph: G6.Graph | null = null
 
@@ -1218,10 +1199,6 @@ onMounted(() => {
         fetchChartData()
       }
     }, 100)
-    // 仅在 onMounted 时调用一次 fetchChartData，后续由用户交互触发
-    if (selectedCalendarDate.value) {
-      fetchChartData()
-    }
     // 统一处理 resize
     const resizeAllCharts = () => {
       Object.values(chartInstances).forEach((chart) => {
@@ -1385,11 +1362,6 @@ function getVerificationStatusText(status: string): string {
   }
 }
 
-// 查看验证详情
-function showVerificationDetail(row: any) {
-  ElMessage.info(`详情: ${row.detail}`)
-}
-
 // 告警详情数据
 const alarmDetails = ref({
   mainAlarms: [
@@ -1429,11 +1401,6 @@ const alarmDetails = ref({
     },
   ],
 })
-
-// 查看告警详情
-function showAlarmDetail(detail: string) {
-  ElMessage.info(`告警详情: ${detail}`)
-}
 
 // 日志详情数据
 const logDetails = ref({
@@ -1484,11 +1451,6 @@ const logDetails = ref({
     },
   ],
 })
-
-// 查看日志详情
-function showLogDetail(detail: string) {
-  ElMessage.info(`日志详情: ${detail}`)
-}
 // 交易详情数据
 const transactionDetails = ref([
   {
@@ -1520,11 +1482,6 @@ const transactionDetails = ref([
     detail: '交易码PSDCO002在16:45:12发生2笔未知状态交易，可能由于服务重启导致',
   },
 ])
-
-// 查看交易详情
-function showTransactionDetail(detail: string) {
-  ElMessage.info(`交易详情: ${detail}`)
-}
 </script>
 
 <template>
@@ -1848,8 +1805,6 @@ function showTransactionDetail(detail: string) {
                   />
                 </el-select>
               </el-col>
-              <el-col :span="4" />
-              <el-col :span="4" />
             </el-row>
           </el-card>
         </el-col>
@@ -2444,24 +2399,6 @@ function showTransactionDetail(detail: string) {
   padding: 20px 0;
 }
 
-.connector {
-  position: absolute;
-  height: 2px;
-  background-color: #dcdfe6;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.top-line {
-  left: 0;
-  width: 40%;
-}
-
-.bottom-line {
-  right: 0;
-  width: 40%;
-}
-
 .topo-step {
   display: flex;
   flex-direction: column;
@@ -2470,10 +2407,6 @@ function showTransactionDetail(detail: string) {
   width: 20%;
   position: relative;
   z-index: 3;
-}
-
-.topo-step.current {
-  width: 60%;
 }
 
 .tasks-flow-container {
@@ -2519,22 +2452,6 @@ function showTransactionDetail(detail: string) {
   flex-direction: column;
   align-items: center;
   min-width: 80px;
-}
-
-.topology-svg-links {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.topology-link-path {
-  fill: none;
-  stroke: #909399;
-  stroke-width: 1.5;
 }
 
 .topo-task.is-selected {
