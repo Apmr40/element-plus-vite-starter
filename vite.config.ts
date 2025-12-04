@@ -18,6 +18,7 @@ export default defineConfig({
     alias: {
       // 保持 '~/': `${path.resolve(__dirname, 'src')}/` 不变
       '~/': `${path.resolve(__dirname, 'src')}/`,
+      '@/': `${path.resolve(__dirname, 'src')}/`,
     },
   },
 
