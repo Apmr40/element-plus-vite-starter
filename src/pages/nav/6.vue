@@ -2,6 +2,7 @@
 import type { Ref } from 'vue'
 import * as G6 from '@antv/g6'
 import * as echarts from 'echarts'
+import { ElMessage } from 'element-plus'
 import {
   computed,
   defineComponent,
@@ -138,6 +139,7 @@ const timelineData = computed<Record<string, TimelineActivity[]>>(() => {
 })
 // --- 模拟数据和逻辑 (顶部/中间部分) ---
 const selectedCalendarDate: Ref<string | null> = ref('2025-10-07')
+const selectedActivityIndex: Ref<number | null> = ref(null) // 保持不变
 
 interface TimelineSegment {
   start: number
@@ -357,51 +359,90 @@ interface G6Data {
 }
 
 function transformTopologyData(topologyData: any): G6Data {
+  console.warn('=== 转换拓扑数据 ===')
+  console.warn('输入数据:', topologyData)
+
   if (!topologyData || !topologyData.predecessors || !topologyData.successors) {
-    return { nodes: [], edges: [] } // 返回空图数据
+    console.warn('⚠️ 数据结构不完整，返回空图数据')
+    return { nodes: [], edges: [] }
   }
 
   const nodes: G6Node[] = []
   const edges: G6Edge[] = []
-  const nodeIds = new Set<string>() // 用于跟踪已添加的节点ID
+  const nodeIds = new Set<string>()
 
   // 添加节点的辅助函数
-  const addNode = (id: string, label: string) => {
+  const addNode = (id: string, label: string, clazz: string = 'change-node') => {
     if (!nodeIds.has(id)) {
-      nodes.push({ id, label, clazz: 'change-node' })
+      nodes.push({
+        id,
+        label: `${label}\n(${id})`, // 显示标签和ID
+        clazz,
+      })
       nodeIds.add(id)
+      console.warn(`➕ 添加节点: ${id} - ${label}`)
     }
   }
 
-  const addNodesAndEdges = (items: any[], isPredecessor: boolean) => {
-    items.forEach((item: any) => {
-      addNode(item.id, item.name) // 确保源节点存在
-      if (item.linksTo) {
-        item.linksTo.forEach((targetId: string) => {
-          // 确保目标节点也存在（如果尚未添加）
-          if (!nodeIds.has(targetId)) {
-            // 为未明确添加的节点创建占位符
-            addNode(targetId, `Task-${targetId}`)
-          }
-          edges.push({ source: item.id, target: targetId })
-        })
-      }
+  // 处理前续变更节点
+  topologyData.predecessors.forEach((predecessor: any) => {
+    addNode(predecessor.id, predecessor.name, 'predecessor-node')
+  })
+
+  // 处理当前变更节点（虚框容器）
+  if (topologyData.currentChange) {
+    addNode(
+      `container-${topologyData.currentChange.id}`,
+      `变更单: ${topologyData.currentChange.id}`,
+      'current-change-container',
+    )
+
+    // 处理当前变更的任务节点
+    const allTasks = topologyData.currentChange.tasks?.flat() || []
+    allTasks.forEach((task: any) => {
+      addNode(task.id, task.label, `task-node status-${task.status.toLowerCase()}`)
     })
   }
 
-  // 处理前置节点
-  addNodesAndEdges(topologyData.predecessors, true)
+  // 处理后续变更节点
+  topologyData.successors.forEach((successor: any) => {
+    addNode(successor.id, successor.name, 'successor-node')
+  })
 
-  // 处理当前变更的任务节点
-  if (topologyData.currentChange && topologyData.currentChange.tasks) {
-    topologyData.currentChange.tasks.flat().forEach((task: any) => {
-      addNode(task.id, task.label) // 确保当前任务节点存在
+  // 添加边连接
+  // 前续变更 -> 当前变更容器
+  topologyData.predecessors.forEach((predecessor: any) => {
+    edges.push({
+      source: predecessor.id,
+      target: `container-${topologyData.currentChange.id}`,
+      clazz: 'pre-to-current',
     })
-  }
+  })
 
-  // 处理后继节点
-  addNodesAndEdges(topologyData.successors, false)
+  // 当前变更容器 -> 任务节点（仅用于布局，实际不显示）
+  const allTasks = topologyData.currentChange.tasks?.flat() || []
+  allTasks.forEach((task: any) => {
+    edges.push({
+      source: `container-${topologyData.currentChange.id}`,
+      target: task.id,
+      clazz: 'container-to-task',
+    })
+  })
 
+  // 任务节点 -> 后续变更
+  topologyData.successors.forEach((successor: any) => {
+    // 这里需要根据实际业务逻辑确定哪个任务连接到哪个后续变更
+    // 暂时连接所有任务到所有后续变更
+    allTasks.forEach((task: any) => {
+      edges.push({
+        source: task.id,
+        target: successor.id,
+        clazz: 'task-to-successor',
+      })
+    })
+  })
+
+  console.warn('最终图表数据:', { nodes, edges })
   return { nodes, edges }
 }
 
@@ -1187,13 +1228,37 @@ const dimensionFilters: Ref<any[]> = ref([
   },
 ])
 
+/**
+ * 筛选器值变更处理函数
+ * @param key 筛选器的唯一键
+ * @param value 新的选中值
+ */
+function handleFilterChange(key: string, value: string | string[]) {
+  const filterItem = dimensionFilters.value.find(f => f.key === key)
+  if (filterItem) {
+    // 强制更新 selected 状态
+    filterItem.selected = Array.isArray(value) ? value : [value]
+    console.warn(
+      `筛选器 [${filterItem.label}] 更新为:`,
+      value,
+    )
+    // 可以在这里调用数据查询函数
+    // fetchChartData()
+  }
+}
 const graphContainer: Ref<HTMLElement | null> = ref(null)
 let graph: G6.Graph | null = null
+// const graph = new G6.Graph({
+//   container: 'graph',
+// })
 
 onMounted(() => {
+  console.warn('组件已挂载')
   nextTick(() => {
+    console.warn('nextTick 执行')
     // 延迟初始化以确保 DOM 渲染完成
     setTimeout(() => {
+      console.warn('延迟初始化拓扑图')
       initGraph()
       if (selectedCalendarDate.value) {
         fetchChartData()
@@ -1232,7 +1297,8 @@ function handleResize() {
 }
 
 // 监听 selectedChangeId 变化，更新图表
-watch(selectedChangeId, () => {
+watch(selectedChangeId, (newVal, oldVal) => {
+  console.warn('selectedChangeId 变化:', { from: oldVal, to: newVal })
   nextTick(() => {
     updateGraph()
   })
@@ -1248,7 +1314,10 @@ watch(graphContainer, (newVal) => {
 })
 
 // 监听 topologyData 变化，更新图表
-watch(topologyData, (newData) => {
+watch(topologyData, (newData, oldData) => {
+  console.warn('topologyData 变化:')
+  console.warn('旧数据:', oldData)
+  console.warn('新数据:', newData)
   if (graph && newData && graphContainer.value) {
     const graphData = transformTopologyData(newData)
     graph.setData(graphData)
@@ -1257,38 +1326,120 @@ watch(topologyData, (newData) => {
 }, { deep: true })
 
 // 初始化图表函数
-function initGraph() {
-  if (!graphContainer.value)
-    return
 
-  // 确保容器有尺寸
+function initGraph() {
+  console.warn('=== 初始化拓扑图 ===')
+
+  // 检查容器元素
+  console.warn('graphContainer 元素:', graphContainer.value)
+  if (!graphContainer.value) {
+    console.error('❌ graphContainer 未找到')
+    return
+  }
+
+  // 检查容器尺寸
   const width = graphContainer.value.offsetWidth || 600
   const height = graphContainer.value.offsetHeight || 400
+  console.warn('容器尺寸:', { width, height })
 
-  if (width === 0 || height === 0)
+  if (width === 0 || height === 0) {
+    console.warn('⚠️ 容器尺寸为0')
     return
+  }
+
+  // 检查 G6 是否加载
+  console.warn('G6 库状态:', G6)
 
   // 如果图表已存在，先销毁
   if (graph) {
+    console.warn('销毁已存在的图表')
     graph.destroy()
   }
 
-  graph = new G6.Graph({
-    container: graphContainer.value,
-    width,
-    height,
-  })
+  try {
+    graph = new G6.Graph({
+      container: graphContainer.value,
+      width,
+      height,
+      // 自动缩放适配容器
+      autoResize: true,
+      layout: {
+        type: 'dagre',
+        rankdir: 'LR', // 从左到右布局
+        align: 'UL', // 对齐到左上角
+        nodesep: 25, // 节点水平间距
+        ranksep: 60, // 层级垂直间距
+      },
+      // 使用 node 配置项替代 defaultNode
+      node: {
+        type: 'rect',
+        // 1. 节点形状本身的样式
+        style: {
+          width: 120,
+          height: 40,
+          radius: 4,
+          stroke: '#5B8FF9',
+          fill: '#C6E5FF',
+          labelText: d => d.id,
+        },
+      },
+      // 使用 edge 配置项替代 defaultEdge
+      edge: {
+        style: {
+          stroke: '#e2e2e2',
+          endArrow: true,
+        },
+      },
+      behaviors: [
+      ],
+    })
+    console.warn('✅ G6 图表初始化成功')
 
-  // 初始渲染数据
-  updateGraph()
+    // 初始渲染数据
+    updateGraph()
+  }
+  catch (error) {
+    console.error('❌ G6 图表初始化失败:', error)
+  }
 }
 
 // 更新图表的辅助函数
 function updateGraph() {
-  if (graph && topologyData.value && graphContainer.value) {
+  console.warn('=== 更新拓扑图 ===')
+
+  if (!graph) {
+    console.warn('⚠️ 图表实例未初始化')
+    return
+  }
+
+  if (!topologyData.value) {
+    console.warn('⚠️ topologyData 为空')
+    return
+  }
+
+  console.warn('原始拓扑数据:', topologyData.value)
+
+  try {
     const graphData = transformTopologyData(topologyData.value)
+    console.warn('转换后的图表数据:', graphData)
+
+    // 检查数据格式
+    if (!graphData.nodes || !Array.isArray(graphData.nodes)) {
+      console.error('❌ 图表数据 nodes 格式错误')
+      return
+    }
+
+    if (!graphData.edges || !Array.isArray(graphData.edges)) {
+      console.error('❌ 图表数据 edges 格式错误')
+      return
+    }
+
     graph.setData(graphData)
     graph.render()
+    console.warn('✅ 图表渲染完成')
+  }
+  catch (error) {
+    console.error('❌ 图表数据更新失败:', error)
   }
 }
 // 自动化验证详情数据
@@ -1362,6 +1513,11 @@ function getVerificationStatusText(status: string): string {
   }
 }
 
+// 查看验证详情
+function showVerificationDetail(row: any) {
+  ElMessage.info(`详情: ${row.detail}`)
+}
+
 // 告警详情数据
 const alarmDetails = ref({
   mainAlarms: [
@@ -1402,6 +1558,10 @@ const alarmDetails = ref({
   ],
 })
 
+// 查看告警详情
+function showAlarmDetail(detail: string) {
+  ElMessage.info(`告警详情: ${detail}`)
+}
 // 日志详情数据
 const logDetails = ref({
   keywords: [
@@ -1451,6 +1611,11 @@ const logDetails = ref({
     },
   ],
 })
+
+// 查看日志详情
+function showLogDetail(detail: string) {
+  ElMessage.info(`日志详情: ${detail}`)
+}
 // 交易详情数据
 const transactionDetails = ref([
   {
@@ -1482,6 +1647,11 @@ const transactionDetails = ref([
     detail: '交易码PSDCO002在16:45:12发生2笔未知状态交易，可能由于服务重启导致',
   },
 ])
+
+// 查看交易详情
+function showTransactionDetail(detail: string) {
+  ElMessage.info(`交易详情: ${detail}`)
+}
 </script>
 
 <template>
