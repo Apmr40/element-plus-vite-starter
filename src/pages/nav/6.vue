@@ -5,7 +5,6 @@ import * as echarts from 'echarts'
 import { ElMessage } from 'element-plus'
 import {
   computed,
-  defineComponent,
   nextTick,
   onBeforeUnmount,
   onMounted,
@@ -1655,18 +1654,20 @@ function showTransactionDetail(detail: string) {
 </script>
 
 <template>
-  <div class="special-care-view-adjusted">
-    <el-row :gutter="20" class="top-row">
+  <div class="uops-bg-card-large">
+    <el-row :gutter="24" class="top-row">
       <el-col :span="12">
-        <el-card class="system-list-card" shadow="never">
+        <el-card class="uops-bg-card-small">
           <template #header>
-            <div class="sidebar-search">
-              <el-input v-model="searchText" placeholder="系统名称" clearable>
-                <template #prefix>
-                  <el-icon><i-ep-search /></el-icon>
-                </template>
-              </el-input>
-            </div>
+            <el-input
+              v-model="searchText"
+              placeholder="请输入应用模块名称" clearable
+              class="uops-input-bg"
+            >
+              <template #suffix>
+                <el-icon><i-ep-search /></el-icon>
+              </template>
+            </el-input>
           </template>
 
           <el-menu
@@ -1678,7 +1679,7 @@ function showTransactionDetail(detail: string) {
                 <div class="menu-item-left">
                   <span class="system-name">{{ system.name }}</span>
                 </div>
-                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" class="menu-item-badge" />
+                <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" type="primary" class="menu-item-badge" />
               </div>
             </el-menu-item>
 
@@ -1688,7 +1689,7 @@ function showTransactionDetail(detail: string) {
       </el-col>
 
       <el-col :span="12">
-        <el-card class="calendar-card" shadow="never">
+        <el-card class="uops-bg-card-small">
           <div class="calendar-header">
             <div class="calendar-header-left">
               <el-button-group>
@@ -1736,9 +1737,9 @@ function showTransactionDetail(detail: string) {
       </el-col>
     </el-row>
 
-    <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row timeline-row">
+    <el-row v-if="selectedCalendarDate" :gutter="24" class="control-row timeline-row">
       <el-col :span="4" class="title-col">
-        时间线
+        变更时段
       </el-col>
       <el-col :span="20">
         <div class="timeline-container">
@@ -1760,7 +1761,7 @@ function showTransactionDetail(detail: string) {
         </div>
       </el-col>
     </el-row>
-    <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row health-check-row">
+    <el-row v-if="selectedCalendarDate" :gutter="24" class="control-row health-check-row">
       <el-col :span="4" class="title-col">
         关注信息
       </el-col>
@@ -1806,9 +1807,9 @@ function showTransactionDetail(detail: string) {
         </el-card>
       </el-col>
     </el-row>
-    <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
+    <el-row v-if="selectedCalendarDate" :gutter="24" class="control-row">
       <el-col :span="4" class="title-col">
-        交易码推荐
+        涉及交易码
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1818,9 +1819,9 @@ function showTransactionDetail(detail: string) {
         </div>
       </el-col>
     </el-row>
-    <el-row v-if="selectedCalendarDate" :gutter="20" class="control-row">
+    <el-row v-if="selectedCalendarDate" :gutter="24" class="control-row">
       <el-col :span="4" class="title-col">
-        省市推荐
+        涉及省市
       </el-col>
       <el-col :span="20">
         <div class="button-group">
@@ -1834,7 +1835,7 @@ function showTransactionDetail(detail: string) {
       </el-col>
     </el-row>
 
-    <el-row v-if="selectedChangeId" :gutter="20" class="bottom-content-area">
+    <el-row v-if="selectedChangeId" :gutter="24" class="bottom-content-area">
       <el-col :span="4">
         <el-card class="change-list-card" shadow="never">
           <template #header>
@@ -1951,130 +1952,126 @@ function showTransactionDetail(detail: string) {
         </el-card>
       </el-col>
     </el-row>
+    <el-row :gutter="24" class="filter-controls-row">
+      <el-col :span="24">
+        <el-card shadow="never" class="filter-card">
+          <div class="card-header-title">
+            监控维度筛选
+          </div>
+          <el-row :gutter="24">
+            <el-col v-for="filter in dimensionFilters" :key="filter.key" :span="4" class="filter-item-col">
+              <div class="filter-label">
+                {{ filter.label }}:
+              </div>
+              <el-select
+                v-model="filter.selected" :multiple="filter.multiple" :placeholder="`请选择${filter.label}`"
+                size="default" style="width: 100%;" @change="(val) => handleFilterChange(filter.key, val)"
+              >
+                <el-option
+                  v-for="item in filter.options" :key="item.value" :label="item.label" :value="item.value"
+                  :disabled="item.disabled"
+                />
+              </el-select>
+            </el-col>
+          </el-row>
+        </el-card>
+      </el-col>
+    </el-row>
+    <el-row :gutter="24" class="control-row analysis-controls-row">
+      <el-col :span="2" class="title-col">
+        时间范围：
+      </el-col>
+      <el-col :span="8">
+        <el-date-picker
+          v-model="timeRange" type="datetimerange" start-placeholder="开始时间" end-placeholder="结束时间"
+          :default-time="defaultTime" size="default"
+        />
+      </el-col>
+
+      <el-col :span="2" class="title-col">
+        对比基线：
+      </el-col>
+      <el-col :span="8">
+        <el-radio-group v-model="baselineOffset" size="default">
+          <el-radio-button label="T-1" />
+          <el-radio-button label="T-3" />
+          <el-radio-button label="T-7" />
+        </el-radio-group>
+      </el-col>
+      <el-col :span="4">
+        <el-button type="primary" plain @click="fetchChartData">
+          查询分析
+        </el-button>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="24" class="chart-area-row">
+      <el-col :span="8">
+        <el-card shadow="never" class="chart-card">
+          <div class="card-header-title">
+            交易量 (Transactions)
+          </div>
+          <div ref="chartVolumeRef" class="echarts-container" />
+        </el-card>
+      </el-col>
+
+      <el-col :span="8">
+        <el-card shadow="never" class="chart-card">
+          <div class="card-header-title">
+            成功率 (Success Rate)
+          </div>
+          <div ref="chartRateRef" class="echarts-container" />
+        </el-card>
+      </el-col>
+
+      <el-col :span="8">
+        <el-card shadow="never" class="chart-card">
+          <div class="card-header-title">
+            响应时间 (Latency - P95)
+          </div>
+          <div ref="chartLatencyRef" class="echarts-container" />
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="24" class="chart-area-row k8s-chart-row">
+      <el-col :span="6">
+        <el-card shadow="never" class="chart-card">
+          <div class="card-header-title">
+            K8s CPU (聚合与异常)
+          </div>
+          <div ref="chartK8sCpuRef" class="echarts-container" />
+        </el-card>
+      </el-col>
+
+      <el-col :span="6">
+        <el-card shadow="never" class="chart-card">
+          <div class="card-header-title">
+            K8s 内存 (聚合与异常)
+          </div>
+          <div ref="chartK8sMemoryRef" class="echarts-container" />
+        </el-card>
+      </el-col>
+
+      <el-col :span="6">
+        <el-card shadow="never" class="chart-card">
+          <div class="card-header-title">
+            K8s 网络 I/O (聚合)
+          </div>
+          <div ref="chartK8sNetworkRef" class="echarts-container" />
+        </el-card>
+      </el-col>
+
+      <el-col :span="6">
+        <el-card shadow="never" class="chart-card">
+          <div class="card-header-title">
+            K8s 磁盘 I/O (聚合)
+          </div>
+          <div ref="chartK8sDiskRef" class="echarts-container" />
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
-  <template v-if="selectedCalendarDate">
-    <div class="special-care-view-adjusted">
-      <el-row :gutter="20" class="filter-controls-row">
-        <el-col :span="24">
-          <el-card shadow="never" class="filter-card">
-            <div class="card-header-title">
-              监控维度筛选
-            </div>
-            <el-row :gutter="20">
-              <el-col v-for="filter in dimensionFilters" :key="filter.key" :span="4" class="filter-item-col">
-                <div class="filter-label">
-                  {{ filter.label }}:
-                </div>
-                <el-select
-                  v-model="filter.selected" :multiple="filter.multiple" :placeholder="`请选择${filter.label}`"
-                  size="default" style="width: 100%;" @change="(val) => handleFilterChange(filter.key, val)"
-                >
-                  <el-option
-                    v-for="item in filter.options" :key="item.value" :label="item.label" :value="item.value"
-                    :disabled="item.disabled"
-                  />
-                </el-select>
-              </el-col>
-            </el-row>
-          </el-card>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20" class="control-row analysis-controls-row">
-        <el-col :span="2" class="title-col">
-          时间范围：
-        </el-col>
-        <el-col :span="8">
-          <el-date-picker
-            v-model="timeRange" type="datetimerange" start-placeholder="开始时间" end-placeholder="结束时间"
-            :default-time="defaultTime" size="default"
-          />
-        </el-col>
-
-        <el-col :span="2" class="title-col">
-          对比基线：
-        </el-col>
-        <el-col :span="8">
-          <el-radio-group v-model="baselineOffset" size="default">
-            <el-radio-button label="T-1" />
-            <el-radio-button label="T-3" />
-            <el-radio-button label="T-7" />
-          </el-radio-group>
-        </el-col>
-        <el-col :span="4">
-          <el-button type="primary" plain @click="fetchChartData">
-            查询分析
-          </el-button>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20" class="chart-area-row">
-        <el-col :span="8">
-          <el-card shadow="never" class="chart-card">
-            <div class="card-header-title">
-              交易量 (Transactions)
-            </div>
-            <div ref="chartVolumeRef" class="echarts-container" />
-          </el-card>
-        </el-col>
-
-        <el-col :span="8">
-          <el-card shadow="never" class="chart-card">
-            <div class="card-header-title">
-              成功率 (Success Rate)
-            </div>
-            <div ref="chartRateRef" class="echarts-container" />
-          </el-card>
-        </el-col>
-
-        <el-col :span="8">
-          <el-card shadow="never" class="chart-card">
-            <div class="card-header-title">
-              响应时间 (Latency - P95)
-            </div>
-            <div ref="chartLatencyRef" class="echarts-container" />
-          </el-card>
-        </el-col>
-      </el-row>
-
-      <el-row :gutter="20" class="chart-area-row k8s-chart-row">
-        <el-col :span="6">
-          <el-card shadow="never" class="chart-card">
-            <div class="card-header-title">
-              K8s CPU (聚合与异常)
-            </div>
-            <div ref="chartK8sCpuRef" class="echarts-container" />
-          </el-card>
-        </el-col>
-
-        <el-col :span="6">
-          <el-card shadow="never" class="chart-card">
-            <div class="card-header-title">
-              K8s 内存 (聚合与异常)
-            </div>
-            <div ref="chartK8sMemoryRef" class="echarts-container" />
-          </el-card>
-        </el-col>
-
-        <el-col :span="6">
-          <el-card shadow="never" class="chart-card">
-            <div class="card-header-title">
-              K8s 网络 I/O (聚合)
-            </div>
-            <div ref="chartK8sNetworkRef" class="echarts-container" />
-          </el-card>
-        </el-col>
-
-        <el-col :span="6">
-          <el-card shadow="never" class="chart-card">
-            <div class="card-header-title">
-              K8s 磁盘 I/O (聚合)
-            </div>
-            <div ref="chartK8sDiskRef" class="echarts-container" />
-          </el-card>
-        </el-col>
-      </el-row>
-    </div>
-  </template>
 
   <el-empty v-if="!selectedCalendarDate" description="请先从日历中选择一个日期以查看相关活动和指标" style="margin-top: 50px;">
     <el-icon :size="48">
@@ -2265,26 +2262,39 @@ function showTransactionDetail(detail: string) {
   </el-drawer>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/styles/uops-theme.scss' as *;
+/* 引入 SCSS 变量以便在样式中使用 mixin 或变量 (假设您配置了 scss loader)
+   如果没有配置，下方的 var() CSS 变量依然能正常工作
+*/
+
 /* --- 布局容器和基础样式 --- */
-.special-care-view-adjusted {
-  padding: 20px;
-  background-color: #f5f7fa;
+.uops-bg-card-large {
+  padding: 24px; /* 栅格间距 24px [cite: 212] */
+  background-color: $bg-card-large; /* 使用文档提到的大卡背景色作为页面底色 [cite: 46, 52] */
   min-height: 100vh;
+  border-radius: 44px; /* 添加44px圆角 */
+  font-family: var(--el-font-family); /* 方正兰亭黑简体 [cite: 86] */
+  color: var(--el-text-color-regular);
+  overflow: hidden; /* 确保子元素不会超出圆角边界 */
+  box-shadow: $uops-shadow-bg; /* 页面背景阴影 [cite: 106] */
 }
 
 .top-row {
-  margin-bottom: 20px;
+  margin: 12px;
 }
 
 .control-row {
-  margin-bottom: 10px;
+  margin-bottom: 16px;
   align-items: center;
 }
 
+/* 标题列样式优化 [cite: 38] */
 .title-col {
+  font-family: '方正兰亭中黑简体'; /* 强调字体 [cite: 89] */
+  font-size: 16px; /* 小标题 16px [cite: 89] */
   font-weight: bold;
-  color: #606266;
+  color: var(--el-text-color-primary); /* #25303C [cite: 32] */
   line-height: 32px;
   padding-right: 0 !important;
 }
@@ -2292,36 +2302,64 @@ function showTransactionDetail(detail: string) {
 .button-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .button-group .el-button {
-  padding: 8px 15px;
+  padding: 8px 16px;
   height: 32px;
+  border-radius: var(--el-border-radius-base); /* 4px [cite: 106] */
+}
+
+/* --- 通用卡片样式重置 --- */
+/* 应用圆角 16px  和 阴影  */
+.el-card {
+  border: none;
+  border-radius: var(--uops-radius-card-md);
+  background-color: var(--el-fill-color-blank);
+  /* 覆盖 Element 默认 shadow，应用规范中的阴影 */
+  box-shadow: 0px 4px 24px rgba(154, 172, 193, 0.23);
+  overflow: hidden; /* 确保圆角不被子元素遮挡 */
 }
 
 /* --- 顶部列表/日历样式 --- */
-.system-list-card {
-  border: none;
+.uops-bg-card-small {
   height: 100%;
-}
+  border-radius: 16px !important; /* 设置16px圆角 */
+  background-color: #f3f6f9; /* 使用小卡片背景色 $bg-card-small */
+  box-shadow: 0px 4px 24px rgba(154, 172, 193, 0.23); /* 使用小卡片阴影 .uops-shadow-sm */
 
-.calendar-card {
-  border: none;
-  height: 100%;
+  /* 必须使用深度选择器来定位卡片内部的 header 元素 */
+  :deep(.ep-card__header) {
+    /* 格式: padding: [垂直 (上下)] [水平 (左右)]; */
+
+    /* 1. 垂直 24px，水平 24px (符合8点网格规范) */
+    padding: 24px !important;
+
+    /* 2. 可选：修改分割线的颜色或厚度 */
+    border-bottom: 1px solid var(--el-border-color-light);
+  }
+
+  /* 可选：同时修改内容区的内边距 */
+  :deep(.ep-card__body) {
+    padding: 24px !important;
+  }
 }
 
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  border-bottom: 1px solid #ebeef5;
+  padding: 16px 24px;
+  background-color: var(--el-fill-color-blank);
+  border-bottom: 1px solid var(--el-border-color-light); /* 分割线 [cite: 50] */
 }
 
 .calendar-header-center {
+  font-family: '方正兰亭中黑简体';
   font-weight: bold;
-  font-size: 16px;
+  font-size: 18px; /* 大标题 18px [cite: 89] */
+  color: var(--el-text-color-primary);
 }
 
 .calendar-header-left,
@@ -2331,51 +2369,54 @@ function showTransactionDetail(detail: string) {
 }
 
 .sidebar-search {
-  padding-bottom: 5px;
+  padding-bottom: 8px;
+
+  /* 输入框背景色适配  */
+  :deep(.el-input__wrapper) {
+    background-color: var(--uops-bg-input);
+    box-shadow: none;
+    border: 1px solid var(--el-border-color);
+  }
 }
 
 .el-menu-vertical-demo {
-  border-right: none;
-  max-height: 400px;
-  overflow-y: auto;
 }
 
 .menu-item-content {
   display: flex;
-  align-items: center;
+  align-items: center !important;
   justify-content: flex-start;
   width: 100%;
 }
 
 .menu-item-left {
   display: flex;
-  align-items: center;
+  align-items: center !important;
   flex-grow: 1;
   overflow: hidden;
 }
 
-/* --- 新增：自定义菜单项角标样式 --- */
-.menu-item-badge :deep(.el-badge__content) {
-  font-size: 10px;
-  font-weight: bold;
-  color: #409eff;
-  background-color: #d9ecff;
-  border-radius: 50%;
-  width: 18px;
+/* 菜单项角标样式 */
+.menu-item-badge :deep(.ep-badge__content) {
+  font-size: 12px; /* 标签文字 12px [cite: 89] */
+  font-weight: normal;
+  color: #ffffff; /* 主色 [cite: 14] */
+  background-color: var(--el-color-primary) !important; /* 主色 [cite: 14] */
+  border-radius: 10px;
+  border: none;
   height: 18px;
+  width: 18px;
   line-height: 18px;
-  text-align: center;
-  border: 1px solid #a0cfff;
-  padding: 0;
-  right: 0;
-  /* 确保位置正确 */
+  padding: 0 6px;
 }
 
 .system-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-left: 5px;
+  margin-left: 8px;
+  font-size: 14px;
+  color: var(--el-text-color-regular);
 }
 
 .calendar-grid {
@@ -2383,16 +2424,16 @@ function showTransactionDetail(detail: string) {
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
   text-align: center;
-  border: 1px solid #ebeef5;
-  background-color: #ebeef5;
+  border: 1px solid var(--el-border-color-light);
+  background-color: var(--el-border-color-light); /* 用于形成网格线 */
 }
 
 .day-header {
-  background-color: #f5f7fa;
-  padding: 8px 0;
+  background-color: #f3f5fa; /* 列表表头色  */
+  padding: 12px 0;
   font-weight: bold;
-  font-size: 12px;
-  color: #909399;
+  font-size: 14px;
+  color: var(--el-text-color-secondary); /* 次要文字 [cite: 40] */
 }
 
 .date-cell {
@@ -2400,120 +2441,124 @@ function showTransactionDetail(detail: string) {
   flex-direction: column;
   align-items: flex-start;
   background-color: #fff;
-  padding: 5px;
+  padding: 8px;
   cursor: pointer;
   font-size: 12px;
   position: relative;
-  transition: background-color 0.3s;
-  min-height: 50px;
+  transition: all 0.2s;
+  min-height: 60px;
+}
+
+.date-cell:hover {
+  background-color: #f8f9fc; /* 列表嵌套/悬停色 [cite: 55] */
 }
 
 .date-cell.not-current-month .date-number {
-  color: #c0c4cc;
+  color: var(--el-text-color-placeholder); /* 失效/占位文字 [cite: 42] */
 }
 
 .date-number {
   text-align: right;
   padding-right: 5px;
   font-weight: bold;
-  color: #606266;
+  color: var(--el-text-color-regular);
 }
 
 .date-cell.is-selected {
-  background-color: #ecf5ff;
-  border: 1px solid #409eff;
-  margin: -1px;
-  /* 避免选中时边框导致布局错位 */
+  background-color: #f0f7ff; /* 选中状态淡蓝背景 */
+  box-shadow: inset 0 0 0 2px var(--el-color-primary); /* 内阴影模拟边框，不影响布局 */
+  z-index: 1;
 }
 
 .date-cell.has-event {
-  background-color: #fdf6ec;
+  /* 只有有点的日期才显示特殊背景，或者保持白色只显示点 */
 }
 
 .activity-count {
   position: absolute;
-  bottom: 2px;
-  right: 4px;
+  bottom: 4px;
+  right: 6px;
   font-size: 10px;
-  font-weight: bold;
-  color: #409eff;
-  background-color: #d9ecff;
-  border-radius: 50%;
-  width: 16px;
+  color: #fff;
+  background-color: var(--el-color-primary);
+  border-radius: 8px;
+  padding: 0 6px;
   height: 16px;
   line-height: 16px;
   text-align: center;
-  border: 1px solid #a0cfff;
 }
 
 /* --- 时间线样式 --- */
 .timeline-row {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .timeline-container {
-  background-color: #ffffff;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  padding: 10px 5px;
+  background-color: #fff;
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  padding: 16px 8px;
   position: relative;
+  box-shadow: var(--uops-shadow-sm); /* 小卡片阴影  */
 }
 
 .activity-bar-wrapper {
   position: relative;
-  height: 25px;
-  background-color: #f2f6fc;
-  border-radius: 3px;
-  margin-bottom: 5px;
+  height: 32px;
+  background-color: #f3f6f9; /* 小卡背景色/轨道背景 [cite: 53] */
+  border-radius: 4px;
+  margin-bottom: 8px;
 }
 
 .activity-segment {
   position: absolute;
-  top: 0;
-  height: 100%;
-  background-color: #b3d8ff;
+  top: 4px;
+  bottom: 4px;
+  background-color: var(--el-color-primary-light-3); /* 悬停/浅色 [cite: 16] */
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 2px;
+  transition: all 0.2s;
 }
 
-.activity-segment.is-active {
-  background-color: #e6a23c;
-  border: 2px solid #3a8ee6;
-  z-index: 10;
+.activity-segment.status-failed {
+  background-color: var(--el-color-danger); /* 严重警告 [cite: 21] */
+}
+
+.activity-segment:hover {
+  filter: brightness(0.95);
 }
 
 .hour-markers {
   display: grid;
   grid-template-columns: repeat(25, 1fr);
-  font-size: 10px;
-  height: 20px;
+  font-size: 12px;
+  height: 24px;
   position: relative;
-  border-top: 1px solid #e4e7ed;
-  padding-top: 5px;
+  border-top: 1px solid var(--el-border-color-light);
+  padding-top: 8px;
 }
 
 .hour-label {
   position: relative;
   text-align: left;
-  height: 10px;
-  font-size: 10px;
-  color: #909399;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .hour-label:before {
   content: '';
   position: absolute;
   left: 0;
-  top: -5px;
+  top: -8px;
   width: 1px;
-  height: 5px;
-  background-color: #e4e7ed;
+  height: 6px;
+  background-color: var(--el-border-color-light);
 }
 
 /* --- 变更/拓扑/明细区域样式 --- */
 .bottom-content-area {
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: 24px;
+  margin-bottom: 24px;
 }
 
 .change-list-card,
@@ -2521,7 +2566,6 @@ function showTransactionDetail(detail: string) {
 .detail-card {
   height: 100%;
   min-height: 450px;
-  border: none;
 }
 
 .el-menu-vertical-change {
@@ -2531,127 +2575,56 @@ function showTransactionDetail(detail: string) {
 }
 
 .card-header-title {
-  font-weight: bold;
+  font-family: '方正兰亭中黑简体';
   font-size: 16px;
+  font-weight: bold;
+  color: var(--el-text-color-primary);
+  margin-bottom: 16px;
 }
 
 .change-summary-descriptions {
   :deep(.el-descriptions__title) {
     font-size: 16px;
+    font-weight: bold;
+    color: var(--el-text-color-primary);
+  }
+  :deep(.el-descriptions__label) {
+    background-color: #f3f5fa; /* 列表表头色  */
+    color: var(--el-text-color-secondary);
   }
 }
 
 .change-menu-item-content {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: center !important;
   width: 100%;
-}
-
-.change-menu-item-left {
-  display: flex;
-  align-items: center;
-  flex-grow: 1;
-  overflow: hidden;
-  gap: 5px;
 }
 
 .change-id {
   margin-left: 5px;
   flex-grow: 1;
+  font-family: monospace; /* ID类数据建议等宽 */
+  color: var(--el-text-color-regular);
 }
 
+/* 拓扑图容器 */
 .topology-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
   position: relative;
-  padding: 20px 0;
+  padding: 24px 0;
 }
 
-.topo-step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  width: 20%;
-  position: relative;
-  z-index: 3;
-}
-
-.tasks-flow-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-
-.tasks-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  align-items: center;
-}
-
-.flow-arrow {
-  font-size: 24px;
-  color: #909399;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  margin: 0 10px;
-}
-
-.topo-node {
-  padding: 8px 12px;
-  margin-bottom: 5px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  color: var(--el-text-color-primary);
-  border: 1px solid #dcdfe6;
-  background-color: #f4f4f5;
-  white-space: nowrap;
-}
-
-.topo-task {
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 80px;
-}
-
-.topo-task.is-selected {
-  border-color: var(--el-color-primary);
-  box-shadow: 0 0 5px rgba(64, 158, 255, 0.5);
-}
-
-.topo-task.success {
-  background-color: #e1f3d8;
-  border-color: #67c23a;
-}
-
-.topo-task.failed {
-  background-color: #fde2e2;
-  border-color: #f56c6c;
-}
-
-.topo-task.running {
-  background-color: #fdf6ec;
-  border-color: #e6a23c;
-}
-
-/* --- 5. ECharts 分析区 --- */
+/* --- ECharts 分析区 --- */
 .analysis-controls-row {
-  margin-top: 20px;
-  margin-bottom: 10px;
+  margin-top: 24px;
+  margin-bottom: 16px;
 }
 
 .chart-area-row {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .chart-card {
@@ -2664,203 +2637,106 @@ function showTransactionDetail(detail: string) {
   height: 340px;
 }
 
-/* --- 新增：健康检查和诊断板块样式 --- */
+/* --- 健康检查和诊断板块样式 --- */
 .health-check-row {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
-/* 调整关注信息行的高度 */
 .health-check-row .title-col {
   line-height: 120px;
-  /* 与卡片高度保持一致 */
 }
 
+/* 诊断卡片 - 应用小卡片规范 [cite: 104] */
 .diag-card {
   height: 120px;
   cursor: pointer;
-  border-left: 6px solid #e4e7ed;
-  /* 默认边框 */
+  border-left: 4px solid var(--el-border-color); /* 减小边框宽度使其更精致 */
+  border-radius: var(--uops-radius-card-sm); /* 8px */
   transition: all 0.3s;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 15px 10px;
-  /* 增加内边距 */
+  padding: 16px;
+  background-color: #fff;
 }
 
 .diag-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
+  /* 悬停阴影加深 */
+  box-shadow: 0px 8px 30px rgba(154, 172, 193, 0.4);
 }
 
 .diag-card.status-success {
-  border-left-color: #67c23a;
+  border-left-color: var(--el-color-success); /* #00C771 [cite: 24] */
 }
 
 .diag-card.status-warning {
-  border-left-color: #e6a23c;
+  border-left-color: var(--el-color-warning); /* #FFB100 [cite: 23] */
 }
 
 .diag-card.status-danger {
-  border-left-color: #f56c6c;
+  border-left-color: var(--el-color-danger); /* #F13039 [cite: 21] */
 }
 
 .diag-title {
   font-size: 14px;
-  color: #909399;
-  margin-bottom: 8px;
-  /* 增加标题底部间距 */
+  color: var(--el-text-color-secondary); /* 辅助文字颜色 */
+  margin-bottom: 12px;
 }
 
 .diag-value {
-  font-size: 24px;
+  font-size: 28px; /* 加大数字字号 */
+  font-family: '方正兰亭中黑简体';
   font-weight: bold;
-  margin-bottom: 5px;
-  /* 增加数值底部间距 */
+  color: var(--el-text-color-primary);
+  margin-bottom: 0;
 }
 
-.diag-icon {
-  position: absolute;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #dcdfe6;
-}
-
-/* --- 健康检查按钮样式改进 --- */
-.check-initial {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
-.health-check-tag {
-  margin-bottom: 10px;
-  font-weight: 500;
-  transition: all 0.3s;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 10px 16px;
-}
-
-.health-check-tag:hover {
-  transform: scale(1.05);
-}
-
-.check-message {
-  font-size: 12px;
-  color: #909399;
-  text-align: center;
-}
-
-.check-progress-container {
-  padding: 0 15px;
-}
-
-.checking-text {
-  text-align: center;
-  font-size: 12px;
-  color: #909399;
-  margin-top: 10px;
-}
-
-.check-completed {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  cursor: pointer;
-}
-
-.check-completed .health-check-tag {
-  margin-bottom: 8px;
-}
-
-.result-message {
-  font-size: 12px;
-  margin: 8px 0;
-  color: #606266;
-}
-
-.result-message.status-success {
-  color: #67c23a;
-}
-
-.result-message.status-danger {
-  color: #f56c6c;
-}
-
-.result-message.status-info {
-  color: #409eff;
-}
-
-.view-detail-btn {
-  margin-top: 8px;
-}
-
-/* --- 新增：筛选面板样式 --- */
+/* --- 筛选面板样式 --- */
 .filter-controls-row {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .filter-card {
-  border: none;
-  padding-bottom: 5px;
-  /* 调整内部填充 */
+  padding-bottom: 8px;
 }
 
 .filter-item-col {
-  /* 确保筛选器能均匀分布在每行，并且有足够的空间 */
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .filter-label {
   font-size: 14px;
-  color: #606266;
-  margin-bottom: 5px;
+  color: var(--el-text-color-regular);
+  margin-bottom: 8px;
   font-weight: bold;
 }
 
-/* 调整卡片头部标题样式 */
-.card-header-title {
-  font-size: 16px;
-  font-weight: bold;
-  color: #303133;
-  margin-bottom: 10px;
-  /* 确保标题和筛选器之间有间距 */
-}
-
-.alarm-card {
-  border: 1px solid #ebeef5;
-}
-
-.alarm-header {
-  font-weight: bold;
-  color: #606266;
-}
-
-/* 添加日志卡片样式 */
-.log-card {
-  border: 1px solid #ebeef5;
-}
-
-.log-header {
-  font-weight: bold;
-  color: #606266;
-}
-
-/* 添加交易卡片样式 */
+/* 告警/日志/交易详情表格样式 - 表头背景统一 */
+.alarm-card,
+.log-card,
 .transaction-card {
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--uops-radius-card-sm);
+
+  :deep(.el-table__header-wrapper th) {
+    background-color: #f3f5fa; /* 列表表头  */
+    color: var(--el-text-color-primary);
+    font-weight: bold;
+  }
 }
 
+.alarm-header,
+.log-header,
 .transaction-header {
   font-weight: bold;
-  color: #606266;
+  color: var(--el-text-color-primary);
+  font-size: 16px;
+}
+
+/* G6 图表容器 */
+#graph canvas {
+  border-radius: 4px;
 }
 </style>

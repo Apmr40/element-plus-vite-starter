@@ -1,0 +1,232 @@
+/* * UOPS一体化生产运维平台 - 设计规范 v1.0
+ * 基于文档: 114平台PC端设计规范v1.0_2.pdf
+ */
+
+:root {
+  /* ==========================================================
+     2.1 颜色规范 (Color) - 覆盖 Element Plus 全局变量
+     ========================================================== */
+  /* 覆盖全局组件尺寸：例如将默认尺寸改为 36px */
+  --ep-component-size: 36px !important;
+  --ep-menu-item-height: 36px !important;
+
+  /* --- 01/主色/品牌色 [cite: 12, 14, 16, 17] --- */
+  --el-color-primary: #3290ff; /* 主色 */
+  --el-color-primary-light-3: #70b2ff; /* 悬停 (Hover) 近似映射 */
+  --el-color-primary-dark-2: #0069e6; /* 点击 (Active) */
+  /* 注意: 禁用色 #84BCFF [cite: 18] 通常由组件透明度自动处理，也可手动覆盖 */
+
+  /* --- 02/功能色 (Functional Color) [cite: 19-24] --- */
+  --el-color-success: #00c771; /* 成功 */
+  --el-color-warning: #ffb100; /* 警告 */
+  --el-color-danger: #f13039; /* 严重警告、失败 */
+  --el-color-info: #91969d; /* 映射文档中的“特殊内容文字”灰，或保持默认 */
+
+  /* --- 03/中性色 - 文字 (Text Color) [cite: 30, 32-42] --- */
+  --el-text-color-primary: #25303c; /* 标题文字 */
+  --el-text-color-regular: #2f2e4b; /* 正文文字 (Element默认正文) */
+  --el-text-color-secondary: #3b5369; /* 次级文字 */
+  --el-text-color-placeholder: #91969d; /* 辅助/占位文字 */
+  --el-text-color-disabled: #d2dde5; /* 禁用文字/边框复用 */
+
+  /* --- 03/中性色 - 边框与背景 (Border & Bg) [cite: 44-57] --- */
+  --el-border-color: #d2dde5; /* 边框色 [cite: 51] */
+  --el-border-color-light: #e8e9eb; /* 分割线 [cite: 50] */
+  --el-fill-color-blank: #ffffff; /* 基础白色 */
+
+  /* 输入框背景色 [cite: 57] */
+  --uops-bg-input: #f2f4fb;
+
+  /* --- 2.2 字体规范 (Fonts) [cite: 80-86] --- */
+  /* 注意：需自行引入 'FangZhengLanTingHei' 字体文件 */
+  --el-font-family: '方正兰亭黑简体', 'Microsoft YaHei', sans-serif;
+
+  /* --- 2.3 圆角规范 (Radius) [cite: 94-106] --- */
+  --el-border-radius-base: 4px; /* 输入框/按钮  */
+  --el-border-radius-small: 2px;
+  --el-border-radius-round: 20px;
+
+  /* 自定义圆角变量 (非Element标准，用于特殊卡片) */
+  --uops-radius-card-bg: 44px; /* 背景卡片 [cite: 98] */
+  --uops-radius-card-lg: 24px; /* 弹窗/大卡片 [cite: 100] */
+  --uops-radius-card-md: 16px; /* 中卡片 [cite: 102] */
+  --uops-radius-card-sm: 8px; /* 小卡片 [cite: 104] */
+}
+
+/* ==========================================================
+   SCSS 变量与 Mixins (供开发中使用)
+   ========================================================== */
+
+/* 图表色系列 (Chart Colors) [cite: 60-79] */
+$chart-colors: (
+  1: #3290ff,
+  2: #00d383,
+  3: #ffce3f,
+  4: #55cfff,
+  5: #9e85ff,
+  6: #ff9f41,
+  7: #8bd697,
+  8: #ff7676,
+  9: #9eeff1,
+  10: #ff85dd,
+);
+
+/* 字号等级 [cite: 89] */
+$font-size-special: 24px; /* 特殊标题 */
+$font-size-h1: 20px; /* 一级标题 */
+$font-size-h2: 18px; /* 大标题 */
+$font-size-h3: 16px; /* 小标题/正文强调 */
+$font-size-base: 14px; /* 正文 */
+$font-size-label: 12px; /* 标签文字 */
+
+/* 背景色定义 [cite: 52-56] */
+$bg-card-large: #f0f7ff; /* 大卡背景色 */
+$bg-card-small: #f3f6f9; /* 小卡背景色 */
+$bg-list-header: #f3f5fa; /* 列表表头 */
+$bg-list-nested: #f8f9fc; /* 列表嵌套 */
+
+/* ==========================================================
+   全局工具类 (Utility Classes)
+   ========================================================== */
+
+/* 2.5 阴影规范 (Shadows) [cite: 138-170] */
+
+/* 大卡片阴影 [cite: 142] */
+$uops-shadow-lg: 0px 7px 30px rgba(74, 144, 226, 0.16);
+
+/* 小卡片/下拉框阴影 [cite: 151, 152] */
+$uops-shadow-sm: 0px 4px 24px rgba(154, 172, 193, 0.23);
+
+/* 背景卡片阴影 [cite: 164]*/
+$uops-shadow-bg: 0px 7px 30px rgba(74, 144, 226, 0.16);
+
+/* 弹窗/选中卡片阴影 [cite: 161, 162] */
+.uops-shadow-dialog {
+  box-shadow:
+    0px 2px 8px rgba(37, 48, 60, 0.18),
+    0px 6px 16px rgba(37, 48, 60, 0.18);
+}
+
+/* 字体样式覆盖 */
+.text-title-special {
+  font-family: '方正兰亭中黑简体'; /* [cite: 89] */
+  font-size: $font-size-special;
+  color: var(--el-text-color-primary);
+}
+
+.text-title-h1 {
+  font-family: '方正兰亭中黑简体';
+  font-size: $font-size-h1;
+  color: var(--el-text-color-primary);
+}
+
+/* 布局栅格 (Grid)  */
+/* * 建议在 Element Plus 的 el-row 使用 :gutter="24"
+ * 规范定义 margin/gutter 为 24px
+ */
+.uops-grid-gutter {
+  --el-row-gutter: 24px;
+}
+
+/* 针对 Input 组件的特殊背景色覆盖 [cite: 57] */
+.el-input__wrapper {
+  background-color: var(--uops-bg-input);
+  box-shadow: none; /* 如果需要去除去默认边框阴影 */
+  border: 1px solid var(--el-border-color);
+}
+
+/* 针对当前组件的 el-input 搜索框 */
+.uops-input-bg {
+  width: 100%; // 示例：确保占据父元素宽度
+
+  /* 使用深度选择器 :deep() 来修改 el-input 内部的私有类 */
+  :deep(.el-input__wrapper) {
+    // 覆盖默认样式，应用规范中的背景色
+    background-color: var(--uops-bg-input); // #F2F4FB
+
+    // 应用规范中的圆角 4px
+    border-radius: var(--el-border-radius-base);
+
+    // 应用规范中的边框色 #D2DDE5
+    border: 1px solid var(--el-border-color);
+    box-shadow: none !important; /* 移除默认阴影 */
+    padding-left: 12px; // 保持左侧间距
+    padding-right: 12px; // 保持右侧间距
+
+    /* 关键：移除右侧圆角，使其与按钮无缝衔接 */
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+
+  /* 目标元素：.el-input__inner 是输入内容的实际元素 */
+  :deep(.el-input__inner) {
+    font-size: 14px !important;
+
+    /* 建议同时应用规范字体 */
+    font-family: var(--el-font-family);
+  }
+
+  // 聚焦时的样式调整 (Element Plus 默认会有一个蓝色阴影)
+  :deep(.el-input__wrapper.is-focus) {
+    box-shadow: 0 0 0 1px var(--el-color-primary) inset; // 聚焦时使用主色边框
+    border-color: var(--el-color-primary);
+  }
+}
+
+/* 针对包含 el-card 的自定义类 */
+.uops-card-padding {
+  /* 必须使用深度选择器来定位卡片内部的 header 元素 */
+  :deep(.ep-card__header) {
+    /* 格式: padding: [垂直 (上下)] [水平 (左右)]; */
+
+    /* 1. 垂直 24px，水平 24px (符合8点网格规范) */
+    padding: 24px !important;
+
+    /* 2. 可选：修改分割线的颜色或厚度 */
+    border-bottom: 1px solid var(--el-border-color-light);
+  }
+
+  /* 可选：同时修改内容区的内边距 */
+  :deep(.ep-card__body) {
+    padding: 24px !important;
+  }
+}
+
+/* 针对整个 Input Group 的样式定义 */
+.app-search-input-group {
+  // 确保整个组件的高度和基础样式一致
+  height: 100%;
+
+  // 使用深度选择器来调整 Input 包装器
+  :deep(.el-input__wrapper) {
+    background-color: var(--uops-bg-input); /* 应用规范中的输入框背景色 #F2F4FB */
+    border: 1px solid var(--el-border-color); /* 应用规范中的边框色 #D2DDE5 */
+  }
+
+  // 针对右侧追加内容的样式定义
+  :deep(.el-input-group__append) {
+    background-color: var(--el-color-primary); /* 应用规范中的主色 #3290FF */
+    border-color: var(--el-color-primary); /* 边框与主色一致 */
+    padding: 0;
+
+    /* 关键：移除左侧圆角，使其与输入框无缝衔接 */
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+
+    /* 在右侧保留规范中的圆角 4px */
+    border-radius: 0 var(--el-border-radius-base) var(--el-border-radius-base) 0 !important;
+
+    // 调整按钮样式
+    .el-button {
+      height: 100%;
+      padding: 0 12px;
+      background-color: transparent; // 使用 append 的背景色
+      color: var(--el-fill-color-blank); // 图标使用白色
+      border: none;
+
+      &:hover {
+        background-color: var(--el-color-primary-light-3); // 悬停色 #70B2FF
+      }
+    }
+  }
+}

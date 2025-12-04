@@ -15,6 +15,7 @@ import App from './App.vue'
 
 import '~/styles/index.scss'
 import '~/styles/style.css' // 导入你的全局样式文件
+import '@/styles/uops-theme.scss'
 
 import 'uno.css'
 // If you want to use ElMessage, import it.
