@@ -7,8 +7,10 @@
      2.1 颜色规范 (Color) - 覆盖 Element Plus 全局变量
      ========================================================== */
   /* 覆盖全局组件尺寸：例如将默认尺寸改为 36px */
-  --ep-component-size: 36px !important;
-  --ep-menu-item-height: 36px !important;
+  --ep-component-size: 32px !important;
+  --ep-menu-item-height: 32px !important;
+  --ep-picker-panel-header-height: 32px !important;
+  --ep-menu-base-level-padding: 12px !important;
 
   /* --- 01/主色/品牌色 [cite: 12, 14, 16, 17] --- */
   --el-color-primary: #3290ff; /* 主色 */
@@ -51,6 +53,23 @@
   --uops-radius-card-lg: 24px; /* 弹窗/大卡片 [cite: 100] */
   --uops-radius-card-md: 16px; /* 中卡片 [cite: 102] */
   --uops-radius-card-sm: 8px; /* 小卡片 [cite: 104] */
+
+  /* --- 按钮/组件尺寸定义 --- */
+
+  /* 大按钮/组件尺寸 (Height: 40px, Padding Y: 10px, Padding X: 20px) */
+  --el-component-size-large: 40px;
+  --el-button-padding-horizontal-large: 16px;
+  --el-button-padding-vertical-large: 10px;
+
+  /* 中按钮/组件尺寸 (Height: 32px, Padding Y: 7px, Padding X: 16px) */
+  --ep-component-size-default: 32px;
+  --ep-button-padding-horizontal: 12px; /* 注意: default 尺寸变量名没有 -default 后缀 */
+  --ep-button-padding-vertical: 7px;
+
+  /* 小按钮/组件尺寸 (Height: 24px, Padding Y: 4px, Padding X: 12px) */
+  --el-component-size-small: 24px;
+  --el-button-padding-horizontal-small: 8px;
+  --el-button-padding-vertical-small: 4px;
 }
 
 /* ==========================================================

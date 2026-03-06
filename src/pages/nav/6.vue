@@ -1671,12 +1671,12 @@ function showTransactionDetail(detail: string) {
           </template>
 
           <el-menu
-            :default-active="selectedSystemId" class="el-menu-vertical-demo" :collapse="false"
+            :default-active="selectedSystemId" class="el-menu-system-list" :collapse="false"
             @select="handleMenuSelect"
           >
             <el-menu-item v-for="system in filteredSystemList" :key="system.id" :index="system.id" :title="system.name">
-              <div class="menu-item-content">
-                <div class="menu-item-left">
+              <div class="menu-item-system-content">
+                <div class="menu-item-system-left">
                   <span class="system-name">{{ system.name }}</span>
                 </div>
                 <el-badge :value="getSystemChangeCountInMonth(system.id)" :max="99" type="primary" class="menu-item-badge" />
@@ -2305,9 +2305,7 @@ function showTransactionDetail(detail: string) {
   gap: 12px;
 }
 
-.button-group .el-button {
-  padding: 8px 16px;
-  height: 32px;
+.button-group .ep-button {
   border-radius: var(--el-border-radius-base); /* 4px [cite: 106] */
 }
 
@@ -2350,7 +2348,7 @@ function showTransactionDetail(detail: string) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 0px 0px 24px 0px;
   background-color: var(--el-fill-color-blank);
   border-bottom: 1px solid var(--el-border-color-light); /* 分割线 [cite: 50] */
 }
@@ -2379,17 +2377,26 @@ function showTransactionDetail(detail: string) {
   }
 }
 
-.el-menu-vertical-demo {
+.el-menu-system-list {
+  :deep(.el-menu-item) {
+    /* 1. 确保菜单项本身使用 Flexbox 并垂直居中 */
+    display: flex !important;
+    align-items: center !important;
+
+    /* 2. 移除默认 padding，以便让 .menu-item-content 控制整个宽度 */
+    padding: 0 !important;
+  }
 }
 
-.menu-item-content {
+.menu-item-system-content {
   display: flex;
   align-items: center !important;
-  justify-content: flex-start;
+  justify-content: space-between; /* 关键：左侧内容靠左，徽章靠右 */
   width: 100%;
+  vertical-align: middle;
 }
 
-.menu-item-left {
+.menu-item-system-left {
   display: flex;
   align-items: center !important;
   flex-grow: 1;
@@ -2398,7 +2405,7 @@ function showTransactionDetail(detail: string) {
 
 /* 菜单项角标样式 */
 .menu-item-badge :deep(.ep-badge__content) {
-  font-size: 12px; /* 标签文字 12px [cite: 89] */
+  font-size: var(--font-size-label); /* 标签文字 12px [cite: 89] */
   font-weight: normal;
   color: #ffffff; /* 主色 [cite: 14] */
   background-color: var(--el-color-primary) !important; /* 主色 [cite: 14] */
@@ -2407,14 +2414,29 @@ function showTransactionDetail(detail: string) {
   height: 18px;
   width: 18px;
   line-height: 18px;
-  padding: 0 6px;
+  /* *************************************************** */
+  /* ***** 关键修正：强制垂直居中对齐 ***** */
+  /* *************************************************** */
+
+  // /* 1. 强制将定位点移动到垂直中间 */
+  // top: 50% !important;
+
+  // /* 2. 使用 transform 向上平移自身高度的一半 */
+  // /* 这使得徽章的中心点对齐到父容器的 50% 位置 */
+  // transform: translateY(-50%) !important;
+
+  // /* 3. 确保水平位置在最右侧 (通常 right: 0 即可) */
+  // right: 0 !important;
+
+  // /* 4. 移除 Element Plus 默认的水平偏移（如果有的话） */
+  // margin-right: 0 !important;
 }
 
 .system-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-left: 8px;
+  margin-left: 0px;
   font-size: 14px;
   color: var(--el-text-color-regular);
 }
