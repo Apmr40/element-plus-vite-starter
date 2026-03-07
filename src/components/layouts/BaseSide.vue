@@ -97,5 +97,13 @@ function handleClose(key: string, keyPath: string[]) {
         变更特护视图
       </template>
     </el-menu-item>
+    <el-menu-item index="/nav/7">
+      <el-icon>
+        <Setting />
+      </el-icon>
+      <template #title>
+        操作资源配置
+      </template>
+    </el-menu-item>
   </el-menu>
 </template>
