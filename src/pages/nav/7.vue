@@ -20,6 +20,10 @@ const configData = ref<ConfigItem[]>([
   { id: 3, name: '配置项 C', type: '消息队列', status: '禁用', description: 'Kafka 配置', createdAt: '2026-03-03' },
 ])
 
+// 分页控制
+const currentPage = ref(1)
+const pageSize = ref(10)
+
 // 对话框控制
 const dialogVisible = ref(false)
 const editMode = ref(false)
@@ -161,8 +165,8 @@ function handleSubmit() {
       <!-- 分页 -->
       <div class="flex justify-end mt-4">
         <el-pagination
-          v-model:current-page="1"
-          v-model:page-size="10"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           :total="configData.length"
