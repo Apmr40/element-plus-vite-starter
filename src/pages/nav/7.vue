@@ -304,48 +304,59 @@ function copySQL() {
       <div v-if="fieldList.length > 0">
         <h3 class="text-lg font-bold mb-4">📝 字段配置</h3>
         <el-table :data="fieldList" border style="width: 100%">
-          <el-table-column prop="fieldName" label="属性名" width="180" />
+          <el-table-column prop="fieldName" label="属性名" width="150" />
           
-          <el-table-column label="描述 (description)" width="200">
+          <el-table-column label="描述 (description)" min-width="180">
             <template #default="{ row }">
-              <el-input v-model="row.description" placeholder="字段中文描述" />
+              <el-input v-model="row.description" placeholder="字段中文描述" size="small" />
             </template>
           </el-table-column>
           
-          <el-table-column label="序号 (orderindex)" width="120">
+          <el-table-column label="序号 (orderindex)" width="100" align="center">
             <template #default="{ row, $index }">
               <el-input-number 
                 v-model="row.orderIndex" 
                 :min="1" 
                 :max="99"
+                size="small"
+                controls-position="right"
                 @change="validateOrderIndex($index)"
               />
             </template>
           </el-table-column>
           
-          <el-table-column label="是否隐藏 (hideflag)" width="120">
+          <el-table-column label="是否隐藏" width="100" align="center">
             <template #default="{ row }">
-              <el-checkbox v-model="row.hideFlag" :true-value="1" :false-value="0" />
+              <el-checkbox 
+                v-model="row.hideFlag" 
+                :true-value="1" 
+                :false-value="0"
+                size="large"
+              />
             </template>
           </el-table-column>
           
-          <el-table-column label="主键 (pkflag)" width="100">
+          <el-table-column label="主键 (pkflag)" width="90" align="center">
             <template #default="{ row }">
               <el-radio 
                 v-model="pkField" 
                 :label="row.fieldName"
                 @change="setPkField(row.fieldName)"
-              />
+              >
+                <span v-if="row.pkFlag === 1">✓</span>
+              </el-radio>
             </template>
           </el-table-column>
           
-          <el-table-column label="主键展示 (pkdisplayflag)" width="140">
+          <el-table-column label="主键展示" width="100" align="center">
             <template #default="{ row }">
               <el-radio 
                 v-model="pkDisplayField" 
                 :label="row.fieldName"
                 @change="setPkDisplayField(row.fieldName)"
-              />
+              >
+                <span v-if="row.pkDisplayFlag === 1">✓</span>
+              </el-radio>
             </template>
           </el-table-column>
         </el-table>
