@@ -65,6 +65,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/nav/7': RouteRecordInfo<
+      '/nav/7',
+      '/nav/7',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -111,6 +118,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/nav/6.vue': {
       routes:
         | '/nav/6'
+      views:
+        | never
+    }
+    'src/pages/nav/7.vue': {
+      routes:
+        | '/nav/7'
       views:
         | never
     }
