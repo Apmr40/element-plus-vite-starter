@@ -390,7 +390,7 @@ function copySQL() {
           style="width: 100%"
         >
           <!-- 拖拽手柄列 -->
-          <el-table-column key="drag" width="60" align="center" :resizable="false">
+          <el-table-column key="drag" width="50" align="center" :resizable="false">
             <template #header>
               <span>📍</span>
             </template>
@@ -406,7 +406,7 @@ function copySQL() {
                 @drop.prevent="handleDrop($event, row)"
                 @dragend="handleDragEnd"
               >
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                   <path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
                 </svg>
               </el-icon>
@@ -414,21 +414,21 @@ function copySQL() {
           </el-table-column>
           
           <!-- 序号列 -->
-          <el-table-column label="序号" width="70" align="center">
+          <el-table-column label="序号" width="60" align="center">
             <template #default="{ row }">
               <span class="order-index">{{ row.orderIndex }}</span>
             </template>
           </el-table-column>
           
-          <el-table-column prop="fieldName" label="属性名" width="150" />
+          <el-table-column prop="fieldName" label="属性名" min-width="120" />
           
-          <el-table-column label="描述 (description)" width="300">
+          <el-table-column label="描述 (description)" min-width="200">
             <template #default="{ row }">
               <el-input v-model="row.description" placeholder="字段中文描述" size="small" style="width: 100%" />
             </template>
           </el-table-column>
           
-          <el-table-column label="是否隐藏" width="100" align="center">
+          <el-table-column label="是否隐藏" width="80" align="center">
             <template #default="{ row }">
               <el-checkbox 
                 v-model="row.hideFlag" 
@@ -449,7 +449,7 @@ function copySQL() {
             </template>
           </el-table-column>
           
-          <el-table-column label="主键展示" width="90" align="center">
+          <el-table-column label="主键展示" width="80" align="center">
             <template #default="{ row }">
               <el-checkbox 
                 :model-value="row.pkDisplayFlag === 1"
@@ -531,8 +531,35 @@ function copySQL() {
   overflow-y: auto;
 }
 
+/* 表格边框样式 */
 :deep(.el-table) {
   margin-bottom: 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+:deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+  border-bottom: 1px solid #dcdfe6;
+}
+
+:deep(.el-table td) {
+  border-bottom: 1px solid #ebeef5;
+}
+
+:deep(.el-table--border) {
+  border-right: none;
+}
+
+:deep(.el-table--border th) {
+  border-right: 1px solid #dcdfe6;
+}
+
+:deep(.el-table--border td) {
+  border-right: 1px solid #ebeef5;
 }
 
 :deep(.el-input-number) {
