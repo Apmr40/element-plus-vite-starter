@@ -47,14 +47,21 @@ function parseOutput() {
   try {
     const output = JSON.parse(form.outputExample)
     
-    // 查找 records 数组
+    // 查找 records 数组，兼容三种格式：
+    // 格式 1: { code, message, data: { records: [...] } }
+    // 格式 2: { code, message, data: [...], total, size, current, pages }
+    // 格式 3: { code, message, records: [...], total, size, current, pages }
     let records: any[] = []
+    
     if (output.data && output.data.records) {
+      // 格式 1: data 是对象，包含 records 数组
       records = output.data.records
-    } else if (output.records) {
-      records = output.records
     } else if (Array.isArray(output.data)) {
+      // 格式 2: data 直接是数组
       records = output.data
+    } else if (output.records && Array.isArray(output.records)) {
+      // 格式 3: records 在根级别
+      records = output.records
     }
     
     if (records.length === 0) {
