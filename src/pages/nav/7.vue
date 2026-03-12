@@ -15,10 +15,11 @@ interface FieldConfig {
 
 // 表单数据
 const form = reactive({
+  platformType: '',      // 平台类型（2 位大写字母，如 ZH）
+  platformName: '',      // 平台名称（小写，如 zhmc）
   apiUrl: '',
   inputExample: '',
-  outputExample: '',
-  platformName: ''
+  outputExample: ''
 })
 
 // 字段列表
@@ -261,13 +262,18 @@ function setPkDisplayField(fieldName: string) {
 
 // 生成 SQL
 function generateSQL() {
-  if (!form.apiUrl) {
-    ElMessage.warning('请输入 API URL')
+  if (!form.platformType) {
+    ElMessage.warning('请输入平台类型')
     return
   }
   
   if (!form.platformName) {
     ElMessage.warning('请输入平台名称')
+    return
+  }
+  
+  if (!form.apiUrl) {
+    ElMessage.warning('请输入 API URL')
     return
   }
   
@@ -279,41 +285,34 @@ function generateSQL() {
   // 生成 17 位 ID（平台名称开头 + 小写字母 + 数字）
   const apiId = generateResourceId(form.platformName, 'api')
   const resourceId = generateResourceId(form.platformName, 'res')
-  const platformType = form.platformName.toUpperCase()
   
-  // 1. iop_mc_api_info
-  // 字段：apiid, apiname, apiurl, apitype, description, res1-5
+  // 1. iop_mc_api_info（枚举所有字段，空值用 NULL）
   const apiInfoSql = `-- API 基本信息
 INSERT INTO iop_mc_api_info (apiid, apiname, apiurl, apitype, description, res1, res2, res3, res4, res5)
 VALUES ('${apiId}', '${form.platformName}查询接口', '${form.apiUrl}', 'G', '自动生成的 API 配置', NULL, NULL, NULL, NULL, NULL);
 `
   
-  // 2. iop_mc_serv_reso_info
-  // 字段：resourceid, resourcename, description, resourceapiid, res1-5
+  // 2. iop_mc_serv_reso_info（枚举所有字段）
   const resoInfoSql = `-- 资源基本信息
 INSERT INTO iop_mc_serv_reso_info (resourceid, resourcename, description, resourceapiid, res1, res2, res3, res4, res5)
 VALUES ('${resourceId}', '${form.platformName}资源', '自动生成的资源', '${apiId}', NULL, NULL, NULL, NULL, NULL);
 `
   
-  // 3. iop_mc_reso_fld_info
-  // 字段：resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag, res1-5
+  // 3. iop_mc_reso_fld_info（枚举所有字段，orderindex 不补 0）
   let fldInfoSql = `-- 资源字段详细信息\n`
   fieldList.value.forEach(field => {
     const description = field.description ? field.description.replace(/'/g, "''") : field.fieldName
-    const orderIndexStr = String(field.orderIndex).padStart(2, '0') // orderindex 是 VARCHAR(2)
     fldInfoSql += `INSERT INTO iop_mc_reso_fld_info (resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag, res1, res2, res3, res4, res5)
-VALUES ('${resourceId}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${form.platformName}资源', '${description}', '${orderIndexStr}', '${field.hideFlag}', '${field.pkFlag}', '${field.pkDisplayFlag}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${resourceId}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${form.platformName}资源', '${description}', ${field.orderIndex}, ${field.hideFlag}, ${field.pkFlag}, ${field.pkDisplayFlag}, NULL, NULL, NULL, NULL, NULL);
 `
   })
   
-  // 4. iop_mc_api_parm_rln（出参 + 入参）
-  // 字段：apiid, parmrlntype, orderindex, parmname, parmalisname, res1-5
+  // 4. iop_mc_api_parm_rln（出参 + 入参，枚举所有字段，orderindex 不补 0）
   let apiParmSql = `-- API 参数关联关系（出参）\n`
   fieldList.value.forEach((field, index) => {
     const fieldName = field.fieldName.toLowerCase()
-    const orderIndexStr = String(index + 1).padStart(2, '0') // orderindex 是 VARCHAR(2)
     apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, res1, res2, res3, res4, res5)
-VALUES ('${apiId}', '1', '${orderIndexStr}', 'str_${form.platformName}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${apiId}', '1', ${index + 1}, 'str_${form.platformName}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
 `
   })
   
@@ -323,18 +322,16 @@ VALUES ('${apiId}', '1', '${orderIndexStr}', 'str_${form.platformName}_${fieldNa
     apiParmSql += `\n-- API 参数关联关系（入参）\n`
     inputFields.forEach((field, index) => {
       const fieldName = field.fieldName.toLowerCase()
-      const orderIndexStr = String(index + 1).padStart(2, '0') // orderindex 是 VARCHAR(2)
       apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, res1, res2, res3, res4, res5)
-VALUES ('${apiId}', '0', '${orderIndexStr}', 'str_${form.platformName}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${apiId}', '0', ${index + 1}, 'str_${form.platformName}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
 `
     })
   }
   
-  // 5. iop_mc_serv_pltf_reso_rln
-  // 字段：platformtype, resourcelevel, platformname, resourceid, resourcename, description, res1-5
+  // 5. iop_mc_serv_pltf_reso_rln（枚举所有字段）
   const pltfResoSql = `-- 平台与资源关联关系
 INSERT INTO iop_mc_serv_pltf_reso_rln (platformtype, resourcelevel, platformname, resourceid, resourcename, description, res1, res2, res3, res4, res5)
-VALUES ('${platformType}', '01', '${form.platformName}', '${resourceId}', '${form.platformName}资源', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${form.platformType}', '01', '${form.platformName}', '${resourceId}', '${form.platformName}资源', NULL, NULL, NULL, NULL, NULL);
 `
   
   // 完整 SQL
@@ -363,10 +360,11 @@ VALUES ('${platformType}', '01', '${form.platformName}', '${resourceId}', '${for
 
 // 重置表单
 function resetForm() {
+  form.platformType = ''
+  form.platformName = ''
   form.apiUrl = ''
   form.inputExample = ''
   form.outputExample = ''
-  form.platformName = ''
   fieldList.value = []
   pkField.value = ''
   pkDisplayField.value = ''
@@ -393,13 +391,36 @@ function copySQL() {
 
       <!-- 1. 基础配置区域 -->
       <el-form :model="form" label-width="120px" size="default">
-        <el-form-item label="API URL">
-          <el-input 
-            v-model="form.apiUrl" 
-            placeholder="请输入 Spring Boot HTTP 查询接口 URL"
-            clearable
-          />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="平台类型" required>
+              <el-input 
+                v-model="form.platformType" 
+                placeholder="如：ZH（2 位大写字母）"
+                clearable
+                maxlength="2"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="平台名称" required>
+              <el-input 
+                v-model="form.platformName" 
+                placeholder="如：zhmc（小写）"
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="API URL" required>
+              <el-input 
+                v-model="form.apiUrl" 
+                placeholder="查询接口 URL"
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
@@ -407,7 +428,7 @@ function copySQL() {
               <el-input
                 v-model="form.inputExample"
                 type="textarea"
-                :rows="8"
+                :rows="6"
                 placeholder='例如：
 {
   "username": "李四",
@@ -421,7 +442,7 @@ function copySQL() {
               <el-input
                 v-model="form.outputExample"
                 type="textarea"
-                :rows="8"
+                :rows="6"
                 placeholder='例如：
 {
   "code": 200,
@@ -438,6 +459,7 @@ function copySQL() {
           <el-button type="primary" @click="parseOutput">
             📋 解析输出报文
           </el-button>
+          <el-button @click="resetForm">🔄 重置</el-button>
         </el-form-item>
       </el-form>
 
