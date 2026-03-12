@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ElTable } from 'element-plus'
 
 // 字段配置接口
 interface FieldConfig {
@@ -24,6 +25,7 @@ const form = reactive({
 const fieldList = ref<FieldConfig[]>([])
 const pkField = ref('')
 const pkDisplayField = ref('')
+const tableRef = ref<InstanceType<typeof ElTable>>()
 
 // SQL 结果
 interface SqlResult {
@@ -35,11 +37,82 @@ interface SqlResult {
 }
 const sqlResult = ref<SqlResult | null>(null)
 
+// 拖拽相关
+const draggingRow = ref<any>(null)
+const dragOverRow = ref<any>(null)
+
 // 生成唯一 ID
 function generateId(prefix = ''): string {
   const timestamp = Date.now().toString(36)
   const random = Math.random().toString(36).substr(2, 5)
   return `${prefix}${timestamp}${random}`.toUpperCase()
+}
+
+// 拖拽开始
+function handleDragStart(event: DragEvent, row: FieldConfig) {
+  draggingRow.value = row
+  event.dataTransfer!.effectAllowed = 'move'
+  // 设置拖拽透明度
+  setTimeout(() => {
+    const target = event.target as HTMLElement
+    if (target) {
+      target.closest('.el-table__row')?.classList.add('dragging')
+    }
+  }, 0)
+}
+
+// 拖拽悬停
+function handleDragOver(event: DragEvent, row: FieldConfig) {
+  event.preventDefault()
+  event.dataTransfer!.dropEffect = 'move'
+  dragOverRow.value = row
+}
+
+// 拖拽离开
+function handleDragLeave() {
+  dragOverRow.value = null
+}
+
+// 拖拽放置
+function handleDrop(event: DragEvent, targetRow: FieldConfig) {
+  event.preventDefault()
+  if (!draggingRow.value || draggingRow.value === targetRow) {
+    dragOverRow.value = null
+    return
+  }
+  
+  const fromIndex = fieldList.value.findIndex(row => row === draggingRow.value)
+  const toIndex = fieldList.value.findIndex(row => row === targetRow)
+  
+  if (fromIndex === -1 || toIndex === -1) {
+    dragOverRow.value = null
+    return
+  }
+  
+  // 移动数组元素
+  const [removed] = fieldList.value.splice(fromIndex, 1)
+  fieldList.value.splice(toIndex, 0, removed)
+  
+  // 重新计算序号
+  fieldList.value.forEach((row, index) => {
+    row.orderIndex = index + 1
+  })
+  
+  draggingRow.value = null
+  dragOverRow.value = null
+  
+  ElMessage.success('顺序已调整')
+}
+
+// 拖拽结束
+function handleDragEnd() {
+  draggingRow.value = null
+  dragOverRow.value = null
+}
+
+// 判断是否是拖拽悬停的行
+function isDragOverRow(row: FieldConfig) {
+  return dragOverRow.value === row && draggingRow.value !== row
 }
 
 // 解析输出报文
@@ -310,25 +383,49 @@ function copySQL() {
       <!-- 2. 字段配置表格 -->
       <div v-if="fieldList.length > 0">
         <h3 class="text-lg font-bold mb-4">📝 字段配置</h3>
-        <el-table :data="fieldList" border style="width: 100%">
-          <el-table-column prop="fieldName" label="属性名" width="150" />
-          
-          <el-table-column label="描述 (description)" min-width="180">
+        <el-table 
+          ref="tableRef"
+          :data="fieldList" 
+          border 
+          style="width: 100%"
+          row-key="fieldName"
+        >
+          <!-- 拖拽手柄列 -->
+          <el-table-column width="60" align="center" :resizable="false">
+            <template #header>
+              <span>📍</span>
+            </template>
             <template #default="{ row }">
-              <el-input v-model="row.description" placeholder="字段中文描述" size="small" />
+              <el-icon 
+                class="drag-handle" 
+                style="cursor: move; color: #909399;"
+                :class="{ 'drag-over': isDragOverRow(row) }"
+                draggable="true"
+                @dragstart="handleDragStart($event, row)"
+                @dragover.prevent="handleDragOver($event, row)"
+                @dragleave="handleDragLeave"
+                @drop.prevent="handleDrop($event, row)"
+                @dragend="handleDragEnd"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                </svg>
+              </el-icon>
             </template>
           </el-table-column>
           
-          <el-table-column label="序号 (orderindex)" width="100" align="center">
-            <template #default="{ row, $index }">
-              <el-input-number 
-                v-model="row.orderIndex" 
-                :min="1" 
-                :max="99"
-                size="small"
-                controls-position="right"
-                @change="validateOrderIndex($index)"
-              />
+          <!-- 序号列 -->
+          <el-table-column label="序号" width="70" align="center">
+            <template #default="{ row }">
+              <span class="order-index">{{ row.orderIndex }}</span>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="fieldName" label="属性名" width="150" />
+          
+          <el-table-column label="描述 (description)" width="300">
+            <template #default="{ row }">
+              <el-input v-model="row.description" placeholder="字段中文描述" size="small" />
             </template>
           </el-table-column>
           
@@ -343,27 +440,23 @@ function copySQL() {
             </template>
           </el-table-column>
           
-          <el-table-column label="主键 (pkflag)" width="90" align="center">
+          <el-table-column label="主键" width="70" align="center">
             <template #default="{ row }">
-              <el-radio 
-                v-model="pkField" 
-                :label="row.fieldName"
+              <el-checkbox 
+                :model-value="row.pkFlag === 1"
                 @change="setPkField(row.fieldName)"
-              >
-                <span v-if="row.pkFlag === 1">✓</span>
-              </el-radio>
+                size="large"
+              />
             </template>
           </el-table-column>
           
-          <el-table-column label="主键展示" width="100" align="center">
+          <el-table-column label="主键展示" width="90" align="center">
             <template #default="{ row }">
-              <el-radio 
-                v-model="pkDisplayField" 
-                :label="row.fieldName"
+              <el-checkbox 
+                :model-value="row.pkDisplayFlag === 1"
                 @change="setPkDisplayField(row.fieldName)"
-              >
-                <span v-if="row.pkDisplayFlag === 1">✓</span>
-              </el-radio>
+                size="large"
+              />
             </template>
           </el-table-column>
         </el-table>
@@ -445,5 +538,50 @@ function copySQL() {
 
 :deep(.el-input-number) {
   width: 100px;
+}
+
+/* 拖拽手柄样式 */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.drag-handle:hover {
+  background-color: #f5f7fa;
+  color: #409eff;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle.drag-over {
+  background-color: #ecf5ff;
+  color: #409eff;
+  transform: scale(1.1);
+}
+
+/* 序号样式 */
+.order-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #f5f7fa;
+  border-radius: 50%;
+  font-weight: 600;
+  color: #606266;
+  font-size: 14px;
+}
+
+/* 拖拽中的行样式 */
+:deep(.el-table__row.dragging) {
+  opacity: 0.5;
+  background-color: #f5f7fa;
 }
 </style>
