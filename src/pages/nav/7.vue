@@ -391,7 +391,7 @@ function copySQL() {
           row-key="fieldName"
         >
           <!-- 拖拽手柄列 -->
-          <el-table-column width="60" align="center" :resizable="false">
+          <el-table-column width="60" align="center">
             <template #header>
               <span>📍</span>
             </template>
@@ -425,7 +425,7 @@ function copySQL() {
           
           <el-table-column label="描述 (description)" width="300">
             <template #default="{ row }">
-              <el-input v-model="row.description" placeholder="字段中文描述" size="small" />
+              <el-input v-model="row.description" placeholder="字段中文描述" size="small" style="width: 100%" />
             </template>
           </el-table-column>
           
