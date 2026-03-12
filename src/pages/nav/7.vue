@@ -28,8 +28,7 @@ interface CascadeLevel {
 // 表单数据
 const form = reactive({
   platformType: '',      // 平台类型（2 位大写字母，如 ZH）
-  platformName: '',      // 平台名称（小写，如 zhmc）
-  cascadeName: ''        // 级联名称
+  platformName: ''       // 平台名称（小写，如 zhmc）
 })
 
 // 层级列表
@@ -396,7 +395,7 @@ VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformName}_${fieldNa
   // 完整 SQL
   const fullSql = [
     '-- ========================================',
-    `-- 级联资源配置 - ${form.cascadeName || form.platformName}`,
+    `-- 级联资源配置 - ${form.platformType}(${form.platformName})`,
     `-- 平台类型：${form.platformType}`,
     `-- 生成时间：${new Date().toLocaleString('zh-CN')}`,
     '-- ========================================\n',
@@ -423,7 +422,6 @@ VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformName}_${fieldNa
 function resetForm() {
   form.platformType = ''
   form.platformName = ''
-  form.cascadeName = ''
   levels.value = []
   currentLevelIndex.value = 0
   sqlResult.value = null
@@ -449,9 +447,9 @@ function copySQL() {
       </template>
 
       <!-- 1. 基础配置 -->
-      <el-form :model="form" label-width="120px" size="default">
+      <el-form :model="form" label-width="100px" size="default">
         <el-row :gutter="20">
-          <el-col :span="6">
+          <el-col :span="8">
             <el-form-item label="平台类型" required>
               <el-input 
                 v-model="form.platformType" 
@@ -462,7 +460,7 @@ function copySQL() {
               />
             </el-form-item>
           </el-col>
-          <el-col :span="6">
+          <el-col :span="8">
             <el-form-item label="平台名称" required>
               <el-input 
                 v-model="form.platformName" 
@@ -472,15 +470,6 @@ function copySQL() {
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="级联名称">
-              <el-input 
-                v-model="form.cascadeName" 
-                placeholder="如：ZHMC 资源配置"
-                clearable
-              />
-            </el-form-item>
-          </el-col>
-          <el-col :span="4">
             <el-form-item label="&nbsp;">
               <el-button type="primary" @click="addLevel" :disabled="!form.platformType || !form.platformName">
                 ➕ 添加层级
