@@ -41,11 +41,51 @@ const sqlResult = ref<SqlResult | null>(null)
 const draggingRow = ref<any>(null)
 const dragOverRow = ref<any>(null)
 
-// 生成唯一 ID
+// 生成唯一 ID（旧方法，保留兼容）
 function generateId(prefix = ''): string {
   const timestamp = Date.now().toString(36)
   const random = Math.random().toString(36).substr(2, 5)
   return `${prefix}${timestamp}${random}`.toUpperCase()
+}
+
+// 生成 17 位资源 ID（平台名称开头 + 小写字母 + 数字，补齐 17 位）
+function generateResourceId(platformName: string, prefix: string): string {
+  const base = prefix + platformName.toLowerCase()
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  let result = base
+  
+  // 补齐到 17 位
+  while (result.length < 17) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  
+  // 如果超过 17 位，截断（平台名太长的情况）
+  return result.substring(0, 17)
+}
+
+// 解析入参字段
+function parseInputFields(): { fieldName: string; description: string }[] {
+  const fields: { fieldName: string; description: string }[] = []
+  
+  if (!form.inputExample) {
+    return fields
+  }
+  
+  try {
+    const input = JSON.parse(form.inputExample)
+    if (typeof input === 'object' && !Array.isArray(input)) {
+      for (const [key, value] of Object.entries(input)) {
+        fields.push({
+          fieldName: key,
+          description: ''
+        })
+      }
+    }
+  } catch (e) {
+    // 解析失败则返回空数组
+  }
+  
+  return fields
 }
 
 // 拖拽开始
@@ -236,42 +276,57 @@ function generateSQL() {
     return
   }
   
-  const apiId = generateId('API')
-  const resourceId = generateId('RES')
+  // 生成 17 位 ID（平台名称开头 + 小写字母 + 数字）
+  const apiId = generateResourceId(form.platformName, 'api')
+  const resourceId = generateResourceId(form.platformName, 'res')
   const platformType = form.platformName.toUpperCase()
   
-  // 1. iop_mc_api_info
+  // 1. iop_mc_api_info（字段全枚举，空值用 NULL）
   const apiInfoSql = `-- API 基本信息
-INSERT INTO iop_mc_api_info (apiid, apiname, apiurl, apitype, description)
-VALUES ('${apiId}', '${form.platformName}查询接口', '${form.apiUrl}', 'G', '自动生成的 API 配置');
+INSERT INTO iop_mc_api_info (apiid, apiname, apiurl, apitype, description, createdate, updatedate, createby, updateby, delflag, ext1, ext2, ext3)
+VALUES ('${apiId}', '${form.platformName}查询接口', '${form.apiUrl}', 'G', '自动生成的 API 配置', NULL, NULL, NULL, NULL, '0', NULL, NULL, NULL);
 `
   
-  // 2. iop_mc_serv_reso_info
+  // 2. iop_mc_serv_reso_info（字段全枚举）
   const resoInfoSql = `-- 资源基本信息
-INSERT INTO iop_mc_serv_reso_info (resourceid, resourcename, resourceapiid)
-VALUES ('${resourceId}', '${form.platformName}资源', '${apiId}');
+INSERT INTO iop_mc_serv_reso_info (resourceid, resourcename, resourceapiid, resourcetype, resourcelevel, description, orderindex, createdate, updatedate, createby, updateby, delflag, ext1, ext2, ext3)
+VALUES ('${resourceId}', '${form.platformName}资源', '${apiId}', 'API', '01', '自动生成的资源', '1', NULL, NULL, NULL, NULL, '0', NULL, NULL, NULL);
 `
   
-  // 3. iop_mc_reso_fld_info
+  // 3. iop_mc_reso_fld_info（字段全枚举，orderindex 不补 0）
   let fldInfoSql = `-- 资源字段详细信息\n`
   fieldList.value.forEach(field => {
-    fldInfoSql += `INSERT INTO iop_mc_reso_fld_info (resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag)
-VALUES ('${resourceId}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${form.platformName}资源', '${field.description || field.fieldName}', '${String(field.orderIndex).padStart(2, '0')}', '${field.hideFlag}', '${field.pkFlag}', '${field.pkDisplayFlag}');
+    const description = field.description ? field.description.replace(/'/g, "''") : field.fieldName
+    fldInfoSql += `INSERT INTO iop_mc_reso_fld_info (resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag, fieldtype, fieldlength, nullable, createdate, updatedate, createby, updateby, delflag, ext1, ext2, ext3)
+VALUES ('${resourceId}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${form.platformName}资源', '${description}', ${field.orderIndex}, ${field.hideFlag}, ${field.pkFlag}, ${field.pkDisplayFlag}, 'VARCHAR', 255, '1', NULL, NULL, NULL, NULL, '0', NULL, NULL, NULL);
 `
   })
   
-  // 4. iop_mc_api_parm_rln (出参)
+  // 4. iop_mc_api_parm_rln（出参 + 入参）
   let apiParmSql = `-- API 参数关联关系（出参）\n`
   fieldList.value.forEach((field, index) => {
-    apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname)
-VALUES ('${apiId}', '1', '${String(index + 1).padStart(2, '0')}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${field.fieldName}');
+    const fieldName = field.fieldName.toLowerCase()
+    apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, parmtype, parmlength, nullable, description, createdate, updatedate, createby, updateby, delflag, ext1, ext2, ext3)
+VALUES ('${apiId}', '1', ${index + 1}, 'str_${form.platformName}_${fieldName}', '${field.fieldName}', 'VARCHAR', 255, '1', '出参：${field.description || field.fieldName}', NULL, NULL, NULL, NULL, '0', NULL, NULL, NULL);
 `
   })
   
-  // 5. iop_mc_serv_pltf_reso_rln (级联关系)
+  // 添加入参配置（parmrlntype=0）
+  const inputFields = parseInputFields()
+  if (inputFields.length > 0) {
+    apiParmSql += `\n-- API 参数关联关系（入参）\n`
+    inputFields.forEach((field, index) => {
+      const fieldName = field.fieldName.toLowerCase()
+      apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, parmtype, parmlength, nullable, description, createdate, updatedate, createby, updateby, delflag, ext1, ext2, ext3)
+VALUES ('${apiId}', '0', ${index + 1}, 'str_${form.platformName}_${fieldName}', '${field.fieldName}', 'VARCHAR', 255, '1', '入参：${field.description || field.fieldName}', NULL, NULL, NULL, NULL, '0', NULL, NULL, NULL);
+`
+    })
+  }
+  
+  // 5. iop_mc_serv_pltf_reso_rln（字段全枚举）
   const pltfResoSql = `-- 平台与资源关联关系
-INSERT INTO iop_mc_serv_pltf_reso_rln (platformtype, resourcelevel, platformname, resourceid, resourcename)
-VALUES ('${platformType}', '01', '${form.platformName}', '${resourceId}', '${form.platformName}资源');
+INSERT INTO iop_mc_serv_pltf_reso_rln (platformtype, resourcelevel, platformname, resourceid, resourcename, createdate, updatedate, createby, updateby, delflag, ext1, ext2, ext3)
+VALUES ('${platformType}', '01', '${form.platformName}', '${resourceId}', '${form.platformName}资源', NULL, NULL, NULL, NULL, '0', NULL, NULL, NULL);
 `
   
   // 完整 SQL
