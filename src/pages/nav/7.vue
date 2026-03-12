@@ -388,10 +388,9 @@ function copySQL() {
           :data="fieldList" 
           border 
           style="width: 100%"
-          row-key="fieldName"
         >
           <!-- 拖拽手柄列 -->
-          <el-table-column width="60" align="center">
+          <el-table-column key="drag" width="60" align="center" :resizable="false">
             <template #header>
               <span>📍</span>
             </template>
