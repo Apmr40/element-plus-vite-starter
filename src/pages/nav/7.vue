@@ -27,8 +27,9 @@ interface CascadeLevel {
 
 // 表单数据
 const form = reactive({
-  platformType: '',      // 平台类型（2 位大写字母，如 ZH）
-  platformName: ''       // 平台名称（小写，如 zhmc）
+  platformType: '',      // 平台编码（2 位大写字母，如 ZH）
+  platformCode: '',      // 平台英文缩写（小写，如 zhmc）
+  platformName: ''       // 平台名称（中文，如 中化）
 })
 
 // 层级列表
@@ -66,9 +67,9 @@ const sqlResult = ref<SqlResult | null>(null)
 const draggingRow = ref<any>(null)
 const dragOverRow = ref<any>(null)
 
-// 生成 17 位资源 ID（平台名称开头 + 小写字母 + 数字，补齐 17 位）
-function generateResourceId(platformName: string, prefix: string): string {
-  const base = prefix + platformName.toLowerCase()
+// 生成 17 位资源 ID（平台英文缩写开头 + 小写字母 + 数字，补齐 17 位）
+function generateResourceId(platformCode: string, prefix: string): string {
+  const base = prefix + platformCode.toLowerCase()
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
   let result = base
   
@@ -161,8 +162,8 @@ function parseOutput() {
 
 // 添加层级
 function addLevel() {
-  if (!form.platformType || !form.platformName) {
-    ElMessage.warning('请先填写平台类型和平台名称')
+  if (!form.platformType || !form.platformCode || !form.platformName) {
+    ElMessage.warning('请先填写平台编码、平台英文缩写和平台名称')
     return
   }
   
@@ -173,8 +174,8 @@ function addLevel() {
     resourceLevel,
     resourceName: `资源${levelNum}`,
     apiUrl: '',
-    resourceId: generateResourceId(form.platformName, 'res'),
-    apiId: generateResourceId(form.platformName, 'api'),
+    resourceId: generateResourceId(form.platformCode, 'res'),
+    apiId: generateResourceId(form.platformCode, 'api'),
     inputExample: '',
     outputExample: '',
     fields: []
@@ -318,7 +319,12 @@ function isDragOverRow(row: FieldConfig) {
 // 生成 SQL
 function generateSQL() {
   if (!form.platformType) {
-    ElMessage.warning('请输入平台类型')
+    ElMessage.warning('请输入平台编码')
+    return
+  }
+  
+  if (!form.platformCode) {
+    ElMessage.warning('请输入平台英文缩写')
     return
   }
   
@@ -362,7 +368,7 @@ VALUES ('${level.apiId}', '${level.resourceName}查询接口', '${level.apiUrl |
     level.fields.forEach(field => {
       const description = field.description ? field.description.replace(/'/g, "''") : field.fieldName
       fldInfoSql += `INSERT INTO iop_mc_reso_fld_info (resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag, res1, res2, res3, res4, res5)
-VALUES ('${level.resourceId}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${level.resourceName}', '${description}', ${field.orderIndex}, ${field.hideFlag}, ${field.pkFlag}, ${field.pkDisplayFlag}, NULL, NULL, NULL, NULL, NULL);
+VALUES ('${level.resourceId}', 'str_${form.platformCode}_${field.fieldName.toLowerCase()}', '${level.resourceName}', '${description}', ${field.orderIndex}, ${field.hideFlag}, ${field.pkFlag}, ${field.pkDisplayFlag}, NULL, NULL, NULL, NULL, NULL);
 `
     })
   })
@@ -373,7 +379,7 @@ VALUES ('${level.resourceId}', 'str_${form.platformName}_${field.fieldName.toLow
     level.fields.forEach((field, index) => {
       const fieldName = field.fieldName.toLowerCase()
       apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, res1, res2, res3, res4, res5)
-VALUES ('${level.apiId}', '1', ${index + 1}, 'str_${form.platformName}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${level.apiId}', '1', ${index + 1}, 'str_${form.platformCode}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
 `
     })
   })
@@ -386,7 +392,7 @@ VALUES ('${level.apiId}', '1', ${index + 1}, 'str_${form.platformName}_${fieldNa
       inputFields.forEach((field, index) => {
         const fieldName = field.fieldName.toLowerCase()
         apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, res1, res2, res3, res4, res5)
-VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformName}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformCode}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
 `
       })
     }
@@ -395,8 +401,10 @@ VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformName}_${fieldNa
   // 完整 SQL
   const fullSql = [
     '-- ========================================',
-    `-- 级联资源配置 - ${form.platformType}(${form.platformName})`,
-    `-- 平台类型：${form.platformType}`,
+    `-- 级联资源配置 - ${form.platformType}(${form.platformCode})`,
+    `-- 平台编码：${form.platformType}`,
+    `-- 平台英文缩写：${form.platformCode}`,
+    `-- 平台名称：${form.platformName}`,
     `-- 生成时间：${new Date().toLocaleString('zh-CN')}`,
     '-- ========================================\n',
     pltfResoSql,
@@ -421,6 +429,7 @@ VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformName}_${fieldNa
 // 重置表单
 function resetForm() {
   form.platformType = ''
+  form.platformCode = ''
   form.platformName = ''
   levels.value = []
   currentLevelIndex.value = 0
@@ -447,10 +456,10 @@ function copySQL() {
       </template>
 
       <!-- 1. 基础配置 -->
-      <el-form :model="form" label-width="100px" size="default">
+      <el-form :model="form" label-width="120px" size="default">
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item label="平台类型" required>
+            <el-form-item label="平台编码" required>
               <el-input 
                 v-model="form.platformType" 
                 placeholder="如：ZH"
@@ -461,20 +470,29 @@ function copySQL() {
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="平台名称" required>
+            <el-form-item label="平台英文缩写" required>
               <el-input 
-                v-model="form.platformName" 
+                v-model="form.platformCode" 
                 placeholder="如：zhmc"
                 clearable
               />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="&nbsp;">
-              <el-button type="primary" @click="addLevel" :disabled="!form.platformType || !form.platformName">
-                ➕ 添加层级
-              </el-button>
+            <el-form-item label="平台名称" required>
+              <el-input 
+                v-model="form.platformName" 
+                placeholder="如：中化"
+                clearable
+              />
             </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="24">
+            <el-button type="primary" @click="addLevel" :disabled="!form.platformType || !form.platformCode || !form.platformName">
+              ➕ 添加层级
+            </el-button>
           </el-col>
         </el-row>
       </el-form>
