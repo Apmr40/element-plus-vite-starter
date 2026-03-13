@@ -22,9 +22,9 @@
 
 ```sql
 CREATE TABLE iop_mc_serv_pltf_reso_rln (
-  platformtype VARCHAR(2) NOT NULL,      -- 平台类型（如 ZH）
+  platformtype VARCHAR(2) NOT NULL,      -- 平台编码（如 ZH）
   resourcelevel VARCHAR(2) NOT NULL,     -- 级联层级（01, 02, 03）
-  platformname VARCHAR(200),             -- 平台名称（如 zhmc）
+  platformname VARCHAR(200),             -- 平台名称（如 中化）
   resourceid VARCHAR(17),                -- 资源 ID（17 位）
   resourcename VARCHAR(200),             -- 资源名称
   description VARCHAR(500),
@@ -106,8 +106,8 @@ ADD PRIMARY KEY (apiid, parmrlntype, orderindex);
 ┌─────────────────────────────────────────────────────────────┐
 │  🔗 级联资源配置           [支持多层级资源配置]              │
 ├─────────────────────────────────────────────────────────────┤
-│  平台类型  平台名称            [➕ 添加层级]                 │
-│  [ZH]     [zhmc]                                           │
+│  平台编码  平台英文缩写  平台名称                           │
+│  [ZH]     [zhmc]      [中化]           [➕ 添加层级]        │
 ├─────────────────────────────────────────────────────────────┤
 │  📊 级联层级列表                                             │
 │  ┌────────────────────────────────────────────────────┐     │
@@ -129,7 +129,7 @@ ADD PRIMARY KEY (apiid, parmrlntype, orderindex);
 
 ### 核心交互流程
 
-1. 填写平台类型（ZH）、平台名称（zhmc）
+1. 填写平台编码（ZH）、平台英文缩写（zhmc）、平台名称（中化）
 2. 点击「➕ 添加层级」创建新层级
 3. 填写资源名称、API URL
 4. 粘贴输出报文示例，点击「📋 解析 API 字段」
@@ -168,8 +168,9 @@ interface CascadeLevel {
 
 // 表单数据
 const form = reactive({
-  platformType: '',        // 'ZH'
-  platformName: ''         // 'zhmc'
+  platformType: '',        // 平台编码：'ZH'
+  platformCode: '',        // 平台英文缩写：'zhmc'
+  platformName: ''         // 平台名称：'中化'
 })
 
 const levels = ref<CascadeLevel[]>([])  // 层级列表
@@ -292,9 +293,10 @@ GitHub: https://github.com/Apmr40/element-plus-vite-starter
 
 | 字段 | 类型 | 说明 | 示例 |
 |------|------|------|------|
-| platformtype | VARCHAR(2) | 平台类型 | ZH |
+| platformtype | VARCHAR(2) | 平台编码 | ZH |
 | resourcelevel | VARCHAR(2) | 级联层级 | 01, 02, 03 |
-| platformname | VARCHAR(200) | 平台名称 | zhmc |
+| platformname | VARCHAR(200) | 平台名称（中文） | 中化 |
+| platformcode | - | 平台英文缩写（前端字段） | zhmc |
 | resourceid | VARCHAR(17) | 资源 ID | reszhmc123abc |
 | apiid | VARCHAR(17) | API ID | apizhmc456def |
 | fieldname | VARCHAR(200) | 字段名 | str_zhmc_id |
