@@ -220,20 +220,18 @@ function moveLevelDown(index: number) {
   currentLevelIndex.value = index + 1
 }
 
-// 设置主键字段
-function setPkField(fieldName: string) {
+// 切换主键字段（勾选框方式）
+function togglePkField(row: FieldConfig) {
   if (!currentLevel.value) return
-  currentLevel.value.fields.forEach(f => {
-    f.pkFlag = f.fieldName === fieldName ? 1 : 0
-  })
+  // 切换当前行的主键状态
+  row.pkFlag = row.pkFlag === 1 ? 0 : 1
 }
 
-// 设置主键展示字段
-function setPkDisplayField(fieldName: string) {
+// 切换展示字段（勾选框方式）
+function togglePkDisplayField(row: FieldConfig) {
   if (!currentLevel.value) return
-  currentLevel.value.fields.forEach(f => {
-    f.pkDisplayFlag = f.fieldName === fieldName ? 1 : 0
-  })
+  // 切换当前行的展示状态
+  row.pkDisplayFlag = row.pkDisplayFlag === 1 ? 0 : 1
 }
 
 // 验证序号不重复
@@ -581,20 +579,21 @@ function copySQL() {
             </template>
           </el-table-column>
           
-          <el-table-column label="隐藏" width="70" align="center">
+          <el-table-column label="隐藏" width="60" align="center">
             <template #default="{ row }">
               <el-checkbox v-model="row.hideFlag" :true-value="1" :false-value="0" />
             </template>
           </el-table-column>
           
-          <el-table-column label="展示" width="70" align="center">
+          <el-table-column label="主键" width="60" align="center">
             <template #default="{ row }">
-              <el-radio 
-                :model-value="currentLevel?.fields.find(f => f.pkDisplayFlag === 1)?.fieldName || ''"
-                :label="row.fieldName"
-                name="pkDisplayField"
-                @change="setPkDisplayField(row.fieldName)"
-              />
+              <el-checkbox v-model="row.pkFlag" :true-value="1" :false-value="0" @change="togglePkField(row)" />
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="展示" width="60" align="center">
+            <template #default="{ row }">
+              <el-checkbox v-model="row.pkDisplayFlag" :true-value="1" :false-value="0" @change="togglePkDisplayField(row)" />
             </template>
           </el-table-column>
         </el-table>
