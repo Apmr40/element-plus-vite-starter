@@ -220,18 +220,20 @@ function moveLevelDown(index: number) {
   currentLevelIndex.value = index + 1
 }
 
-// 切换主键字段（勾选框方式）
-function togglePkField(row: FieldConfig) {
+// 设置主键字段（单选）
+function setPkField(fieldName: string) {
   if (!currentLevel.value) return
-  // 切换当前行的主键状态
-  row.pkFlag = row.pkFlag === 1 ? 0 : 1
+  currentLevel.value.fields.forEach(f => {
+    f.pkFlag = f.fieldName === fieldName ? 1 : 0
+  })
 }
 
-// 切换展示字段（勾选框方式）
-function togglePkDisplayField(row: FieldConfig) {
+// 设置展示字段（单选）
+function setPkDisplayField(fieldName: string) {
   if (!currentLevel.value) return
-  // 切换当前行的展示状态
-  row.pkDisplayFlag = row.pkDisplayFlag === 1 ? 0 : 1
+  currentLevel.value.fields.forEach(f => {
+    f.pkDisplayFlag = f.fieldName === fieldName ? 1 : 0
+  })
 }
 
 // 验证序号不重复
@@ -587,13 +589,23 @@ function copySQL() {
           
           <el-table-column label="主键" width="60" align="center">
             <template #default="{ row }">
-              <el-checkbox v-model="row.pkFlag" :true-value="1" :false-value="0" @change="togglePkField(row)" />
+              <el-radio 
+                :model-value="currentLevel?.fields.find(f => f.pkFlag === 1)?.fieldName || ''"
+                :label="row.fieldName"
+                name="pkField"
+                @change="setPkField(row.fieldName)"
+              />
             </template>
           </el-table-column>
           
           <el-table-column label="展示" width="60" align="center">
             <template #default="{ row }">
-              <el-checkbox v-model="row.pkDisplayFlag" :true-value="1" :false-value="0" @change="togglePkDisplayField(row)" />
+              <el-radio 
+                :model-value="currentLevel?.fields.find(f => f.pkDisplayFlag === 1)?.fieldName || ''"
+                :label="row.fieldName"
+                name="pkDisplayField"
+                @change="setPkDisplayField(row.fieldName)"
+              />
             </template>
           </el-table-column>
         </el-table>
