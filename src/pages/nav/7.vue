@@ -107,6 +107,11 @@ function parseOutput() {
     return
   }
   
+  if (!currentLevel.value.outputExample) {
+    ElMessage.warning('请先填写输出报文示例')
+    return
+  }
+  
   try {
     const output = JSON.parse(currentLevel.value.outputExample)
     
@@ -499,7 +504,14 @@ function copySQL() {
       <!-- 2. 层级列表 -->
       <div v-if="levels.length > 0" class="mt-4">
         <h3 class="text-lg font-bold mb-4">📊 级联层级列表</h3>
-        <el-table :data="levels" border style="width: 100%" highlight-current-row @current-change="(val) => { if(val) currentLevelIndex = levels.findIndex(l => l === val) }">
+        <el-table 
+          :data="levels" 
+          border 
+          style="width: 100%" 
+          highlight-current-row 
+          empty-text="暂无层级，请在上方填写平台信息后点击"添加层级"按钮"
+          @current-change="(val) => { if(val) currentLevelIndex = levels.findIndex(l => l === val) }"
+        >
           <el-table-column label="层级" width="80" align="center">
             <template #default="{ row }">
               <el-tag :type="currentLevelIndex === levels.findIndex(l => l === row) ? 'primary' : 'info'">
@@ -519,7 +531,9 @@ function copySQL() {
           </el-table-column>
           <el-table-column label="字段数" width="80" align="center">
             <template #default="{ row }">
-              {{ row.fields.length }}
+              <el-tag :type="row.fields.length > 0 ? 'success' : 'info'" size="small">
+                {{ row.fields.length }}
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="180" align="center">
@@ -574,12 +588,22 @@ function copySQL() {
         </div>
 
         <!-- 解析按钮 -->
-        <div class="mb-4">
-          <el-button type="primary" @click="parseOutput">📋 解析 API 字段</el-button>
+        <div class="mb-4 flex justify-between items-center">
+          <el-button type="primary" @click="parseOutput" :disabled="!currentLevel.outputExample">
+            📋 解析 API 字段
+          </el-button>
+          <el-tag v-if="fieldList.length > 0" type="success" size="small">
+            已解析 {{ fieldList.length }} 个字段
+          </el-tag>
         </div>
         
         <!-- 字段配置表格 -->
-        <el-table :data="fieldList" border style="width: 100%">
+        <el-table 
+          :data="fieldList" 
+          border 
+          style="width: 100%"
+          empty-text="暂无字段，请在上方填写输出报文示例后点击"解析 API 字段"按钮"
+        >
           <!-- 拖拽手柄列 -->
           <el-table-column key="drag" width="50" align="center" :resizable="false">
             <template #header>📍</template>
@@ -654,9 +678,12 @@ function copySQL() {
       <el-divider v-if="levels.length > 0" />
 
       <!-- 4. 操作按钮 -->
-      <div v-if="levels.length > 0" class="mt-4">
-        <el-button type="success" @click="generateSQL">✨ 生成完整 SQL</el-button>
+      <div v-if="levels.length > 0" class="mt-4 flex gap-2">
+        <el-button type="success" @click="generateSQL" :disabled="!levels.some(l => l.fields.length > 0)">
+          ✨ 生成完整 SQL
+        </el-button>
         <el-button @click="resetForm">🔄 重置</el-button>
+        <el-button @click="copySQL" :disabled="!sqlResult">📋 复制 SQL</el-button>
       </div>
 
       <!-- 5. SQL 结果 -->
