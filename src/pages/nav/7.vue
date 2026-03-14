@@ -534,15 +534,51 @@ function copySQL() {
 
       <el-divider v-if="levels.length > 0" />
 
-      <!-- 3. 当前层级字段配置 -->
+      <!-- 3. 当前层级配置 -->
       <div v-if="currentLevel" class="mt-4">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-bold">
-            📝 字段配置 - 层级 {{ currentLevel.resourceLevel }} ({{ currentLevel.resourceName }})
-          </h3>
-          <el-button type="primary" size="small" @click="parseOutput">📋 解析 API 字段</el-button>
+        <h3 class="text-lg font-bold mb-4">
+          📝 字段配置 - 层级 {{ currentLevel.resourceLevel }} ({{ currentLevel.resourceName }})
+        </h3>
+
+        <!-- 输入报文配置 -->
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">📥 输入报文示例（用于生成入参配置）</h4>
+          <el-input
+            v-model="currentLevel.inputExample"
+            type="textarea"
+            :rows="4"
+            placeholder='例如：
+{
+  "datacenterCnName": "测试环境北京",
+  "datacenter": "hqx",
+  "applicationId": "SDC201608_0203"
+}'
+          />
+        </div>
+
+        <!-- 输出报文配置 -->
+        <div class="mb-4">
+          <h4 class="font-bold mb-2">📤 输出报文示例</h4>
+          <el-input
+            v-model="currentLevel.outputExample"
+            type="textarea"
+            :rows="4"
+            placeholder='例如：
+{
+  "code": 200,
+  "data": {
+    "records": [...]
+  }
+}'
+          />
+        </div>
+
+        <!-- 解析按钮 -->
+        <div class="mb-4">
+          <el-button type="primary" @click="parseOutput">📋 解析 API 字段</el-button>
         </div>
         
+        <!-- 字段配置表格 -->
         <el-table :data="fieldList" border style="width: 100%">
           <!-- 拖拽手柄列 -->
           <el-table-column key="drag" width="50" align="center" :resizable="false">
@@ -613,39 +649,6 @@ function copySQL() {
             </template>
           </el-table-column>
         </el-table>
-
-        <!-- 输入报文配置 -->
-        <div class="mt-4">
-          <h4 class="font-bold mb-2">📥 输入报文示例（用于生成入参配置）</h4>
-          <el-input
-            v-model="currentLevel.inputExample"
-            type="textarea"
-            :rows="4"
-            placeholder='例如：
-{
-  "datacenterCnName": "测试环境北京",
-  "datacenter": "hqx",
-  "applicationId": "SDC201608_0203"
-}'
-          />
-        </div>
-
-        <!-- 输出报文配置 -->
-        <div class="mt-4">
-          <h4 class="font-bold mb-2">📤 输出报文示例</h4>
-          <el-input
-            v-model="currentLevel.outputExample"
-            type="textarea"
-            :rows="4"
-            placeholder='例如：
-{
-  "code": 200,
-  "data": {
-    "records": [...]
-  }
-}'
-          />
-        </div>
       </div>
 
       <el-divider v-if="levels.length > 0" />
