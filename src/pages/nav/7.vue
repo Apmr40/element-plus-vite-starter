@@ -509,7 +509,7 @@ function copySQL() {
           border 
           style="width: 100%" 
           highlight-current-row 
-          empty-text="暂无层级，请在上方填写平台信息后点击"添加层级"按钮"
+          empty-text="暂无层级，请在上方填写平台信息后点击【添加层级】按钮"
           @current-change="(val) => { if(val) currentLevelIndex = levels.findIndex(l => l === val) }"
         >
           <el-table-column label="层级" width="80" align="center">
@@ -602,7 +602,7 @@ function copySQL() {
           :data="fieldList" 
           border 
           style="width: 100%"
-          empty-text="暂无字段，请在上方填写输出报文示例后点击"解析 API 字段"按钮"
+          empty-text="暂无字段，请在上方填写输出报文示例后点击【解析 API 字段】按钮"
         >
           <!-- 拖拽手柄列 -->
           <el-table-column key="drag" width="50" align="center" :resizable="false">
