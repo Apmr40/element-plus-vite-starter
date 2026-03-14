@@ -225,7 +225,6 @@ function setPkField(fieldName: string) {
   if (!currentLevel.value) return
   currentLevel.value.fields.forEach(f => {
     f.pkFlag = f.fieldName === fieldName ? 1 : 0
-    f.pkDisplayFlag = f.fieldName === fieldName ? 1 : 0
   })
 }
 
@@ -585,17 +584,6 @@ function copySQL() {
           <el-table-column label="隐藏" width="70" align="center">
             <template #default="{ row }">
               <el-checkbox v-model="row.hideFlag" :true-value="1" :false-value="0" />
-            </template>
-          </el-table-column>
-          
-          <el-table-column label="主键" width="70" align="center">
-            <template #default="{ row }">
-              <el-radio 
-                :model-value="currentLevel?.fields.find(f => f.pkFlag === 1)?.fieldName || ''"
-                :label="row.fieldName"
-                name="pkField"
-                @change="setPkField(row.fieldName)"
-              />
             </template>
           </el-table-column>
           
