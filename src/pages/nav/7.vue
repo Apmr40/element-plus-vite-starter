@@ -594,7 +594,9 @@ function copySQL() {
                 :label="row.fieldName"
                 name="pkField"
                 @change="setPkField(row.fieldName)"
-              />
+              >
+                <span style="display:none"></span>
+              </el-radio>
             </template>
           </el-table-column>
           
@@ -605,7 +607,9 @@ function copySQL() {
                 :label="row.fieldName"
                 name="pkDisplayField"
                 @change="setPkDisplayField(row.fieldName)"
-              />
+              >
+                <span style="display:none"></span>
+              </el-radio>
             </template>
           </el-table-column>
         </el-table>
