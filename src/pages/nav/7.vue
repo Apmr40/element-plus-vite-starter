@@ -590,13 +590,23 @@ function copySQL() {
           
           <el-table-column label="主键" width="70" align="center">
             <template #default="{ row }">
-              <el-radio :model-value="row.pkFlag === 1" @change="setPkField(row.fieldName)" />
+              <el-radio 
+                :model-value="currentLevel?.fields.find(f => f.pkFlag === 1)?.fieldName || ''"
+                :label="row.fieldName"
+                name="pkField"
+                @change="setPkField(row.fieldName)"
+              />
             </template>
           </el-table-column>
           
           <el-table-column label="展示" width="70" align="center">
             <template #default="{ row }">
-              <el-radio :model-value="row.pkDisplayFlag === 1" @change="setPkDisplayField(row.fieldName)" />
+              <el-radio 
+                :model-value="currentLevel?.fields.find(f => f.pkDisplayFlag === 1)?.fieldName || ''"
+                :label="row.fieldName"
+                name="pkDisplayField"
+                @change="setPkDisplayField(row.fieldName)"
+              />
             </template>
           </el-table-column>
         </el-table>
