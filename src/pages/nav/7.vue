@@ -100,6 +100,22 @@ function parseInputFields(inputExample: string): { fieldName: string; descriptio
   return fields
 }
 
+// 从已配置层级中构建字段名到中文描述的映射
+function buildFieldDescriptionMap(): Map<string, string> {
+  const descMap = new Map<string, string>()
+  
+  levels.value.forEach(level => {
+    level.fields.forEach(field => {
+      // 只记录有中文描述的字段
+      if (field.fieldName && field.description) {
+        descMap.set(field.fieldName, field.description)
+      }
+    })
+  })
+  
+  return descMap
+}
+
 // 解析输出报文
 function parseOutput() {
   if (!currentLevel.value) {
@@ -141,15 +157,26 @@ function parseOutput() {
     const fields: FieldConfig[] = []
     let orderIndex = 1
     
+    // 构建已配置字段的描述映射（用于智能填充）
+    const descMap = buildFieldDescriptionMap()
+    let autoFilledCount = 0
+    
     for (const [key] of Object.entries(firstRecord)) {
+      // 检查是否在其他层级已配置过该字段的中文描述
+      const existingDesc = descMap.get(key)
+      
       fields.push({
         fieldName: key,
-        description: '',
+        description: existingDesc || '',  // 智能预填中文描述
         orderIndex: orderIndex++,
         hideFlag: 0,
         pkFlag: 0,
         pkDisplayFlag: 0
       })
+      
+      if (existingDesc) {
+        autoFilledCount++
+      }
     }
     
     currentLevel.value.fields = fields
@@ -159,7 +186,12 @@ function parseOutput() {
       fields[0].pkDisplayFlag = 1
     }
     
-    ElMessage.success(`解析成功，共 ${fields.length} 个字段`)
+    // 提示用户有多少字段自动填充了中文描述
+    if (autoFilledCount > 0) {
+      ElMessage.success(`解析成功，共 ${fields.length} 个字段，${autoFilledCount} 个字段的中文描述已自动填充`)
+    } else {
+      ElMessage.success(`解析成功，共 ${fields.length} 个字段`)
+    }
   } catch (e: any) {
     ElMessage.error('JSON 解析失败：' + e.message)
   }
