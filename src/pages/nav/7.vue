@@ -15,7 +15,7 @@ interface FieldConfig {
 
 // 层级配置接口
 interface CascadeLevel {
-  resourceLevel: string      // '01', '02', '03'
+  resourceLevel: string      // '1', '2', '3'
   resourceName: string       // '数据中心'
   apiUrl: string
   resourceId: string         // 17 位
@@ -205,7 +205,7 @@ function addLevel() {
   }
   
   const levelNum = levels.value.length + 1
-  const resourceLevel = String(levelNum).padStart(2, '0')
+  const resourceLevel = String(levelNum)
   
   const newLevel: CascadeLevel = {
     resourceLevel,
@@ -242,7 +242,7 @@ function moveLevelUp(index: number) {
   if (index === 0) return
   ;[levels.value[index - 1], levels.value[index]] = [levels.value[index], levels.value[index - 1]]
   levels.value.forEach((level, i) => {
-    level.resourceLevel = String(i + 1).padStart(2, '0')
+    level.resourceLevel = String(i + 1)
   })
   currentLevelIndex.value = index - 1
 }
@@ -252,7 +252,7 @@ function moveLevelDown(index: number) {
   if (index === levels.value.length - 1) return
   ;[levels.value[index], levels.value[index + 1]] = [levels.value[index + 1], levels.value[index]]
   levels.value.forEach((level, i) => {
-    level.resourceLevel = String(i + 1).padStart(2, '0')
+    level.resourceLevel = String(i + 1)
   })
   currentLevelIndex.value = index + 1
 }
