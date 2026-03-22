@@ -8,7 +8,9 @@
 ## 汇报流程
 
 ```
-各 agent 生成简报 → 发送给用户 + @document → @document 整理 → @Notion归档 归档
+各 agent 生成简报 → 发送给用户 + @document + @pm → @document 整理 → @Notion归档 归档
+                                    ↑
+                              @pm 审核
 ```
 
 ## git agent 汇报模板
@@ -65,4 +67,5 @@
 
 - 用户：ou_065b1722bb7bb8f8a3f27ba0f6761a6f
 - document：ou_9b2365be1759fa468ea908e720e1e5f3
-- Notion归档：ou_645d277580f1b861d94fe4289ed9ec96
+- pm：ou_4ee4f5aac5f2173fcf134e1989d74365（审核）
+- Notion 归档：ou_645d277580f1b861d94fe4289ed9ec96
