@@ -92,7 +92,8 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 1. **Commit the code** to git with clear message
 2. ** Generate diff** and summary
 3. **Notify reviewer** in Feishu group `oc_47bb1fdb7010ae87894d3d01576775a2`:
-   - @审核 (reviewer name)
+   - @审核机器人 (App ID: cli_a936af0674785bb6)
+   - @ 格式: `<at user_id='cli_a936af0674785bb6'>审核</at>`
    - Include:变更摘要 + Git diff + 需求文件链接
 4. **Wait for review** before proceeding to next step
 5. Refer to `scripts/notify-reviewer.sh` for the alert template

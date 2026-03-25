@@ -2,9 +2,10 @@
 
 # notify-reviewer.sh - 发送代码变更通知给审核人
 
-# 需要的参数
-CHAT_ID="oc_47bb1fdb7010ae87894d3d01576775a2"
+# 审核人配置
+REVIEWER_APP_ID="cli_a936af0674785bb6"
 REVIEWER_NAME="审核"
+CHAT_ID="oc_47bb1fdb7010ae87894d3d01576775a2"
 
 # 获取 Git 信息
 LAST_COMMIT_HASH=$(git log -1 --format="%H" 2>/dev/null)
@@ -38,7 +39,7 @@ CONTENT+="\`\`\`diff\n"
 CONTENT+="${GIT_DIFF}\n"
 CONTENT+="\`\`\`\n"
 
-CONTENT+="\n@审核 请检查代码并确认是否可以继续下一步"
+CONTENT+="\n<at user_id='${REVIEWER_APP_ID}'>${REVIEWER_NAME}</at> 请检查代码并确认是否可以继续下一步"
 
 # 输出通知内容（用于测试）
 echo "通知内容预览："
@@ -46,3 +47,10 @@ echo "$CONTENT"
 echo ""
 echo "----------------------------"
 echo "发送到群聊: $CHAT_ID"
+
+# 发送消息到飞书群
+if command -v curl &> /dev/null; then
+  echo "正在发送通知..."
+  # 使用飞书机器人 Webhook 发送（需要配置）
+  #curl -X POST -H "Content-Type: application/json" -d "$CONTENT" <飞书机器人Webhook URL>
+fi
