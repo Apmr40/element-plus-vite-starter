@@ -2,6 +2,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ElTable } from 'element-plus'
+import CascadePreviewModal from './CascadePreviewModal.vue'
 
 // 字段配置接口
 interface FieldConfig {
@@ -66,6 +67,14 @@ const sqlResult = ref<SqlResult | null>(null)
 // 拖拽相关
 const draggingRow = ref<any>(null)
 const dragOverRow = ref<any>(null)
+
+// SQL 转义函数 - 防止 SQL 注入
+function escapeSqlValue(value: string): string {
+  return value
+    .replace(/'/g, "''")  // 转义单引号
+    .replace(/"/g, '\"\"') // 转义双引号
+    .replace(/\\/g, '\\\\') // 转义反斜杠
+}
 
 // 生成 17 位资源 ID（平台英文缩写开头 + 小写字母 + 数字，补齐 17 位）
 function generateResourceId(platformCode: string, prefix: string): string {
@@ -298,13 +307,17 @@ function validateOrderIndex(index: number) {
 // 拖拽开始
 function handleDragStart(event: DragEvent, row: FieldConfig) {
   draggingRow.value = row
-  event.dataTransfer!.effectAllowed = 'move'
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+  }
 }
 
 // 拖拽悬停
 function handleDragOver(event: DragEvent, row: FieldConfig) {
   event.preventDefault()
-  event.dataTransfer!.dropEffect = 'move'
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
   dragOverRow.value = row
 }
 
