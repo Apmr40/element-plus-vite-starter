@@ -2,25 +2,27 @@
 
 ## 2026-03-29
 
-### 推送至远程仓库
+### 推送至远程仓库（完整 review 流程）
 
 **仓库**: https://github.com/Apmr40/element-plus-vite-starter
 
-**提交**: `76f0624` feat: 添加 API 级联生成器和预览模态框组件
+**提交**: `bfa1930` feat: 添加 API 级联生成器和预览模态框组件（经 review 审查通过）
 
 **推送文件**:
-- `src/components/CascadePreviewModal.vue` (新建)
-- `src/components/api-cascade-generator.vue` (新建)
-- `src/pages/CascadePreviewModal.vue` (新建)
-- `src/pages/api-cascade.vue` (新建)
+- `src/components/CascadePreviewModal.vue` (新建) ✅
+- `src/components/api-cascade-generator.vue` (新建) ✅
 
-**操作记录**:
-1. 从 work 目录同步文件到 source 目录
-2. 添加并提交 4 个新文件
-3. 拉取远程变更并 rebase
-4. 成功推送到 origin/main
+**完整 review 流程**:
+1. ✅ work → submit → review（提交到审查目录）
+2. ✅ review → approve（审查通过并批准）
+3. ✅ merge → source（合并到源代码）
+4. ✅ commit & push（提交并推送到远程）
 
-**状态**: ✅ 已完成
+**回滚记录**:
+- 回滚了提交 `76f0624`（未经过 review 流程）
+- 强制推送到 origin/main
+
+**状态**: ✅ 已完成（流程正确）
 
 ---
 
