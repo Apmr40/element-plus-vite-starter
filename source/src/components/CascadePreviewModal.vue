@@ -213,7 +213,7 @@ function handleClose() {
 
 async function handleLevelChange(level) {
   // 当前层级选择后，加载下一级数据
-  if (level.level < props.levelConfig.length) {
+  if (level.level < levelConfigLength.value) {
     const nextLevel = props.levelConfig[level.level] // 下一级索引是 level (1-based)
     if (nextLevel) {
       nextLevel.loading = true
@@ -346,15 +346,9 @@ function handlePrevLevel() {
 // 模拟 API 查询（实际应替换为真实 API 调用）
 async function queryLevelData(url, method = 'GET', params = {}) {
   // TODO: 替换为真实的 fetch 调用
-  // 当有真实 API 时，启用此代码：
-  // const queryString = new URLSearchParams(params).toString()
-  // const fetchUrl = `${url}?${queryString}`
-  // const res = await fetch(fetchUrl, { method })
-  // if (!res.ok) throw new Error(`API error: ${res.statusText}`)
-  // return await res.json()
+  // return fetch(url, { method, ... }).then(res => res.json())
   
   // 模拟数据（仅用于开发测试）
-  // 注意：生产环境必须替换为真实 API 调用
   return {
     code: 200,
     message: 'success',
@@ -367,7 +361,7 @@ async function queryLevelData(url, method = 'GET', params = {}) {
   }
 }
 
-// 直接使用 props.levelConfig.length，无需额外 computed 包装
+const levelConfigLength = computed(() => props.levelConfig.length)
 
 // Watch
 watch(() => props.modelValue, (val) => {

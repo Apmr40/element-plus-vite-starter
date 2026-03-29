@@ -1,0 +1,4 @@
+/* 如果你只想影响特定日历实例，可以添加更具体的选择器 */
+.my-custom-calendar .el-calendar-day {
+  height: 10px !important;
+}
