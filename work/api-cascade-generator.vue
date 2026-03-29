@@ -13,10 +13,10 @@
       <template #header>
         <div class="card-header">
           <span>🔧 API 表单生成器</span>
-          <el-button 
-            v-if="fieldList.length > 0 && sqlResult" 
-            type="primary" 
-            link 
+          <el-button
+            v-if="fieldList.length > 0 && sqlResult"
+            type="primary"
+            link
             @click="openPreview"
           >
             👁️ 预览配置
@@ -27,8 +27,8 @@
       <!-- 1. 基础配置区域 -->
       <el-form :model="form" label-width="120px" size="default">
         <el-form-item label="API URL">
-          <el-input 
-            v-model="form.apiUrl" 
+          <el-input
+            v-model="form.apiUrl"
             placeholder="请输入 Spring Boot HTTP 查询接口 URL"
             clearable
           />
@@ -81,44 +81,44 @@
         <h3>📝 字段配置</h3>
         <el-table :data="fieldList" border style="width: 100%">
           <el-table-column prop="fieldName" label="属性名" width="180" />
-          
+
           <el-table-column label="描述 (description)" width="200">
             <template #default="{ row }">
               <el-input v-model="row.description" placeholder="字段中文描述" />
             </template>
           </el-table-column>
-          
+
           <el-table-column label="序号 (orderindex)" width="120">
             <template #default="{ row, $index }">
-              <el-input-number 
-                v-model="row.orderIndex" 
-                :min="1" 
+              <el-input-number
+                v-model="row.orderIndex"
+                :min="1"
                 :max="99"
                 @change="validateOrderIndex($index)"
               />
             </template>
           </el-table-column>
-          
+
           <el-table-column label="是否隐藏 (hideflag)" width="120">
             <template #default="{ row }">
               <el-checkbox v-model="row.hideFlag" :true-value="1" :false-value="0" />
             </template>
           </el-table-column>
-          
+
           <el-table-column label="主键 (pkflag)" width="100">
             <template #default="{ row }">
-              <el-radio 
-                v-model="pkField" 
+              <el-radio
+                v-model="pkField"
                 :label="row.fieldName"
                 @change="setPkField(row.fieldName)"
               />
             </template>
           </el-table-column>
-          
+
           <el-table-column label="主键展示 (pkdisplayflag)" width="140">
             <template #default="{ row }">
-              <el-radio 
-                v-model="pkDisplayField" 
+              <el-radio
+                v-model="pkDisplayField"
                 :label="row.fieldName"
                 @change="setPkDisplayField(row.fieldName)"
               />
@@ -131,8 +131,8 @@
         <!-- 3. 平台名称配置 -->
         <el-form label-width="120px">
           <el-form-item label="平台名称">
-            <el-input 
-              v-model="form.platformName" 
+            <el-input
+              v-model="form.platformName"
               placeholder="用于拼接 parmname，如：zhmc"
               clearable
             />
@@ -195,18 +195,30 @@ const pkDisplayField = ref('')
 // SQL 结果
 const sqlResult = ref(null)
 
-// 生成唯一 ID
+// 转义 SQL 单引号
+function escapeSqlValue(value) {
+  if (value == null) return ''
+  return String(value).replace(/'/g, "''")
+}
+
+// 安全生成 ID（避免 Math.random 的碰撞风险）
 function generateId(prefix = '') {
   const timestamp = Date.now().toString(36)
   const random = Math.random().toString(36).substr(2, 5)
   return `${prefix}${timestamp}${random}`.toUpperCase()
 }
 
+// 安全 ID 生成（推荐使用 crypto.randomUUID）
+function generateSafeId(prefix = '') {
+  const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
+  return `${prefix}${uuid}`.toUpperCase()
+}
+
 // 解析输出报文
 function parseOutput() {
   try {
     const output = JSON.parse(form.outputExample)
-    
+
     // 查找 records 数组
     let records = []
     if (output.data && output.data.records) {
@@ -216,7 +228,7 @@ function parseOutput() {
     } else if (Array.isArray(output.data)) {
       records = output.data
     }
-    
+
     if (records.length === 0) {
       // 如果没有 records，尝试从 data 对象中提取字段
       const dataObj = output.data || output
@@ -225,17 +237,17 @@ function parseOutput() {
         records = [firstRecord]
       }
     }
-    
+
     if (records.length === 0) {
       ElMessage.warning('未找到 records 数组或有效数据')
       return
     }
-    
+
     // 提取字段
     const firstRecord = records[0]
     const fields = []
     let orderIndex = 1
-    
+
     for (const [key, value] of Object.entries(firstRecord)) {
       fields.push({
         fieldName: key,
@@ -246,9 +258,9 @@ function parseOutput() {
         pkDisplayFlag: 0
       })
     }
-    
+
     fieldList.value = fields
-    
+
     // 默认第一个字段为主键
     if (fields.length > 0) {
       pkField.value = fields[0].fieldName
@@ -256,7 +268,7 @@ function parseOutput() {
       fields[0].pkFlag = 1
       fields[0].pkDisplayFlag = 1
     }
-    
+
     ElMessage.success(`解析成功，共 ${fields.length} 个字段`)
   } catch (e) {
     ElMessage.error('JSON 解析失败：' + e.message)
@@ -269,14 +281,14 @@ function validateOrderIndex(index) {
   const duplicates = fieldList.value.filter(
     (f, i) => i !== index && f.orderIndex === current.orderIndex
   )
-  
+
   if (duplicates.length > 0) {
     ElMessage.warning('序号不能重复，已自动调整')
     // 自动调整为不重复的值
     const usedIndexes = fieldList.value
       .filter((f, i) => i !== index)
       .map(f => f.orderIndex)
-    
+
     let newIndex = 1
     while (usedIndexes.includes(newIndex)) {
       newIndex++
@@ -305,59 +317,59 @@ function generateSQL() {
     ElMessage.warning('请输入 API URL')
     return
   }
-  
+
   if (!form.platformName) {
     ElMessage.warning('请输入平台名称')
     return
   }
-  
+
   if (fieldList.value.length === 0) {
     ElMessage.warning('请先解析输出报文')
     return
   }
-  
-  const apiId = generateId('API')
-  const resourceId = generateId('RES')
+
+  const apiId = generateSafeId('API')
+  const resourceId = generateSafeId('RES')
   const platformType = form.platformName.toUpperCase()
-  
+
   // 1. iop_mc_api_info
   const apiInfoSql = `-- API 基本信息
 INSERT INTO iop_mc_api_info (apiid, apiname, apiurl, apitype, description)
-VALUES ('${apiId}', '${form.platformName}查询接口', '${form.apiUrl}', 'G', '自动生成的 API 配置');
+VALUES ('${escapeSqlValue(apiId)}', '${escapeSqlValue(form.platformName)}查询接口', '${escapeSqlValue(form.apiUrl)}', 'G', '自动生成的 API 配置');
 `
-  
+
   // 2. iop_mc_serv_reso_info
   const resoInfoSql = `-- 资源基本信息
 INSERT INTO iop_mc_serv_reso_info (resourceid, resourcename, resourceapiid)
-VALUES ('${resourceId}', '${form.platformName}资源', '${apiId}');
+VALUES ('${escapeSqlValue(resourceId)}', '${escapeSqlValue(form.platformName)}资源', '${escapeSqlValue(apiId)}');
 `
-  
+
   // 3. iop_mc_reso_fld_info
   let fldInfoSql = `-- 资源字段详细信息\n`
   fieldList.value.forEach(field => {
     fldInfoSql += `INSERT INTO iop_mc_reso_fld_info (resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag)
-VALUES ('${resourceId}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${form.platformName}资源', '${field.description || field.fieldName}', '${String(field.orderIndex).padStart(2, '0')}', '${field.hideFlag}', '${field.pkFlag}', '${field.pkDisplayFlag}');
+VALUES ('${escapeSqlValue(resourceId)}', 'str_${escapeSqlValue(form.platformName)}_${escapeSqlValue(field.fieldName).toLowerCase()}', '${escapeSqlValue(form.platformName)}资源', '${escapeSqlValue(field.description || field.fieldName)}', '${String(field.orderIndex).padStart(2, '0')}', '${field.hideFlag}', '${field.pkFlag}', '${field.pkDisplayFlag}');
 `
   })
-  
+
   // 4. iop_mc_api_parm_rln (出参)
   let apiParmSql = `-- API 参数关联关系（出参）\n`
   fieldList.value.forEach((field, index) => {
     apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname)
-VALUES ('${apiId}', '1', '${String(index + 1).padStart(2, '0')}', 'str_${form.platformName}_${field.fieldName.toLowerCase()}', '${field.fieldName}');
+VALUES ('${escapeSqlValue(apiId)}', '1', '${String(index + 1).padStart(2, '0')}', 'str_${escapeSqlValue(form.platformName)}_${escapeSqlValue(field.fieldName).toLowerCase()}', '${escapeSqlValue(field.fieldName)}');
 `
   })
-  
+
   // 5. iop_mc_serv_pltf_reso_rln (级联关系)
   const pltfResoSql = `-- 平台与资源关联关系
 INSERT INTO iop_mc_serv_pltf_reso_rln (platformtype, resourcelevel, platformname, resourceid, resourcename)
-VALUES ('${platformType}', '01', '${form.platformName}', '${resourceId}', '${form.platformName}资源');
+VALUES ('${escapeSqlValue(platformType)}', '01', '${escapeSqlValue(form.platformName)}', '${escapeSqlValue(resourceId)}', '${escapeSqlValue(form.platformName)}资源');
 `
-  
+
   // 完整 SQL
   const fullSql = [
     '-- ========================================',
-    `-- API 表单生成器 - ${form.platformName}`,
+    `-- API 表单生成器 - ${escapeSqlValue(form.platformName)}`,
     `-- 生成时间：${new Date().toLocaleString('zh-CN')}`,
     '-- ========================================\n',
     apiInfoSql,
@@ -366,7 +378,7 @@ VALUES ('${platformType}', '01', '${form.platformName}', '${resourceId}', '${for
     apiParmSql,
     pltfResoSql
   ].join('\n')
-  
+
   sqlResult.value = {
     apiInfo: apiInfoSql,
     resoInfo: resoInfoSql,
@@ -374,7 +386,7 @@ VALUES ('${platformType}', '01', '${form.platformName}', '${resourceId}', '${for
     apiParm: apiParmSql,
     full: fullSql
   }
-  
+
   ElMessage.success('SQL 生成成功！')
 }
 
