@@ -18,22 +18,36 @@
 ### 3. 编辑 work 目录中的文件
 在 `work/` 目录中编辑你的文件。
 
-### 4. 提交到 review（可选）
+### 4. 提交到 review
 ```bash
 # 将 work 中的文件提交到 review 目录等待审查
 ./scripts/sync.sh submit MyComponent.vue
 ```
 
-### 5. 合并回 source
+### 5. 审查文件
+在 `review/` 目录中检查文件内容，确认无误。
+
+### 6. 批准文件
 ```bash
-# 审查通过后，将文件合并回 source
+# 审查通过后，批准文件（标记为可合并）
+./scripts/sync.sh approve MyComponent.vue
+```
+
+### 7. 合并到 source
+```bash
+# 合并所有已批准的文件到 source
+./scripts/sync.sh merge-approved
+
+# 或者合并单个文件
 ./scripts/sync.sh merge MyComponent.vue
 ```
 
-### 6. 批量同步
+### 8. 推送到远程仓库
 ```bash
-# 同步所有 work 文件到 source
-./scripts/sync.sh sync-all
+cd project_root/source/element-plus-vite-starter
+git add .
+git commit -m "feat: 描述你的更改"
+git push
 ```
 
 ## 目录说明

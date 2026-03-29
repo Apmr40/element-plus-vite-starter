@@ -163,25 +163,54 @@ check() {
     fi
 }
 
-# 同步所有 work 文件到 source（批量操作）
-sync_all() {
-    log_info "=== 同步所有 work 文件到 source ==="
+# 批准 review 文件（标记为审查通过）
+APPROVED_FILE="$WORKSPACE/.review_approved"
+
+approve() {
+    local review_file="$1"
     
-    for work_file in "$WORK_DIR"/*; do
-        if [ -f "$work_file" ]; then
-            filename=$(basename "$work_file")
-            source_rel_path=$(grep -A2 "\"work_file\": \"$filename\"" "$MAP_FILE" 2>/dev/null | grep "source_path" | cut -d'"' -f4)
-            
-            if [ -n "$source_rel_path" ]; then
-                local source_file="$SOURCE_DIR/$source_rel_path"
-                mkdir -p "$(dirname "$source_file")"
-                cp "$work_file" "$source_file"
-                log_info "已同步：$filename -> $source_rel_path"
-            else
-                log_warn "跳过 $filename（无映射关系）"
-            fi
+    if [ ! -f "$REVIEW_DIR/$review_file" ]; then
+        log_error "审查文件不存在：$REVIEW_DIR/$review_file"
+        return 1
+    fi
+    
+    echo "$review_file" >> "$APPROVED_FILE"
+    log_info "已批准：$review_file（可合并到 source）"
+}
+
+# 检查文件是否已批准
+is_approved() {
+    local file="$1"
+    if [ -f "$APPROVED_FILE" ] && grep -q "^$file$" "$APPROVED_FILE"; then
+        return 0
+    fi
+    return 1
+}
+
+# 同步所有 work 文件到 source（批量操作）
+# ⚠️ 已废弃：不允许直接从 work 同步到 source
+sync_all() {
+    log_error "❌ 禁止直接从 work 同步到 source！"
+    log_info "正确流程：work → submit → review → approve → merge → source"
+    return 1
+}
+
+# 从 review 合并已批准的文件到 source
+merge_approved() {
+    log_info "=== 合并已审查通过的文件到 source ==="
+    
+    if [ ! -f "$APPROVED_FILE" ] || [ ! -s "$APPROVED_FILE" ]; then
+        log_warn "没有已批准的文件"
+        return 1
+    fi
+    
+    while IFS= read -r review_file; do
+        if [ -f "$REVIEW_DIR/$review_file" ]; then
+            merge "$review_file"
+            # 从批准列表中移除
+            grep -v "^$review_file$" "$APPROVED_FILE" > "${APPROVED_FILE}.tmp" && mv "${APPROVED_FILE}.tmp" "$APPROVED_FILE"
         fi
-    done
+    done < "$APPROVED_FILE"
 }
 
 # 主函数
@@ -193,8 +222,14 @@ case "${1:-check}" in
     submit)
         submit "$2"
         ;;
+    approve)
+        approve "$2"
+        ;;
     merge)
         merge "$2"
+        ;;
+    merge-approved)
+        merge_approved
         ;;
     check)
         init_map
@@ -204,14 +239,18 @@ case "${1:-check}" in
         sync_all
         ;;
     *)
-        echo "用法：$0 {extract|submit|merge|check|sync-all} [参数]"
+        echo "用法：$0 {extract|submit|approve|merge|merge-approved|check|sync-all} [参数]"
         echo ""
         echo "命令:"
         echo "  extract <source-rel-path>  从 source 提取文件到 work"
         echo "  submit <work-file>         从 work 提交文件到 review"
-        echo "  merge <review-file>        从 review 合并文件到 source"
+        echo "  approve <review-file>      批准 review 文件（标记为审查通过）"
+        echo "  merge <review-file>        从 review 合并单个文件到 source"
+        echo "  merge-approved             合并所有已批准的文件到 source"
         echo "  check                      检查目录完整性"
-        echo "  sync-all                   同步所有 work 文件到 source"
+        echo "  sync-all                   （已废弃）禁止直接从 work 同步"
+        echo ""
+        echo "🔒 推送规则：只有 review 通过的文件才能合并到 source 并推送"
         exit 1
         ;;
 esac

@@ -76,3 +76,5 @@ source/element-plus-vite-starter/src/components/CascadePreviewModal.vue
 2. **review 目录**：包含等待审查的文件，审查通过后删除
 3. **source 目录**：完整的源代码，是最终的真相源（single source of truth）
 4. **映射文件**：使用 `SYNC_MAP.json` 记录文件映射关系
+5. **🔒 推送规则**：只有 review 目录中审查通过的文件才能合并到 source 并推送
+6. **禁止直接同步**：不允许从 work 直接同步到 source，必须经过 review 审查
