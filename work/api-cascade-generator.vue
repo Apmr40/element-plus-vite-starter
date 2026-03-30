@@ -331,20 +331,20 @@ function generateSQL() {
   // 1. iop_mc_api_info
   const apiInfoSql = `-- API 基本信息
 INSERT INTO iop_mc_api_info (apiid, apiname, apiurl, apitype, description)
-VALUES ('${escapeSqlValueWrapper(apiId)}', '${escapeSqlValueWrapper(form.platformName)}查询接口', '${escapeSqlValueWrapper(form.apiUrl)}', 'G', '自动生成的 API 配置');
+VALUES ('${escapeSqlValue(apiId)}', '${escapeSqlValue(form.platformName)}查询接口', '${escapeSqlValue(form.apiUrl)}', 'G', '自动生成的 API 配置');
 `
 
   // 2. iop_mc_serv_reso_info
   const resoInfoSql = `-- 资源基本信息
 INSERT INTO iop_mc_serv_reso_info (resourceid, resourcename, resourceapiid)
-VALUES ('${escapeSqlValueWrapper(resourceId)}', '${escapeSqlValueWrapper(form.platformName)}资源', '${escapeSqlValueWrapper(apiId)}');
+VALUES ('${escapeSqlValue(resourceId)}', '${escapeSqlValue(form.platformName)}资源', '${escapeSqlValue(apiId)}');
 `
 
   // 3. iop_mc_reso_fld_info
   let fldInfoSql = `-- 资源字段详细信息\n`
   fieldList.value.forEach(field => {
     fldInfoSql += `INSERT INTO iop_mc_reso_fld_info (resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag)
-VALUES ('${escapeSqlValueWrapper(resourceId)}', 'str_${escapeSqlValueWrapper(form.platformName)}_${escapeSqlValueWrapper(field.fieldName).toLowerCase()}', '${escapeSqlValueWrapper(form.platformName)}资源', '${escapeSqlValueWrapper(field.description || field.fieldName)}', '${String(field.orderIndex).padStart(2, '0')}', '${field.hideFlag}', '${field.pkFlag}', '${field.pkDisplayFlag}');
+VALUES ('${escapeSqlValue(resourceId)}', 'str_${escapeSqlValue(form.platformName)}_${escapeSqlValue(field.fieldName).toLowerCase()}', '${escapeSqlValue(form.platformName)}资源', '${escapeSqlValue(field.description || field.fieldName)}', '${String(field.orderIndex).padStart(2, '0')}', '${field.hideFlag}', '${field.pkFlag}', '${field.pkDisplayFlag}');
 `
   })
 
@@ -352,20 +352,20 @@ VALUES ('${escapeSqlValueWrapper(resourceId)}', 'str_${escapeSqlValueWrapper(for
   let apiParmSql = `-- API 参数关联关系（出参）\n`
   fieldList.value.forEach((field, index) => {
     apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname)
-VALUES ('${escapeSqlValueWrapper(apiId)}', '1', '${String(index + 1).padStart(2, '0')}', 'str_${escapeSqlValueWrapper(form.platformName)}_${escapeSqlValueWrapper(field.fieldName).toLowerCase()}', '${escapeSqlValueWrapper(field.fieldName)}');
+VALUES ('${escapeSqlValue(apiId)}', '1', '${String(index + 1).padStart(2, '0')}', 'str_${escapeSqlValue(form.platformName)}_${escapeSqlValue(field.fieldName).toLowerCase()}', '${escapeSqlValue(field.fieldName)}');
 `
   })
 
   // 5. iop_mc_serv_pltf_reso_rln (级联关系)
   const pltfResoSql = `-- 平台与资源关联关系
 INSERT INTO iop_mc_serv_pltf_reso_rln (platformtype, resourcelevel, platformname, resourceid, resourcename)
-VALUES ('${escapeSqlValueWrapper(platformType)}', '01', '${escapeSqlValueWrapper(form.platformName)}', '${escapeSqlValueWrapper(resourceId)}', '${escapeSqlValueWrapper(form.platformName)}资源');
+VALUES ('${escapeSqlValue(platformType)}', '01', '${escapeSqlValue(form.platformName)}', '${escapeSqlValue(resourceId)}', '${escapeSqlValue(form.platformName)}资源');
 `
 
   // 完整 SQL
   const fullSql = [
     '-- ========================================',
-    `-- API 表单生成器 - ${escapeSqlValueWrapper(form.platformName)}`,
+    `-- API 表单生成器 - ${escapeSqlValue(form.platformName)}`,
     `-- 生成时间：${new Date().toLocaleString('zh-CN')}`,
     '-- ========================================\n',
     apiInfoSql,
