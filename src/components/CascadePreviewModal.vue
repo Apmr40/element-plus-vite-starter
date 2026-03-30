@@ -139,12 +139,6 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-// 转义 SQL 单引号
-function escapeSqlValue(value) {
-  if (value == null) return ''
-  return String(value).replace(/'/g, "''")
-}
-
 // Props
 const props = defineProps({
   modelValue: {
@@ -352,15 +346,9 @@ function handlePrevLevel() {
 // 模拟 API 查询（实际应替换为真实 API 调用）
 async function queryLevelData(url, method = 'GET', params = {}) {
   // TODO: 替换为真实的 fetch 调用
-  // 当有真实 API 时，取消下面的模拟数据，启用此代码：
-  // const queryString = new URLSearchParams(params).toString()
-  // const fetchUrl = `${url}?${queryString}`
-  // const res = await fetch(fetchUrl, { method })
-  // if (!res.ok) throw new Error(`API error: ${res.statusText}`)
-  // return await res.json()
+  // return fetch(url, { method, ... }).then(res => res.json())
   
   // 模拟数据（仅用于开发测试）
-  // 注意：生产环境必须替换为真实 API 调用
   return {
     code: 200,
     message: 'success',
@@ -373,10 +361,7 @@ async function queryLevelData(url, method = 'GET', params = {}) {
   }
 }
 
-// 用于 handleLevelChange 中的长度判断（避免直接引用 props.levelConfig.length）
-const levelConfigLength = computed(() => {
-  return props.levelConfig.length
-})
+const levelConfigLength = computed(() => props.levelConfig.length)
 
 // Watch
 watch(() => props.modelValue, (val) => {
