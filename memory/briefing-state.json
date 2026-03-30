@@ -1,8 +1,8 @@
 {
-  "lastBriefingMorning": 1743463560000,
+  "lastBriefingMorning": 1774909800000,
   "lastBriefingEvening": 1743501540000,
   "submittedToday": true,
   "reminderCount": 0,
   "userNotified": false,
-  "blockingIssue": "GitHub 远程仓库推送失败（权限问题）"
+  "blockingIssue": null
 }
