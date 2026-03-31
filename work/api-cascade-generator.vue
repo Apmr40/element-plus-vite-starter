@@ -203,10 +203,18 @@ function generateId(prefix = '') {
   return `${prefix}${timestamp}${random}`.toUpperCase()
 }
 
-// 安全 ID 生成（推荐使用 crypto.randomUUID）
+// 安全 ID 生成（兼容旧浏览器）
 function generateSafeId(prefix = '') {
-  // 使用 crypto.randomUUID() 并保留 16 字符以降低碰撞风险
-  const uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 16)
+  // 优先使用 crypto.randomUUID()，不支持时降级到 Math.random()
+  let uuid
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 16)
+  } else {
+    // 降级方案：使用时间戳 + 随机数生成唯一 ID
+    const timestamp = Date.now().toString(36).toUpperCase()
+    const random = Math.random().toString(36).substr(2, 9).toUpperCase()
+    uuid = (timestamp + random).substring(0, 16)
+  }
   return `${prefix}${uuid}`.toUpperCase()
 }
 
