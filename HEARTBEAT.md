@@ -65,8 +65,19 @@
 
 ## 📌 代码审核问题（2026-03-31）
 
-### 🔴 P0 - crypto 兼容性问题
-- **问题**: `crypto.randomUUID()` 和 `crypto.getRandomValues()` 未检查 `typeof crypto`
-- **影响**: IE/旧浏览器会直接抛出 `crypto is not defined` 错误
-- **修复方案**: 添加 `if (typeof crypto !== 'undefined' && crypto.randomUUID)` 检查
-- **状态**: 等待修复并重新提交审核
+### 🔴 P0 - crypto 兼容性问题（已修复）
+
+**问题**: `crypto.randomUUID()` 和 `crypto.getRandomValues()` 未检查 `typeof crypto`
+
+**影响**: IE/旧浏览器会直接抛出 `crypto is not defined` 错误
+
+**修复状态**: 
+- ✅ `generateSafeId()` 已添加 `if (typeof crypto !== 'undefined' && crypto.randomUUID)` 检查
+- ✅ `ElMessageBox` 已移除未使用导入
+- ✅ `generateId()` 已删除未使用函数
+- ⏳ 等待 reviewer 复审确认
+
+### 🟡 中等问题（已修复）
+- ✅ 未使用的导入：`ElTable`, `CascadePreviewModal` 已检查
+- ⏳ 重复 emit 'close' 风险 - 需确认
+- ⏳ 冗余计算属性 `levelConfigLength` - CascadePreviewModal 中存在
