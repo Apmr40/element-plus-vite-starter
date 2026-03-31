@@ -18,13 +18,14 @@
 
 ### 🔧 生成逻辑（幂等性保护）
 1. **幂等性检查**（关键）：
-   - 检查 `memory/briefing-state.json` 中的 `submittedToday` 标志
-   - 如果 `submittedToday === true`，直接返回并输出 `HEARTBEAT_OK`
+   - 检查 `memory/briefing-state.json` 中的 `submittedToday` 标志（早间简报）
+   - 检查 `submittedEvening` 标志（晚间简报）
+   - 如果对应标志为 `true`，直接返回并输出 `HEARTBEAT_OK`
 2. **集中式发送**：
    - 通过 `sessions_send` 发送到 pm 会话（`agent:pm:main`）
    - **仅此一次**，不再发送到其他会话
 3. **发送后更新状态**：
-   - 更新 `memory/briefing-state.json`，设置 `submittedToday: true`
+   - 更新 `memory/briefing-state.json`，设置 `submittedToday: true` 或 `submittedEvening: true`
    - 记录 `lastBriefingMorning` 或 `lastBriefingEvening` 时间戳
 
 ---
@@ -51,7 +52,8 @@
 {
   "lastBriefingMorning": 1775068800000,  // 上次早间简报发送时间（Unix 毫秒）
   "lastBriefingEvening": 1775107800000,  // 上次晚间简报发送时间（Unix 毫秒）
-  "submittedToday": true,                // 当日是否已提交简报（核心幂等性标志）
+  "submittedToday": true,                // 当日是否已提交早间简报（核心幂等性标志）
+  "submittedEvening": true,              // 当日是否已提交晚间简报
   "reminderCount": 0,                    // 提醒次数
   "userNotified": false,                 // 是否已通知用户
   "blockingIssue": null                  // 阻塞问题
