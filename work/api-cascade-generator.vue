@@ -208,12 +208,19 @@ function generateSafeId(prefix = '') {
   // 优先使用 crypto.randomUUID()，不支持时降级到 Math.random()
   let uuid
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 16)
+    try {
+      uuid = crypto.randomUUID().replace(/-/g, '').substring(0, 8)
+    } catch (e) {
+      // fallback to Math.random
+      const timestamp = Date.now().toString(36)
+      const random = Math.random().toString(36).substr(2, 8)
+      uuid = (timestamp + random).toUpperCase()
+    }
   } else {
     // 降级方案：使用时间戳 + 随机数生成唯一 ID
     const timestamp = Date.now().toString(36).toUpperCase()
-    const random = Math.random().toString(36).substr(2, 9).toUpperCase()
-    uuid = (timestamp + random).substring(0, 16)
+    const random = Math.random().toString(36).substr(2, 8).toUpperCase()
+    uuid = (timestamp + random).substring(0, 8)
   }
   return `${prefix}${uuid}`.toUpperCase()
 }
