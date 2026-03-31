@@ -196,13 +196,6 @@ const pkDisplayField = ref('')
 // SQL 结果
 const sqlResult = ref(null)
 
-// 安全生成 ID（避免 Math.random 的碰撞风险）
-function generateId(prefix = '') {
-  const timestamp = Date.now().toString(36)
-  const random = Math.random().toString(36).substr(2, 5)
-  return `${prefix}${timestamp}${random}`.toUpperCase()
-}
-
 // 安全 ID 生成（兼容旧浏览器）
 function generateSafeId(prefix = '') {
   // 优先使用 crypto.randomUUID()，不支持时降级到 Math.random()
