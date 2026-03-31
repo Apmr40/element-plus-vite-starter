@@ -26,7 +26,6 @@
 3. **发送后更新状态**：
    - 更新 `memory/briefing-state.json`，设置 `submittedToday: true`
    - 记录 `lastBriefingMorning` 或 `lastBriefingEvening` 时间戳
-   - 记录 `lastBriefingMorning` 或 `lastBriefingEvening` 时间戳
 
 ---
 
@@ -63,3 +62,11 @@
 - **发送前检查**：如果 `submittedToday === true`，直接return `HEARTBEAT_OK`
 - **发送后更新**：立即更新 `submittedToday: true`
 - **禁止重复**：同一次 heartbeat 中禁止发送多次简报
+
+## 📌 代码审核问题（2026-03-31）
+
+### 🔴 P0 - crypto 兼容性问题
+- **问题**: `crypto.randomUUID()` 和 `crypto.getRandomValues()` 未检查 `typeof crypto`
+- **影响**: IE/旧浏览器会直接抛出 `crypto is not defined` 错误
+- **修复方案**: 添加 `if (typeof crypto !== 'undefined' && crypto.randomUUID)` 检查
+- **状态**: 等待修复并重新提交审核
