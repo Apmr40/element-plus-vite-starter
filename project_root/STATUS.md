@@ -14,7 +14,9 @@
 
 | 文件名 | 状态 | 提交者 | 时间 | 操作日志 |
 |--------|------|--------|------|----------|
-| `7.vue` | PENDING_REVIEW | frontend | 2026-03-27 19:59 | 复审提交 |
+| `api-cascade-generator.vue` | ✅ PASSED | frontend | 2026-03-30 19:00 | 批次 001 复审通过 |
+| `CascadePreviewModal.vue` | ✅ PASSED | frontend | 2026-03-30 19:00 | 批次 001 复审通过 |
+| `7.vue` | ❌ REJECTED | frontend | 2026-03-30 13:20 | SQL 注入未修复（待重新提交） |
 
 ---
 
@@ -22,6 +24,9 @@
 
 | 时间 | 操作 | 说明 |
 |------|------|------|
+| 2026-03-30 19:00 | ✅ 复审通过 | 批次 001 (api-cascade-generator.vue + CascadePreviewModal.vue) |
+| 2026-03-30 18:58 | 复审请求 | frontend 提交修复后的代码到 review/001/ |
+| 2026-03-30 13:20 | 初审驳回 | 7.vue SQL 注入问题未修复（escapeSqlValue 未完全应用） |
 | 2026-03-27 19:59 | 修复并复审 | 添加 CascadePreviewModal 导入，修复非空断言 |
 | 2026-03-27 13:13 | 初审驳回 | 问题：CascadePreviewModal 未导入、SQL 注入、非空断言 |
 | 2026-03-27 12:46 | 开发完成 | `element-plus-vite-starter/7.vue` 开发完成 |
