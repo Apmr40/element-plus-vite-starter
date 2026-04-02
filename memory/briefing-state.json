@@ -1,9 +1,9 @@
 {
   "lastBriefingMorning": 1775197320000,
-  "lastBriefingEvening": 1775159400000,
+  "lastBriefingEvening": 1775271900000,
   "submittedToday": true,
-  "submittedEvening": false,
-  "reminderCount": 1,
+  "submittedEvening": true,
+  "reminderCount": 2,
   "userNotified": true,
   "blockingIssue": null
 }
