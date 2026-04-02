@@ -2,7 +2,7 @@
   "lastBriefingMorning": 1775197320000,
   "lastBriefingEvening": 1775159400000,
   "submittedToday": true,
-  "submittedEvening": true,
+  "submittedEvening": false,
   "reminderCount": 1,
   "userNotified": true,
   "blockingIssue": null
