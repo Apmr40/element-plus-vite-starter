@@ -267,7 +267,7 @@ async function handlePageChange(page) {
       level.total = result.data.total || 0
       level.page = result.data.page || 1
     } catch (error) {
-      ElMessage.error('分页查询失败：' + (error.message || '未知错误'))
+      ElMessage.error('分页查询失败：' + (error instanceof Error ? error.message : '未知错误'))
     } finally {
       level.loading = false
     }
@@ -278,7 +278,7 @@ function handleTableSelect(selection) {
   selectedItems.value = selection
 }
 
-function selectable(row) {
+function selectable(row: Record<string, unknown>): boolean {
   return true // 所有行都可选，可根据业务逻辑定制
 }
 
@@ -316,7 +316,8 @@ async function handleConfirm() {
       
       close()
     } catch (error) {
-      ElMessage.error('数据提交失败：' + (error.message || '未知错误'))
+      const errorMsg = error instanceof Error ? error.message : '未知错误'
+      ElMessage.error('数据提交失败：' + errorMsg)
     } finally {
       confirmLoading.value = false
     }
@@ -343,8 +344,8 @@ function handlePrevLevel() {
   }
 }
 
-// 模拟 API 查询（实际应替换为真实 API 调用）
-async function queryLevelData(url, method = 'GET', params = {}) {
+// API 查询函数（开发测试版本）
+async function queryLevelData(url: string, method = 'GET', params: Record<string, unknown> = {}) {
   // TODO: 替换为真实的 fetch 调用
   // return fetch(url, { method, ... }).then(res => res.json())
   
