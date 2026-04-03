@@ -70,10 +70,17 @@ const dragOverRow = ref<FieldConfig | null>(null)
 
 // SQL 转义函数 - 防止 SQL 注入
 function escapeSqlValue(value: string): string {
-  return value
-    .replace(/'/g, "''")  // 转义单引号
-    .replace(/"/g, '\"\"') // 转义双引号
-    .replace(/\\/g, '\\\\') // 转义反斜杠
+  return String(value)
+    .replace(/;/g, '')         // 移除分号（防止注入）
+    .replace(/--/g, '')        // 移除 SQL 单行注释
+    .replace(/\/\*/g, '')      // 移除 SQL 块注释开始
+    .replace(/\*\//g, '')      // 移除 SQL 块注释结束
+    .replace(/#/g, '')         // 移除 # 注释
+    .replace(/%/g, '\\%')      // 转义 LIKE 通配符
+    .replace(/_/g, '\\_')      // 转义 LIKE 通配符
+    .replace(/'/g, "''")       // 转义单引号
+    .replace(/"/g, '\"\"')     // 转义双引号
+    .replace(/\\/g, '\\\\')    // 转义反斜杠
 }
 
 // 安全的随机字符生成（使用 crypto.getRandomValues）
@@ -151,7 +158,7 @@ function parseOutput() {
   try {
     const output = JSON.parse(currentLevel.value.outputExample)
     
-    let records: any[] = []
+    let records: Record<string, unknown>[] = []
     
     if (output.data && output.data.records) {
       records = output.data.records
