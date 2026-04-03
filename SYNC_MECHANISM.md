@@ -77,6 +77,8 @@ project_root/source/element-plus-vite-starter/src/components/api-cascade-generat
 ## 角色分工（关键）
 
 ### frontend
+**负责人**: `frontend` agent
+**职责**: 代码开发、自检、提交审核、修复问题
 1. 在 `work/feat/YYYYMMDD_<task_id>/` 开发代码
 2. 运行自检（测试、静态检查）
 3. 自检通过后，将文件移动到 `review/<task_id>/`
@@ -106,12 +108,23 @@ project_root/source/element-plus-vite-starter/src/components/api-cascade-generat
    - 审核完成后：发送审核报告给 frontend（私密）和飞书群（公开）
 
 ### git
-1. 监听 frontend 的 `ACTION_REQUIRED: GIT_PUSH` 消息
-2. **确认审核状态**：确保 reviewer 已标记为 `approved`
-3. 将 `review/<task_id>/` 合并到 `source/`
-4. 删除 `review/<task_id>/`
-5. 执行 `git commit` 和 `git push`
-6. 更新 `SYNC_MAP.json` 中的任务状态为 `merged`
+**负责人**: `git` agent
+**职责**: 本地仓库与远程仓库同步管理
+1. **监听 frontend 的 `ACTION_REQUIRED: GIT_PUSH` 消息**
+2. **确认审核状态**：确保 reviewer 已标记为 `approved`（⚠️ 未审核通过的代码禁止推送）
+3. **管理远程仓库 URL**：维护 `project_root/source/` 下各项目的远程仓库配置
+   - 默认远程仓库：`origin`
+   - 默认分支：`main`
+4. **合并审核通过的代码**：将 `review/<task_id>/` 合并到 `source/`
+5. **清理 review 目录**：删除 `review/<task_id>/`
+6. **执行 git 操作**：
+   - `git add .`
+   - `git commit -m "描述"`
+   - `git push origin main`
+7. **更新状态文件**：更新 `SYNC_MAP.json` 中的任务状态为 `merged`
+8. **通知机制**：
+   - 推送成功后：通知 pm 和飞书群
+   - 推送失败时：通知 frontend 并说明原因
 
 ## 当前状态
 

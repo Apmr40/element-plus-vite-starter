@@ -33,26 +33,61 @@
 ### 6. 修复代码（frontend 操作，仅当审核驳回时）
 在 `review/` 目录中根据 reviewer 的意见修复代码，然后重新提交审核。
 
-### 7. Git Push（git 负责）
+### 7. Git Push（git 负责）🔒
 - **frontend 发送**：`ACTION_REQUIRED: GIT_PUSH` 消息（审核通过后）
 - **git 确认**：验证 reviewer 已标记为 `approved`
-- **git 执行**：将 review 合并到 source，并推送远程仓库
+- **git 执行**：
+  1. 将 `review/<task_id>/` 合并到 `source/`
+  2. 删除 `review/<task_id>/`
+  3. `cd project_root/source/<project-name>`
+  4. `git add .`
+  5. `git commit -m "描述"`
+  6. `git push origin main`
+- **git 更新**：`SYNC_MAP.json` 任务状态 → `merged`
+- **git 通知**：pm 会话 + 飞书群
 
 ## 目录说明
 
 | 目录 | 用途 | 负责人 | 是否版本控制 |
 |------|------|--------|-------------|
-| `source/` | 完整源代码仓库 | git | ✅ 是 |
+| `source/` | 完整源代码仓库（Single Source of Truth） | **git** | ✅ 是 |
 | `work/` | 当前工作文件：开发、自检 | frontend | ✅ 是（工作副本） |
-| `review/` | 待审查文件：审查、修复、合并 | frontend → **reviewer** → git | ✅ 是（临时） |
+| `review/` | 待审查文件：审查、修复、合并 | frontend → **reviewer** → **git** | ✅ 是（临时） |
 
 ## 角色分工
 
-| 角色 | 负责人 | 核心职责 |
-|------|--------|----------|
-| **frontend** | frontend agent | 代码开发、自检、提交审核、修复问题 |
-| **reviewer** ⭐ | reviewer agent | 代码审查、安全扫描、输出审核报告、更新状态 |
-| **git** | git agent | 合并审核通过的代码、推送到远程仓库 |
+| 角色 | 负责人 | 核心职责 | 关键权限 |
+|------|--------|----------|----------|
+| **frontend** | frontend agent | 代码开发、自检、提交审核、修复问题 | 操作 `work/` 和 `review/` 目录 |
+| **reviewer** ⭐ | reviewer agent | 代码审查、安全扫描、输出审核报告、更新状态 | 审核 `review/` 目录、更新 `SYNC_MAP.json` 状态 |
+| **git** 🔒 | git agent | 本地仓库与远程仓库同步管理 | **唯一有权执行 `git push` 的角色** |
+
+### git 角色详细说明
+
+**负责人**: `git` agent
+
+**核心职责**:
+1. **管理远程仓库配置**
+   - 维护 `project_root/source/` 下各项目的远程仓库 URL
+   - 默认远程仓库：`origin`
+   - 默认分支：`main`
+
+2. **推送前验证**
+   - ⚠️ **必须确认 reviewer 已标记为 `approved`**
+   - ⚠️ 未审核通过的代码禁止推送
+
+3. **执行 git 操作**
+   - 合并 `review/<task_id>/` 到 `source/`
+   - 清理 `review/<task_id>/` 目录
+   - `git add .` / `git commit -m "描述"` / `git push origin main`
+
+4. **状态管理**
+   - 更新 `SYNC_MAP.json` 中的任务状态为 `merged`
+   - 记录 commit hash 和推送时间
+
+5. **通知机制**
+   - 推送成功后 → 通知 pm 和飞书群
+   - 推送失败时 → 通知 frontend 并说明原因
 
 ## 映射文件
 
