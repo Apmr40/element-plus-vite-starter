@@ -346,7 +346,7 @@ function handlePrevLevel() {
 
 // API 查询函数（开发测试版本）
 async function queryLevelData(url: string, method = 'GET', params: Record<string, unknown> = {}) {
-  // TODO: 替换为真实的 fetch 调用
+  // TODO: 替换为真实的 fetch 调用（上线前需实现）
   // return fetch(url, { method, ... }).then(res => res.json())
   
   // 模拟数据（仅用于开发测试）
@@ -380,6 +380,23 @@ watch(visible, (val) => {
 defineExpose({
   open
 })
+
+// Interface for level config
+interface PreviewLevelConfig {
+  level: number
+  name: string
+  apiUrl: string
+  method?: string
+  queryParam?: string
+  placeholder?: string
+  disabled?: boolean
+  loading?: boolean
+  selectedValue?: string
+  data?: Array<{ id: string; name: string; [key: string]: unknown }>
+  total?: number
+  page?: number
+  pageSize?: number
+}
 
 // Lifecycle
 onMounted(() => {

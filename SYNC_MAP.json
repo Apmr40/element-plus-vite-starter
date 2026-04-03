@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-04-02T23:28:00+08:00",
+  "mappings": [
+    {
+      "work_file": "feat/20260330_001/src/components/CascadePreviewModal.vue",
+      "source_path": "src/components/CascadePreviewModal.vue",
+      "created": "2026-03-30T18:00:00+08:00",
+      "description": "级联预览模态框组件",
+      "status": "merged"
+    },
+    {
+      "work_file": "feat/20260330_001/src/components/api-cascade-generator.vue",
+      "source_path": "src/components/api-cascade-generator.vue",
+      "created": "2026-03-30T18:00:00+08:00",
+      "description": "API 级联生成器组件",
+      "status": "merged"
+    }
+  ],
+  "tasks": {
+    "20260330_001": {
+      "id": "20260330_001",
+      "description": "级联资源配置组件开发",
+      "status": "completed",
+      "files": [
+        "src/components/CascadePreviewModal.vue",
+        "src/components/api-cascade-generator.vue"
+      ],
+      "createdAt": "2026-03-30T18:00:00+08:00",
+      "submittedAt": "2026-03-30T19:00:00+08:00",
+      "mergedAt": "2026-04-02T23:28:00+08:00",
+      "commitHash": "9aa5e59"
+    }
+  }
+}
