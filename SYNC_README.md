@@ -1,5 +1,44 @@
 # 同步机制使用指南
 
+## 🔒 远程仓库与本地仓库对应规则（重要）
+
+### 核心原则
+
+**`project_root/source/` 目录下的每个子目录对应一个独立的远程仓库**
+
+管理文档（如 `SYNC_MECHANISM.md`、`SYNC_README.md`、`SYNC_MAP.json` 等）**仅属于本地 ws-git 仓库**，**禁止推送到项目远程仓库**。
+
+### 对应关系示例
+
+| 远程仓库 URL | 本地仓库路径 | 说明 |
+|-------------|-------------|------|
+| `https://github.com/Apmr40/element-plus-vite-starter` | `project_root/source/element-plus-vite-starter/` | Vue 3 + Element Plus 前端项目 |
+| `https://github.com/<owner>/<repo-name>` | `project_root/source/<repo-name>/` | 通用规则 |
+
+### 目录隔离规则
+
+```
+ws-git/                          # 本地管理仓库（独立 git 仓库）
+├── SYNC_MECHANISM.md           # ❌ 不推送到项目远程仓库
+├── SYNC_README.md              # ❌ 不推送到项目远程仓库
+├── SYNC_MAP.json               # ❌ 不推送到项目远程仓库
+├── scripts/                    # ❌ 不推送到项目远程仓库
+└── project_root/
+    └── source/
+        └── element-plus-vite-starter/  # ✅ 项目仓库（独立 git 仓库）
+            ├── src/
+            ├── package.json
+            └── ...                      # 仅推送项目相关文件
+```
+
+### git 角色职责
+
+1. **维护远程仓库配置**：记录每个 `source/<project-name>/` 对应的远程 URL
+2. **推送前验证**：只推送 `source/` 目录下的项目文件，禁止推送管理文档
+3. **执行推送**：在 `source/<project-name>/` 目录中执行 `git push origin main`
+
+---
+
 ## 快速开始
 
 ### 1. 检查当前状态
@@ -40,11 +79,12 @@
 
 ## 目录说明
 
-| 目录 | 用途 | 负责人 | 是否版本控制 |
-|------|------|--------|-------------|
-| `source/` | 完整源代码仓库 | git | ✅ 是 |
-| `work/` | 当前工作文件：开发、自检 | frontend | ✅ 是（工作副本） |
-| `review/` | 待审查文件：审查、修复、合并 | frontend → **reviewer** → git | ✅ 是（临时） |
+| 目录 | 用途 | 负责人 | 是否版本控制 | 推送到远程仓库 |
+|------|------|--------|-------------|----------------|
+| `source/` | 完整源代码仓库（对应远程项目） | git | ✅ 是 | ✅ 是（仅项目文件） |
+| `work/` | 当前工作文件：开发、自检 | frontend | ✅ 是（工作副本） | ❌ 否 |
+| `review/` | 待审查文件：审查、修复、合并 | frontend → **reviewer** → git | ✅ 是（临时） | ❌ 否 |
+| `ws-git/` 根目录 | 本地管理文档和脚本 | git | ✅ 是 | ❌ 否（独立仓库） |
 
 ## 角色分工
 

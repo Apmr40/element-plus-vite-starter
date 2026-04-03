@@ -31,6 +31,62 @@ scripts/
 | `project_root/work/` | 开发工作区：代码开发、自检、测试 | **frontend** |
 | `project_root/review/` | 待审核区：代码审查、问题反馈、状态更新 | **reviewer** → **frontend** → **git** |
 
+---
+
+## 🔒 远程仓库与本地仓库对应规则（重要）
+
+### 核心原则
+
+**`project_root/source/` 目录下的每个子目录对应一个独立的远程仓库**
+
+管理文档（如 `SYNC_MECHANISM.md`、`SYNC_README.md`、`SYNC_MAP.json` 等）**仅属于本地 ws-git 仓库**，**禁止推送到项目远程仓库**。
+
+### 对应关系示例
+
+| 远程仓库 URL | 本地仓库路径 | 说明 |
+|-------------|-------------|------|
+| `https://github.com/Apmr40/element-plus-vite-starter` | `project_root/source/element-plus-vite-starter/` | Vue 3 + Element Plus 前端项目 |
+| `https://github.com/<owner>/<repo-name>` | `project_root/source/<repo-name>/` | 通用规则 |
+
+### git 角色职责
+
+1. **维护远程仓库配置**：
+   ```bash
+   cd /home/admin/.openclaw/ws-git/project_root/source/<project-name>
+   git remote -v  # 查看远程仓库 URL
+   ```
+
+2. **推送前验证**：
+   - ✅ 只推送 `source/<project-name>/` 目录下的文件
+   - ❌ **禁止推送** ws-git 根目录的管理文档（SYNC_*.md、SYNC_MAP.json 等）
+   - ❌ **禁止推送** work/ 和 review/ 目录
+
+3. **执行推送**：
+   ```bash
+   cd project_root/source/element-plus-vite-starter
+   git add .
+   git commit -m "描述"
+   git push origin main
+   ```
+
+### 目录隔离规则
+
+```
+ws-git/                          # 本地管理仓库（独立 git 仓库）
+├── SYNC_MECHANISM.md           # ❌ 不推送到项目远程仓库
+├── SYNC_README.md              # ❌ 不推送到项目远程仓库
+├── SYNC_MAP.json               # ❌ 不推送到项目远程仓库
+├── scripts/                    # ❌ 不推送到项目远程仓库
+└── project_root/
+    └── source/
+        └── element-plus-vite-starter/  # ✅ 项目仓库（独立 git 仓库）
+            ├── src/
+            ├── package.json
+            └── ...                      # 仅推送项目相关文件
+```
+
+---
+
 ## 文件映射关系
 
 work 和 review 目录中的文件应该与 source 目录建立映射关系：
