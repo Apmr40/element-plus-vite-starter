@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-04-02T23:20:00Z",
+  "mappings": [
+    {
+      "task_id": "20260330_001",
+      "source_file": "source/element-plus-vite-starter/src/components/api-cascade-generator.vue",
+      "work_file": "work/feat/20260330_001/src/components/api-cascade-generator.vue",
+      "review_file": "review/20260330_001/api-cascade-generator.vue",
+      "last_sync": "2026-04-02T23:18:00Z"
+    },
+    {
+      "task_id": "20260330_001",
+      "source_file": "source/element-plus-vite-starter/src/components/CascadePreviewModal.vue",
+      "work_file": "work/feat/20260330_001/src/components/CascadePreviewModal.vue",
+      "review_file": "review/20260330_001/CascadePreviewModal.vue",
+      "last_sync": "2026-04-02T23:17:00Z"
+    }
+  ]
+}
