@@ -80,6 +80,7 @@
               v-if="config.selectMode === 'multiple'"
               type="selection"
               width="55"
+              :selectable="selectable"
             />
             
             <!-- 单选模式使用 radio 列 -->
@@ -170,7 +171,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Close, UploadFilled, Loading } from '@element-plus/icons-vue'
+import { Delete, Close } from '@element-plus/icons-vue'
 
 // Props
 const props = defineProps({
@@ -205,7 +206,6 @@ const selectedItems = ref([])
 const tableRef = ref()
 
 // 防抖和 AbortController 相关
-let debounceTimer = null
 let currentAbortController = null
 
 const displayField = computed(() => props.config.displayField || 'name')
@@ -346,7 +346,7 @@ const debouncedFetchTable = createDebounce(async (parentId) => {
 }, 300)
 
 // 发起级联查询请求
-const fetchLevelData = async (level, parentId) => {
+const fetchLevelData = async (level, parentId, page = 1) => {
   const levelConfigItem = props.levelConfig[level - 1]
   if (!levelConfigItem) return
 
@@ -368,7 +368,11 @@ const fetchLevelData = async (level, parentId) => {
         'Content-Type': 'application/json'
       },
       body: levelConfigItem.method === 'POST' 
-        ? JSON.stringify({ [levelConfigItem.queryParam || 'parentId']: parentId })
+        ? JSON.stringify({ 
+            [levelConfigItem.queryParam || 'parentId']: parentId,
+            page,
+            pageSize: levelConfigItem.pageSize
+          })
         : undefined,
       signal: currentAbortController.signal
     })
@@ -490,19 +494,6 @@ function handleTableSelect(selection) {
   }
 }
 
-// 获取层级状态（用于 Steps 组件）
-const getLevelStatus = (level) => {
-  if (level < currentLevel.value) return 'finish'
-  if (level === currentLevel.value) return 'process'
-  if (props.levelConfig.find(l => l.level === level)?.error) return 'error'
-  return 'wait'
-}
-
-// 获取当前层级状态（用于 Steps 组件）
-const getStepsActive = () => {
-  return currentLevel.value - 1
-}
-
 async function handleConfirm() {
   if (!canConfirm.value) {
     showWarning('请先完成当前层级的选择')
@@ -593,17 +584,8 @@ function handlePrevLevel() {
   if (currentLevel.value > 1) {
     currentLevel.value--
     
-    // 重置当前级及之后的层级
-    for (let i = currentLevel.value - 1; i < props.levelConfig.length; i++) {
-      const level = props.levelConfig[i]
-      level.selectedValue = null
-      level.data = []
-      level.total = 0
-      level.error = null
-      if (i > currentLevel.value - 1) {
-        level.disabled = true
-      }
-    }
+    // 重置当前级及之后的层级（使用 resetLevelsAfter）
+    resetLevelsAfter(currentLevel.value)
   }
 }
 
@@ -654,6 +636,7 @@ onMounted(() => {
 }
 
 .level-item {
+  position: relative;
   margin-bottom: 24px;
   padding: 16px;
   background: #f5f7fa;
