@@ -1,9 +1,23 @@
 {
-  "lastBriefingMorning": 1775197320000,
-  "lastBriefingEvening": 1775271900000,
+  "lastBriefingMorning": 1775567700000,
+  "lastBriefingEvening": 1775565240000,
   "submittedToday": true,
   "submittedEvening": true,
   "reminderCount": 2,
   "userNotified": true,
-  "blockingIssue": null
+  "blockingIssue": null,
+  "lastBlockingIssue": null,
+  "activeTasks": [],
+  "taskProgress": {
+    "TASK-2026-04-04-001": {
+      "status": "pending",
+      "scheduledAt": 1775385600000,
+      "note": "原计划 14:00-16:10 执行，等待 pm 新指示" 
+    },
+    "TASK-2026-04-03-001": {
+      "status": "review_pending",
+      "completedAt": 1775567700000,
+      "note": "已提交 reviewer 复审"
+    }
+  }
 }
