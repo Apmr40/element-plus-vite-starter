@@ -411,17 +411,6 @@ const fetchLevelData = async (level, parentId, page = 1) => {
     if (level === props.levelConfig.length && levelConfigItem.data.length > 0) {
       // Table 数据已包含在 levelConfigItem.data 中
     }
-    
-    // 返回数据供调用方使用
-    return {
-      code: 200,
-      data: {
-        list: levelConfigItem.data,
-        total: levelConfigItem.total,
-        page: levelConfigItem.page,
-        pageSize: levelConfigItem.pageSize
-      }
-    }
   } catch (error) {
     // 9. 错误处理
     if (error.name === 'AbortError') {
@@ -483,10 +472,8 @@ async function handlePageChange(page) {
     level.page = page
     level.loading = true
     try {
-      const result = await fetchLevelData(currentLevel.value, level.selectedValue, page)
-      level.data = result?.data?.list || []
-      level.total = result?.data?.total || 0
-      level.page = result?.data?.page || 1
+      await fetchLevelData(currentLevel.value, level.selectedValue, page)
+      // fetchLevelData 已通过引用更新 level 对象，无需再赋值
     } catch (error) {
       showError('分页查询失败：' + (error.message || '未知错误'))
     } finally {
