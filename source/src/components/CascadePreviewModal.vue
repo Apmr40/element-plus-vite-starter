@@ -170,7 +170,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { Delete, Close } from '@element-plus/icons-vue'
 
 // Props
@@ -412,6 +412,16 @@ const fetchLevelData = async (level, parentId, page = 1) => {
       // Table 数据已包含在 levelConfigItem.data 中
     }
     
+    // 返回数据供调用方使用
+    return {
+      code: 200,
+      data: {
+        list: levelConfigItem.data,
+        total: levelConfigItem.total,
+        page: levelConfigItem.page,
+        pageSize: levelConfigItem.pageSize
+      }
+    }
   } catch (error) {
     // 9. 错误处理
     if (error.name === 'AbortError') {
