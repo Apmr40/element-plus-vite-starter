@@ -213,7 +213,7 @@ function handleClose() {
 
 async function handleLevelChange(level) {
   // 当前层级选择后，加载下一级数据
-  if (level.level < levelConfigLength.value) {
+  if (level.level < props.levelConfig.length) {
     const nextLevel = props.levelConfig[level.level] // 下一级索引是 level (1-based)
     if (nextLevel) {
       nextLevel.loading = true
@@ -267,7 +267,7 @@ async function handlePageChange(page) {
       level.total = result.data.total || 0
       level.page = result.data.page || 1
     } catch (error) {
-      ElMessage.error('分页查询失败：' + (error instanceof Error ? error.message : '未知错误'))
+      ElMessage.error('分页查询失败：' + (error.message || '未知错误'))
     } finally {
       level.loading = false
     }
@@ -278,7 +278,7 @@ function handleTableSelect(selection) {
   selectedItems.value = selection
 }
 
-function selectable(row: Record<string, unknown>): boolean {
+function selectable(row) {
   return true // 所有行都可选，可根据业务逻辑定制
 }
 
@@ -316,8 +316,7 @@ async function handleConfirm() {
       
       close()
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '未知错误'
-      ElMessage.error('数据提交失败：' + errorMsg)
+      ElMessage.error('数据提交失败：' + (error.message || '未知错误'))
     } finally {
       confirmLoading.value = false
     }
@@ -344,12 +343,18 @@ function handlePrevLevel() {
   }
 }
 
-// API 查询函数（开发测试版本）
-async function queryLevelData(url: string, method = 'GET', params: Record<string, unknown> = {}) {
-  // TODO: 替换为真实的 fetch 调用（上线前需实现）
-  // return fetch(url, { method, ... }).then(res => res.json())
+// 模拟 API 查询（实际应替换为真实 API 调用）
+async function queryLevelData(url, method = 'GET', params = {}) {
+  // TODO: 替换为真实的 fetch 调用
+  // 当有真实 API 时，启用此代码：
+  // const queryString = new URLSearchParams(params).toString()
+  // const fetchUrl = `${url}?${queryString}`
+  // const res = await fetch(fetchUrl, { method })
+  // if (!res.ok) throw new Error(`API error: ${res.statusText}`)
+  // return await res.json()
   
   // 模拟数据（仅用于开发测试）
+  // 注意：生产环境必须替换为真实 API 调用
   return {
     code: 200,
     message: 'success',
@@ -362,7 +367,7 @@ async function queryLevelData(url: string, method = 'GET', params: Record<string
   }
 }
 
-const levelConfigLength = computed(() => props.levelConfig.length)
+// 直接使用 props.levelConfig.length，无需额外 computed 包装
 
 // Watch
 watch(() => props.modelValue, (val) => {
@@ -380,23 +385,6 @@ watch(visible, (val) => {
 defineExpose({
   open
 })
-
-// Interface for level config
-interface PreviewLevelConfig {
-  level: number
-  name: string
-  apiUrl: string
-  method?: string
-  queryParam?: string
-  placeholder?: string
-  disabled?: boolean
-  loading?: boolean
-  selectedValue?: string
-  data?: Array<{ id: string; name: string; [key: string]: unknown }>
-  total?: number
-  page?: number
-  pageSize?: number
-}
 
 // Lifecycle
 onMounted(() => {
