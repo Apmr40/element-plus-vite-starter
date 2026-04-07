@@ -2,6 +2,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ElTable } from 'element-plus'
+import CascadePreviewModal from '@/components/CascadePreviewModal.vue'
 
 // 字段配置接口
 interface FieldConfig {
@@ -472,12 +473,76 @@ function resetForm() {
   sqlResult.value = null
 }
 
+// 计算属性：是否至少有一个层级解析了字段
+const hasParsedFields = computed(() => {
+  return levels.value.some(level => level.fields?.length > 0)
+})
+
 // 复制 SQL
 function copySQL() {
   if (sqlResult.value && sqlResult.value.full) {
     navigator.clipboard.writeText(sqlResult.value.full)
     ElMessage.success('SQL 已复制到剪贴板')
   }
+}
+
+// 预览配置接口
+interface PreviewLevelConfig {
+  level: number
+  name: string
+  data: Array<{ id: string; name: string }>
+  columns: Array<{ field: string; header: string; width: number }>
+  disabled: boolean
+  loading: boolean
+  page: number
+  pageSize: number
+  total: number
+  selectedValue?: string
+}
+
+// 预览配置
+const previewVisible = ref(false)
+const previewLevelConfig = ref<PreviewLevelConfig[]>([])
+
+function handlePreview(index: number = -1) {
+  // 如果指定了索引，切换到该层级
+  if (index !== -1) {
+    currentLevelIndex.value = index
+  }
+  
+  if (!currentLevel.value) {
+    ElMessage.warning('请先添加层级')
+    return
+  }
+  
+  // 构建预览配置
+  const levelConfig = levels.value.map((level, lvlIndex) => ({
+    level: lvlIndex + 1,
+    name: level.resourceName,
+    data: level.fields.map(f => ({ id: f.fieldName, name: f.description || f.fieldName })),
+    columns: [
+      { field: 'id', header: '字段名', width: 150 },
+      { field: 'name', header: '字段描述', width: 200 }
+    ],
+    disabled: lvlIndex > currentLevelIndex.value,
+    loading: false,
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    selectedValue: (lvlIndex === currentLevelIndex.value && level.fields.length > 0) ? level.fields[0].fieldName : undefined
+  }))
+  
+  previewLevelConfig.value = levelConfig
+  previewVisible.value = true
+}
+
+function handlePreviewClose() {
+  previewVisible.value = false
+}
+
+// 预览指定层级（供模板调用）
+function previewLevel(index: number) {
+  handlePreview(index)
 }
 </script>
 
@@ -568,11 +633,14 @@ function copySQL() {
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="180" align="center">
-            <template #default="{ $index }">
+          <el-table-column label="操作" width="240" align="center">
+            <template #default="{ $index, row }">
               <el-button size="small" @click="moveLevelUp($index)" :disabled="$index === 0">⬆️</el-button>
               <el-button size="small" @click="moveLevelDown($index)" :disabled="$index === levels.length - 1">⬇️</el-button>
               <el-button size="small" type="danger" @click="deleteLevel($index)">🗑️</el-button>
+              <el-button v-if="row.fields.length > 0" size="small" @click="previewLevel($index)" type="primary" link>
+                👁️ 预览
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -714,6 +782,9 @@ function copySQL() {
         <el-button type="success" @click="generateSQL" :disabled="!levels.some(l => l.fields.length > 0)">
           ✨ 生成完整 SQL
         </el-button>
+        <el-button v-if="hasParsedFields" @click="handlePreview">
+          👁️ 预览配置
+        </el-button>
         <el-button @click="resetForm">🔄 重置</el-button>
         <el-button @click="copySQL" :disabled="!sqlResult">📋 复制 SQL</el-button>
       </div>
@@ -745,6 +816,14 @@ function copySQL() {
         <el-button type="primary" @click="copySQL" class="mt-4">📋 复制全部 SQL</el-button>
       </div>
     </el-card>
+    
+    <!-- 预览窗口 -->
+    <CascadePreviewModal
+      v-model="previewVisible"
+      :level-config="previewLevelConfig"
+      :config="{ displayField: 'name', valueField: 'id', pageSize: 20 }"
+      @close="handlePreviewClose"
+    />
   </div>
 </template>
 
