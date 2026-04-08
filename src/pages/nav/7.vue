@@ -119,15 +119,29 @@ function buildFieldDescriptionMap(): Map<string, string> {
 
 // 解析输出报文
 function parseOutput() {
-  if (!currentLevel.value) {
+  // 修复：先检查是否有层级
+  if (levels.value.length === 0) {
     ElMessage.warning('请先添加层级')
     return
   }
   
+  // ✅ 2. 检查当前层级是否存在（修复：检查 currentLevel 而不是 levels 的其他字段）
+  if (!currentLevel.value) {
+    ElMessage.warning('请先选择层级')
+    return
+  }
+  
+  // ✅ 3. 检查是否填写了输出报文（保留原有逻辑）
   if (!currentLevel.value.outputExample) {
     ElMessage.warning('请先填写输出报文示例')
     return
   }
+  
+  // ❌ 删除：不要在解析前检查其他层级是否有字段（循环依赖）
+  // 原代码：if (!levels.value.some(level => level.fields?.length > 0)) {
+  //   ElMessage.warning('请先解析 API 字段')
+  //   return
+  // }
   
   try {
     const output = JSON.parse(currentLevel.value.outputExample)
@@ -180,13 +194,12 @@ function parseOutput() {
       }
     }
     
-    currentLevel.value.fields = fields
-    
-    if (fields.length > 0) {
-      fields[0].pkFlag = 1
-      fields[0].pkDisplayFlag = 1
+    // 修复：使用 currentLevel.value 设置字段
+    if (currentLevel.value && fields.length > 0) {
+      currentLevel.value.fields = fields
+      currentLevel.value.fields[0].pkFlag = 1
+      currentLevel.value.fields[0].pkDisplayFlag = 1
     }
-    
     // 提示用户有多少字段自动填充了中文描述
     if (autoFilledCount > 0) {
       ElMessage.success(`解析成功，共 ${fields.length} 个字段，${autoFilledCount} 个字段的中文描述已自动填充`)
@@ -510,8 +523,21 @@ function handlePreview(index: number = -1) {
     currentLevelIndex.value = index
   }
   
-  if (!currentLevel.value) {
+  // ✅ 1. 检查是否有层级
+  if (levels.value.length === 0) {
     ElMessage.warning('请先添加层级')
+    return
+  }
+  
+  // ✅ 2. 检查当前层级是否存在（V3 新增）
+  if (!currentLevel.value) {
+    ElMessage.warning('请先选择层级')
+    return
+  }
+  
+  // ✅ 3. 检查是否有层级解析了字段
+  if (!levels.value.some(level => level.fields?.length > 0)) {
+    ElMessage.warning('请先解析 API 字段')
     return
   }
   
