@@ -731,7 +731,7 @@ function previewLevel(index: number) {
           empty-text="暂无字段，请在上方填写输出报文示例后点击【解析 API 字段】按钮"
         >
           <!-- 拖拽手柄列 -->
-          <el-table-column key="drag" width="50" align="center" :resizable="false" fixed />
+          <el-table-column key="drag" width="50" align="center" :resizable="false" fixed>
             <template #header>📍</template>
             <template #default="{ row }">
               <el-icon 
