@@ -727,11 +727,11 @@ function previewLevel(index: number) {
         <el-table 
           :data="fieldList" 
           border 
-          style="width: 100%"
+          style="width: 100%; table-layout: fixed;"
           empty-text="暂无字段，请在上方填写输出报文示例后点击【解析 API 字段】按钮"
         >
           <!-- 拖拽手柄列 -->
-          <el-table-column key="drag" width="50" align="center" :resizable="false">
+          <el-table-column key="drag" width="50" align="center" :resizable="false" fixed />
             <template #header>📍</template>
             <template #default="{ row }">
               <el-icon 
@@ -753,51 +753,21 @@ function previewLevel(index: number) {
           </el-table-column>
           
           <!-- 序号列 -->
-          <el-table-column label="序号" width="70" align="center">
-            <template #default="{ row }">
-              <span class="order-index">{{ row.orderIndex }}</span>
-            </template>
-          </el-table-column>
+          <el-table-column label="序号" width="70" align="center" fixed />
           
-          <el-table-column prop="fieldName" label="属性名" min-width="120" />
+          <el-table-column prop="fieldName" label="属性名" width="150" fixed />
           
-          <el-table-column label="描述" min-width="200">
+          <el-table-column label="描述" width="200">
             <template #default="{ row }">
               <el-input v-model="row.description" placeholder="字段中文描述" size="small" style="width: 100%" />
             </template>
           </el-table-column>
           
-          <el-table-column label="隐藏" width="60" align="center">
-            <template #default="{ row }">
-              <el-checkbox v-model="row.hideFlag" :true-value="1" :false-value="0" />
-            </template>
-          </el-table-column>
+          <el-table-column label="隐藏" width="60" align="center" />
           
-          <el-table-column label="主键" width="60" align="center">
-            <template #default="{ row }">
-              <el-radio 
-                :model-value="currentLevel?.fields.find(f => f.pkFlag === 1)?.fieldName || ''"
-                :label="row.fieldName"
-                name="pkField"
-                @change="setPkField(row.fieldName)"
-              >
-                <span style="display:none"></span>
-              </el-radio>
-            </template>
-          </el-table-column>
+          <el-table-column label="主键" width="60" align="center" />
           
-          <el-table-column label="展示" width="60" align="center">
-            <template #default="{ row }">
-              <el-radio 
-                :model-value="currentLevel?.fields.find(f => f.pkDisplayFlag === 1)?.fieldName || ''"
-                :label="row.fieldName"
-                name="pkDisplayField"
-                @change="setPkDisplayField(row.fieldName)"
-              >
-                <span style="display:none"></span>
-              </el-radio>
-            </template>
-          </el-table-column>
+          <el-table-column label="展示" width="60" align="center" />
         </el-table>
       </div>
 

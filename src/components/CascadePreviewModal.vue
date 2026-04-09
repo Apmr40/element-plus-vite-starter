@@ -47,7 +47,7 @@
             v-loading="level.loading"
             :data="level.data || []"
             border
-            style="width: 100%"
+            style="width: 100%; table-layout: fixed;"
             @selection-change="handleTableSelect"
             :row-key="valueField"
           >
@@ -61,7 +61,8 @@
               :key="col.field"
               :prop="col.field"
               :label="col.header"
-              :width="col.width"
+              :width="col.width || 150"
+              fixed
             />
           </el-table>
 
@@ -421,6 +422,32 @@ onMounted(() => {
 .table-selector {
   max-height: 400px;
   overflow-y: auto;
+}
+
+.table-selector :deep(.el-table) {
+  table-layout: fixed;
+}
+
+.table-selector :deep(.el-table th) {
+  background-color: #f5f7fa;
+  color: #333;
+  font-weight: 600;
+  font-size: 14px;
+  height: 48px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.table-selector :deep(.el-table td) {
+  padding: 12px 0;
+  border-bottom: 1px solid #e8e8e8;
+  color: #333;
+  font-size: 14px;
+}
+
+.table-selector :deep(.el-table--border) {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .table-pagination {
