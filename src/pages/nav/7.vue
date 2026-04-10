@@ -755,7 +755,7 @@ function previewLevel(index: number) {
           <!-- 序号列 -->
           <el-table-column label="序号" width="70" align="center" fixed />
           
-          <el-table-column prop="fieldName" label="属性名" width="150" fixed />
+          <el-table-column prop="fieldName" label="属性名" width="150" />
           
           <el-table-column label="描述" width="200">
             <template #default="{ row }">
