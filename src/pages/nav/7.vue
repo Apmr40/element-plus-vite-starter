@@ -727,11 +727,11 @@ function previewLevel(index: number) {
         <el-table 
           :data="fieldList" 
           border 
-          style="width: 100%; table-layout: fixed;"
+          style="width: 100%"
           empty-text="暂无字段，请在上方填写输出报文示例后点击【解析 API 字段】按钮"
         >
           <!-- 拖拽手柄列 -->
-          <el-table-column key="drag" width="50" align="center" :resizable="false" fixed>
+          <el-table-column key="drag" width="50" align="center" :resizable="false">
             <template #header>📍</template>
             <template #default="{ row }">
               <el-icon 
@@ -753,21 +753,51 @@ function previewLevel(index: number) {
           </el-table-column>
           
           <!-- 序号列 -->
-          <el-table-column label="序号" width="70" align="center" fixed />
+          <el-table-column label="序号" width="70" align="center">
+            <template #default="{ row }">
+              <span class="order-index">{{ row.orderIndex }}</span>
+            </template>
+          </el-table-column>
           
-          <el-table-column prop="fieldName" label="属性名" width="150" />
+          <el-table-column prop="fieldName" label="属性名" min-width="120" />
           
-          <el-table-column label="描述" width="200">
+          <el-table-column label="描述" min-width="200">
             <template #default="{ row }">
               <el-input v-model="row.description" placeholder="字段中文描述" size="small" style="width: 100%" />
             </template>
           </el-table-column>
           
-          <el-table-column label="隐藏" width="60" align="center" />
+          <el-table-column label="隐藏" width="60" align="center">
+            <template #default="{ row }">
+              <el-checkbox v-model="row.hideFlag" :true-value="1" :false-value="0" />
+            </template>
+          </el-table-column>
           
-          <el-table-column label="主键" width="60" align="center" />
+          <el-table-column label="主键" width="60" align="center">
+            <template #default="{ row }">
+              <el-radio 
+                :model-value="currentLevel?.fields.find(f => f.pkFlag === 1)?.fieldName || ''"
+                :label="row.fieldName"
+                name="pkField"
+                @change="setPkField(row.fieldName)"
+              >
+                <span style="display:none"></span>
+              </el-radio>
+            </template>
+          </el-table-column>
           
-          <el-table-column label="展示" width="60" align="center" />
+          <el-table-column label="展示" width="60" align="center">
+            <template #default="{ row }">
+              <el-radio 
+                :model-value="currentLevel?.fields.find(f => f.pkDisplayFlag === 1)?.fieldName || ''"
+                :label="row.fieldName"
+                name="pkDisplayField"
+                @change="setPkDisplayField(row.fieldName)"
+              >
+                <span style="display:none"></span>
+              </el-radio>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
 
@@ -823,71 +853,44 @@ function previewLevel(index: number) {
   </div>
 </template>
 
-/* 114 平台样式调整 - 级联资源配置页面 */
-/* 调整清单：TASK-2026-04-08-002 */
-
 <style scoped>
-/* 页面整体 */
 .cascade-config {
   min-height: calc(100vh - 120px);
-  background-color: #F8F9FC;
-  padding: 24px;
 }
 
-/* 卡片样式 */
 .card-header {
   width: 100%;
 }
 
-/* 卡片头部样式 */
-.card-header .text-lg {
-  font-size: 18px;
-  font-weight: 600;
-  color: #25303C;
-}
-
-/* SQL 结果样式 */
 .sql-result pre {
-  background: #F2F4FB;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #E8E9EB;
+  background: #f5f7fa;
+  padding: 15px;
+  border-radius: 4px;
   overflow-x: auto;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 13px;
   line-height: 1.5;
   max-height: 400px;
   overflow-y: auto;
-  color: #2F2E4B;
 }
 
-/* 表格样式 - 覆盖 Element Plus 默认值 */
+/* 表格边框样式 */
 :deep(.el-table) {
-  margin-bottom: 24px;
-  --el-table-border-color: #E8E9EB;
-  --el-table-header-bg-color: #F3F5FA;
-  --el-table-header-text-color: #25303C;
-  --el-table-row-hover-bg-color: #F8F9FC;
-  --el-table-fixed-box-shadow: 0 0 10px rgba(0, 0, 0, 0.12);
-  border: 1px solid #E8E9EB;
-  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 :deep(.el-table th) {
-  background-color: #F3F5FA;
-  color: #25303C;
+  background-color: #f5f7fa;
+  color: #606266;
   font-weight: 600;
-  font-size: 14px;
-  height: 48px;
-  border-bottom: 1px solid #E8E9EB;
+  border-bottom: 1px solid #dcdfe6;
 }
 
 :deep(.el-table td) {
-  padding: 12px 0;
-  border-bottom: 1px solid #E8E9EB;
-  color: #2F2E4B;
-  font-size: 14px;
+  border-bottom: 1px solid #ebeef5;
 }
 
 :deep(.el-table--border) {
@@ -895,18 +898,14 @@ function previewLevel(index: number) {
 }
 
 :deep(.el-table--border th) {
-  border-right: 1px solid #E8E9EB;
+  border-right: 1px solid #dcdfe6;
 }
 
 :deep(.el-table--border td) {
-  border-right: 1px solid #E8E9EB;
+  border-right: 1px solid #ebeef5;
 }
 
-:deep(.el-table__row) {
-  height: 48px;
-}
-
-/* 拖拽手柄样式 - 更新颜色为规范值 */
+/* 拖拽手柄样式 */
 .drag-handle {
   display: inline-flex;
   align-items: center;
@@ -917,8 +916,8 @@ function previewLevel(index: number) {
 }
 
 .drag-handle:hover {
-  background-color: #F8F9FC;
-  color: #3290FF;
+  background-color: #f5f7fa;
+  color: #409eff;
 }
 
 .drag-handle:active {
@@ -926,8 +925,8 @@ function previewLevel(index: number) {
 }
 
 .drag-handle.drag-over {
-  background-color: #E6F0FF;
-  color: #3290FF;
+  background-color: #ecf5ff;
+  color: #409eff;
   transform: scale(1.1);
 }
 
@@ -938,169 +937,16 @@ function previewLevel(index: number) {
   justify-content: center;
   width: 28px;
   height: 28px;
-  background-color: #F8F9FC;
+  background-color: #f5f7fa;
   border-radius: 50%;
   font-weight: 600;
-  color: #2F2E4B;
+  color: #606266;
   font-size: 14px;
 }
 
 /* 拖拽中的行样式 */
 :deep(.el-table__row.dragging) {
   opacity: 0.5;
-  background-color: #F8F9FC;
-}
-
-/* 章节标题样式 */
-h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #25303C;
-  margin: 24px 0 16px 0;
-}
-
-h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #3B5369;
-  margin: 16px 0 12px 0;
-}
-
-/* 输入框样式 - 确保高度为 36px */
-:deep(.el-input__wrapper) {
-  height: 36px;
-  border-radius: 4px;
-}
-
-:deep(.el-input.is-focus .el-input__wrapper) {
-  box-shadow: 0 0 0 2px rgba(50, 144, 255, 0.2);
-}
-
-/* 输入框错误状态 */
-:deep(.el-input.is-error .el-input__wrapper) {
-  border-color: #F13039;
-}
-
-/* 选择器下拉框 */
-:deep(.el-select .el-input__wrapper) {
-  height: 36px;
-}
-
-:deep(.el-select-dropdown) {
-  border-radius: 8px;
-  box-shadow: 0 4px 24px rgba(154, 172, 193, 0.23);
-}
-
-/* 按钮组间距 - 覆盖 Tailwind gap-2 (8px) */
-:deep(.flex.gap-2) {
-  gap: 16px !important;
-}
-
-/* 卡片内边距 */
-:deep(.el-card__body) {
-  padding: 24px;
-}
-
-/* 分隔线 */
-:deep(.el-divider) {
-  background-color: #E8E9EB;
-  margin: 24px 0;
-  height: 1px;
-}
-
-/* 按钮高度 - 确保标准按钮为 36px */
-:deep(.el-button) {
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-:deep(.el-button--small) {
-  height: 24px;
-  padding: 0 12px;
-  font-size: 13px;
-}
-
-/* 按钮禁用态 */
-:deep(.el-button.is-disabled) {
-  background-color: #F5F5F5;
-  border-color: #E8E9EB;
-  color: #A4B4BC;
-}
-
-/* ======================================== */
-/* 主色 #3290FF - 按钮背景定义（新增）    */
-/* ======================================== */
-:deep(.el-button--primary) {
-  background-color: #3290FF;
-  border-color: #3290FF;
-}
-
-:deep(.el-button--primary:hover) {
-  background-color: #66b1ff;
-  border-color: #66b1ff;
-}
-
-/* ======================================== */
-/* 成功色 #00C771 - Tag/Toast 定义（新增） */
-/* ======================================== */
-:deep(.el-tag--success) {
-  background-color: #F6FFED;
-  border-color: #00C771;
-  color: #00C771;
-}
-
-:deep(.el-message--success) {
-  background-color: #F6FFED;
-  border-color: #00C771;
-}
-
-:deep(.el-alert--success.is-light) {
-  background-color: #F6FFED;
-  border-color: #00C771;
-}
-
-/* ======================================== */
-/* 输入框聚焦时的主色边框（新增）          */
-/* ======================================== */
-:deep(.el-input.is-focus .el-input__wrapper),
-:deep(.el-input:focus .el-input__wrapper) {
-  box-shadow: 0 0 0 2px rgba(50, 144, 255, 0.2);
-}
-
-/* ======================================== */
-/* 输入框 disabled 状态                   */
-/* ======================================== */
-:deep(.el-input.is-disabled .el-input__wrapper) {
-  background-color: #F5F5F5;
-  border-color: #E8E9EB;
-  color: #A4B4BC;
-}
-
-/* ======================================== */
-/* 按钮 stroked 样式（新增）                */
-/* ======================================== */
-:deep(.el-button.is-plain) {
-  background-color: transparent;
-}
-
-:deep(.el-button--primary.is-plain) {
-  background-color: transparent;
-  border-color: #3290FF;
-  color: #3290FF;
-}
-
-:deep(.el-button--primary.is-plain:hover) {
-  background-color: #F6FFED;
-  border-color: #3290FF;
-  color: #66b1ff;
-}
-
-/* ======================================== */
-/* Selected row highlight                 */
-/* ======================================== */
-:deep(.el-table .el-table__row.current-row) {
-  background-color: #F6FFED;
+  background-color: #f5f7fa;
 }
 </style>
