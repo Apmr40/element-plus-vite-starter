@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ElTable } from 'element-plus'
-import CascadePreviewModal from '@/components/CascadePreviewModal.vue'
 
 // 字段配置接口
 interface FieldConfig {
@@ -65,20 +63,48 @@ interface SqlResult {
 const sqlResult = ref<SqlResult | null>(null)
 
 // 拖拽相关
-const draggingRow = ref<any>(null)
-const dragOverRow = ref<any>(null)
+const draggingRow = ref<FieldConfig | null>(null)
+const dragOverRow = ref<FieldConfig | null>(null)
+
+// ✅ 安全字符串转义函数（防止 SQL 注入）
+function escapeSqlString(str: string): string {
+  if (!str) return ''
+  return str.replace(/'/g, "''")
+}
+
+// ✅ 安全随机数生成（crypto.randomUUID 或 crypto.getRandomValues）
+function generateSafeId(prefix: string, length: number): string {
+  let result = prefix
+  
+  // fallback: 如果 crypto 不可用（极旧浏览器），使用 Math.random()
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    // 使用 crypto.randomUUID() 生成 UUID，取前 length-3 位
+    const uuid = crypto.randomUUID().replace(/-/g, '')
+    result += uuid.substring(0, Math.max(0, length - prefix.length))
+  } else if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    // 使用 crypto.getRandomValues()（更旧但支持的浏览器）
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    const array = new Uint32Array(Math.ceil(length / 2))
+    crypto.getRandomValues(array)
+    
+    for (let i = 0; i < array.length; i++) {
+      result += chars[array[i] % chars.length]
+    }
+  } else {
+    // 最终 fallback：使用 Math.random()（不安全，但保证兼容性）
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    while (result.length < length) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result.substring(0, length)
+  }
+  
+  return result.substring(0, length)
+}
 
 // 生成 17 位资源 ID（平台英文缩写开头 + 小写字母 + 数字，补齐 17 位）
 function generateResourceId(platformCode: string, prefix: string): string {
-  const base = prefix + platformCode.toLowerCase()
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-  let result = base
-  
-  while (result.length < 17) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  
-  return result.substring(0, 17)
+  return generateSafeId(prefix + platformCode.toLowerCase(), 17)
 }
 
 // 解析入参字段
@@ -95,7 +121,7 @@ function parseInputFields(inputExample: string): { fieldName: string; descriptio
       }
     }
   } catch (e) {
-    // 解析失败返回空数组
+    // 解析失败返回空数组（静默处理，历史行为）
   }
   
   return fields
@@ -146,7 +172,7 @@ function parseOutput() {
   try {
     const output = JSON.parse(currentLevel.value.outputExample)
     
-    let records: any[] = []
+    let records: Array<Record<string, any>> = []
     
     if (output.data && output.data.records) {
       records = output.data.records
@@ -206,8 +232,9 @@ function parseOutput() {
     } else {
       ElMessage.success(`解析成功，共 ${fields.length} 个字段`)
     }
-  } catch (e: any) {
-    ElMessage.error('JSON 解析失败：' + e.message)
+  } catch (e: unknown) {
+    const err = e as Error
+    ElMessage.error('JSON 解析失败：' + (err.message || '未知错误'))
   }
 }
 
@@ -388,37 +415,55 @@ function generateSQL() {
     return
   }
   
+  // ✅ 修复：所有字段都使用 escapeSqlString 进行转义
+  const safePlatformType = escapeSqlString(form.platformType)
+  const safePlatformCode = escapeSqlString(form.platformCode)
+  const safePlatformName = escapeSqlString(form.platformName)
+  
   // 1. iop_mc_serv_pltf_reso_rln（级联关系）
   let pltfResoSql = `-- 平台与资源关联关系\n`
   levels.value.forEach(level => {
+    const safeResLevel = escapeSqlString(level.resourceLevel)
+    const safeResName = escapeSqlString(level.resourceName)
+    const safeResId = escapeSqlString(level.resourceId)
     pltfResoSql += `INSERT INTO iop_mc_serv_pltf_reso_rln (platformtype, resourcelevel, platformname, resourceid, resourcename, description, res1, res2, res3, res4, res5)
-VALUES ('${form.platformType}', '${level.resourceLevel}', '${form.platformName}', '${level.resourceId}', '${level.resourceName}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${safePlatformType}', '${safeResLevel}', '${safePlatformName}', '${safeResId}', '${safeResName}', NULL, NULL, NULL, NULL, NULL);
 `
   })
   
   // 2. iop_mc_serv_reso_info（资源信息）
   let resoInfoSql = `-- 资源基本信息\n`
   levels.value.forEach(level => {
+    const safeResId = escapeSqlString(level.resourceId)
+    const safeResName = escapeSqlString(level.resourceName)
+    const safeApiId = escapeSqlString(level.apiId)
     resoInfoSql += `INSERT INTO iop_mc_serv_reso_info (resourceid, resourcename, description, resourceapiid, res1, res2, res3, res4, res5)
-VALUES ('${level.resourceId}', '${level.resourceName}', NULL, '${level.apiId}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${safeResId}', '${safeResName}', NULL, '${safeApiId}', NULL, NULL, NULL, NULL, NULL);
 `
   })
   
   // 3. iop_mc_api_info（API 信息）
   let apiInfoSql = `-- API 基本信息\n`
   levels.value.forEach(level => {
+    const safeApiId = escapeSqlString(level.apiId)
+    const safeResName = escapeSqlString(level.resourceName)
+    const safeApiUrl = escapeSqlString(level.apiUrl || '#')
     apiInfoSql += `INSERT INTO iop_mc_api_info (apiid, apiname, apiurl, apitype, description, res1, res2, res3, res4, res5)
-VALUES ('${level.apiId}', '${level.resourceName}查询接口', '${level.apiUrl || '#'}', 'G', NULL, NULL, NULL, NULL, NULL, NULL);
+VALUES ('${safeApiId}', '${safeResName}查询接口', '${safeApiUrl}', 'G', NULL, NULL, NULL, NULL, NULL, NULL);
 `
   })
   
   // 4. iop_mc_reso_fld_info（字段配置）
   let fldInfoSql = `-- 资源字段详细信息\n`
   levels.value.forEach(level => {
+    const safeResId = escapeSqlString(level.resourceId)
+    const safeResName = escapeSqlString(level.resourceName)
     level.fields.forEach(field => {
-      const description = field.description ? field.description.replace(/'/g, "''") : field.fieldName
+      const safeFieldName = escapeSqlString(field.fieldName)
+      // field.description 有转义
+      const safeDescription = escapeSqlString(field.description)
       fldInfoSql += `INSERT INTO iop_mc_reso_fld_info (resourceid, fieldname, resourcename, description, orderindex, hideflag, pkflag, pkdisplayflag, res1, res2, res3, res4, res5)
-VALUES ('${level.resourceId}', 'str_${form.platformCode}_${field.fieldName.toLowerCase()}', '${level.resourceName}', '${description}', ${field.orderIndex}, ${field.hideFlag}, ${field.pkFlag}, ${field.pkDisplayFlag}, NULL, NULL, NULL, NULL, NULL);
+VALUES ('${safeResId}', 'str_${safePlatformCode}_${safeFieldName.toLowerCase()}', '${safeResName}', '${safeDescription}', ${field.orderIndex}, ${field.hideFlag}, ${field.pkFlag}, ${field.pkDisplayFlag}, NULL, NULL, NULL, NULL, NULL);
 `
     })
   })
@@ -426,23 +471,28 @@ VALUES ('${level.resourceId}', 'str_${form.platformCode}_${field.fieldName.toLow
   // 5. iop_mc_api_parm_rln（参数关联 - 出参）
   let apiParmSql = `-- API 参数关联关系（出参）\n`
   levels.value.forEach(level => {
+    const safeApiId = escapeSqlString(level.apiId)
     level.fields.forEach((field, index) => {
-      const fieldName = field.fieldName.toLowerCase()
+      const safeFieldName = escapeSqlString(field.fieldName.toLowerCase())
+      const safeFieldDesc = escapeSqlString(field.fieldName)
       apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, res1, res2, res3, res4, res5)
-VALUES ('${level.apiId}', '1', ${index + 1}, 'str_${form.platformCode}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${safeApiId}', '1', ${index + 1}, 'str_${safePlatformCode}_${safeFieldName}', '${safeFieldDesc}', NULL, NULL, NULL, NULL, NULL);
 `
     })
   })
   
   // 添加入参配置（parmrlntype=0）
   levels.value.forEach(level => {
+    const safeApiId = escapeSqlString(level.apiId)
     const inputFields = parseInputFields(level.inputExample)
     if (inputFields.length > 0) {
-      apiParmSql += `\n-- ${level.resourceName} - 入参\n`
+      const safeResName = escapeSqlString(level.resourceName)
+      apiParmSql += `\n-- ${safeResName} - 入参\n`
       inputFields.forEach((field, index) => {
-        const fieldName = field.fieldName.toLowerCase()
+        const safeFieldName = escapeSqlString(field.fieldName.toLowerCase())
+        const safeFieldDesc = escapeSqlString(field.fieldName)
         apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, res1, res2, res3, res4, res5)
-VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformCode}_${fieldName}', '${field.fieldName}', NULL, NULL, NULL, NULL, NULL);
+VALUES ('${safeApiId}', '0', ${index + 1}, 'str_${safePlatformCode_${safeFieldName}', '${safeFieldDesc}', NULL, NULL, NULL, NULL, NULL);
 `
       })
     }
@@ -451,10 +501,10 @@ VALUES ('${level.apiId}', '0', ${index + 1}, 'str_${form.platformCode}_${fieldNa
   // 完整 SQL
   const fullSql = [
     '-- ========================================',
-    `-- 级联资源配置 - ${form.platformType}(${form.platformCode})`,
-    `-- 平台编码：${form.platformType}`,
-    `-- 平台英文缩写：${form.platformCode}`,
-    `-- 平台名称：${form.platformName}`,
+    `-- 级联资源配置 - ${safePlatformType}(${safePlatformCode})`,
+    `-- 平台编码：${safePlatformType}`,
+    `-- 平台英文缩写：${safePlatformCode}`,
+    `-- 平台名称：${safePlatformName}`,
     `-- 生成时间：${new Date().toLocaleString('zh-CN')}`,
     '-- ========================================\n',
     pltfResoSql,
@@ -890,7 +940,7 @@ function previewLevel(index: number) {
 }
 
 :deep(.el-table td) {
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: #ebeef5;
 }
 
 :deep(.el-table--border) {
@@ -898,11 +948,11 @@ function previewLevel(index: number) {
 }
 
 :deep(.el-table--border th) {
-  border-right: 1px solid #dcdfe6;
+  border-right: #dcdfe6;
 }
 
 :deep(.el-table--border td) {
-  border-right: 1px solid #ebeef5;
+  border-right: #ebeef5;
 }
 
 /* 拖拽手柄样式 */
