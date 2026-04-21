@@ -2,3 +2,7 @@
 <template>
   <router-view />
 </template>
+
+<script setup lang="ts">
+// 应用主组件
+</script>

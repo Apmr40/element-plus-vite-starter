@@ -1,4 +1,5 @@
-// 应用配置巡检系统 - 标准入口文件 (TypeScript)
+<!-- 应用配置巡检系统 - 入口文件 -->
+<script lang="ts" setup>
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router/inspection-system-router'
@@ -26,3 +27,4 @@ app.mount('#app')
 app.config.errorHandler = (err, vm, info) => {
   console.error('全局错误:', err, info)
 }
+</script>
