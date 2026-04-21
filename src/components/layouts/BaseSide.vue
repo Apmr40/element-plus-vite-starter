@@ -105,5 +105,37 @@ function handleClose(key: string, keyPath: string[]) {
         操作资源配置
       </template>
     </el-menu-item>
+    <el-menu-item index="/inspection/rule-config">
+      <el-icon>
+        <Setting />
+      </el-icon>
+      <template #title>
+        规则配置
+      </template>
+    </el-menu-item>
+    <el-menu-item index="/inspection/inspection-result">
+      <el-icon>
+        <Setting />
+      </el-icon>
+      <template #title>
+        巡检结果
+      </template>
+    </el-menu-item>
+    <el-menu-item index="/inspection/rectification-order">
+      <el-icon>
+        <Setting />
+      </el-icon>
+      <template #title>
+        整改工单
+      </template>
+    </el-menu-item>
+    <el-menu-item index="/inspection/system-admin">
+      <el-icon>
+        <Setting />
+      </el-icon>
+      <template #title>
+        权限后台
+      </template>
+    </el-menu-item>
   </el-menu>
 </template>
