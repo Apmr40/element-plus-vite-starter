@@ -1,28 +1,50 @@
-// 应用配置巡检系统 - 标准入口文件 (TypeScript)
-import { createApp } from 'vue'
+import type { UserModule } from './types'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
+
+// import "~/styles/element/index.scss";
+
+// import ElementPlus from "element-plus";
+// import all element css, uncommented next line
+// import "element-plus/dist/index.css";
+
+// or use cdn, uncomment cdn link in `index.html`
+
+import { ViteSSG } from 'vite-ssg'
+import { routes } from 'vue-router/auto-routes'
 import App from './App.vue'
-import router from './router/inspection-system-router'
-import ElementPlus from 'element-plus'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import 'element-plus/dist/index.css'
-import './styles/inspection-system.scss'
 
-// 创建应用实例
-const app = createApp(App)
+import '~/styles/index.scss'
+import '~/styles/style.css' // 导入你的全局样式文件
+import '@/styles/uops-theme.scss'
 
-// 注册图标组件
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
+import 'uno.css'
+// If you want to use ElMessage, import it.
+import 'element-plus/theme-chalk/src/message.scss'
+import 'element-plus/theme-chalk/src/message-box.scss'
+import 'element-plus/theme-chalk/src/overlay.scss' // the modal class for message box
 
-// 使用插件
-app.use(router)
-app.use(ElementPlus)
+// if you do not need ssg:
+// import { createApp } from "vue";
 
-// 挂载应用
-app.mount('#app')
+// const app = createApp(App);
+// app.use(createRouter({
+//   history: createWebHistory(),
+//   routes,
+// }))
+// // app.use(ElementPlus);
+// app.mount("#app");
 
-// 全局错误处理
-app.config.errorHandler = (err, vm, info) => {
-  console.error('全局错误:', err, info)
-}
+// https://github.com/antfu/vite-ssg
+export const createApp = ViteSSG(
+  App,
+  {
+    routes,
+    base: import.meta.env.BASE_URL,
+  },
+  (ctx) => {
+    // install all modules under `modules/`
+    Object.values(import.meta.glob<{ install: UserModule }>('./modules/*.ts', { eager: true }))
+      .forEach(i => i.install?.(ctx))
+    // ctx.app.use(Previewer)
+  },
+)
