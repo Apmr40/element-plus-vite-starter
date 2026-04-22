@@ -319,36 +319,13 @@
           <el-col :span="12">
             <el-card class="stat-card">
               <div class="stat-title">技术栈分布</div>
-              <div class="stat-content">
-                <el-statistic
-                  v-for="item in techStackData"
-                  :key="item.name"
-                  :title="item.name"
-                  :value="item.value"
-                  :value-style="{
-                    color: item.name === 'Java' ? '#409EFF' : item.name === 'Python' ? '#67C23A' : item.name === 'Go' ? '#E6A23C' : '#909399'
-                  }"
-                  style="margin-right: 16px; margin-bottom: 8px"
-                />
-              </div>
+              <el-chart :data="techStackData" type="pie" height="250px" />
             </el-card>
           </el-col>
           <el-col :span="12">
             <el-card class="stat-card">
               <div class="stat-title">风险等级分布</div>
-              <div class="stat-content">
-                <el-space wrap>
-                  <el-tag
-                    v-for="item in riskLevelData"
-                    :key="item.name"
-                    :type="item.name === '高风险' ? 'danger' : item.name === '中风险' ? 'warning' : 'success'"
-                    size="large"
-                    style="padding: 8px 16px"
-                  >
-                    {{ item.name }}: {{ item.value }}
-                  </el-tag>
-                </el-space>
-              </div>
+              <el-chart :data="riskLevelData" type="bar" height="250px" />
             </el-card>
           </el-col>
         </el-row>

@@ -2,9 +2,9 @@
 import type { UserModule } from './types'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 
-// 导入全局样式（统一使用 @ 别名）
-import '@/styles/index.scss'
-import '@/styles/style.css'
+// 导入全局样式
+import '~/styles/index.scss'
+import '~/styles/style.css'
 import '@/styles/uops-theme.scss'
 import './styles/inspection-system.scss'
 

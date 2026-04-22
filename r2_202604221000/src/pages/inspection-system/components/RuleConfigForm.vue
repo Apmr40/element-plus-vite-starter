@@ -230,20 +230,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import {
-  Upload,
-  List,
-  TestTube,
-  Running,
-  Equals,
-  NotEquals,
-  Contains,
-  Regex,
-  Range,
-  And,
-  Or,
-  Not,
-} from '@element-plus/icons-vue'
+import { Upload, List, TestTube, Running } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 // 属性
