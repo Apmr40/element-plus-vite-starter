@@ -6,17 +6,16 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import '@/styles/index.scss'
 import '@/styles/style.css'
 import '@/styles/uops-theme.scss'
-import './styles/inspection.scss'
+import './styles/inspection-system.scss'
 
 import 'uno.css'
 import 'element-plus/theme-chalk/src/message.scss'
 import 'element-plus/theme-chalk/src/message-box.scss'
 import 'element-plus/theme-chalk/src/overlay.scss'
 
-import { routes } from 'vue-router/auto-routes'
-
 // 使用 ViteSSG + auto-routes
 import { ViteSSG } from 'vite-ssg'
+import { routes } from 'vue-router/auto-routes'
 import App from './App.vue'
 
 // https://github.com/antfu/vite-ssg

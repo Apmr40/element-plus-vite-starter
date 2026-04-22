@@ -1,0 +1,135 @@
+/* 应用配置巡检系统 - 全局样式 */
+:root {
+  /* 主色 */
+  --primary-color: #3290ff;
+  --primary-hover: #70b2ff;
+  --primary-active: #0069e6;
+
+  /* 功能色 */
+  --success-color: #00c771;
+  --warning-color: #ffb100;
+  --error-color: #f13039;
+  --info-color: #3290ff;
+
+  /* 文字颜色 */
+  --text-title: #25303c;
+  --text-body: #2f2e4b;
+  --text-secondary: #3b5369;
+  --text-assist: #91969d;
+
+  /* 背景色 */
+  --bg-input: #f2f4fb;
+  --bg-card: #ffffff;
+  --bg-list-header: #f3f5fa;
+
+  /* 边框 */
+  --border-color: #d2dde5;
+  --divider-color: #e8e9eb;
+
+  /* 圆角 */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(37, 48, 60, 0.18);
+  --shadow-md: 0 4px 24px rgba(154, 172, 193, 0.23);
+  --shadow-lg: 0 6px 16px rgba(37, 48, 60, 0.18);
+
+  /* 间距 */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+}
+
+/* 全局重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f8f9fc;
+  color: var(--text-body);
+}
+
+/* 页面容器 */
+.inspection-system-page {
+  min-height: 100vh;
+  padding: var(--spacing-lg);
+}
+
+/* 页面头部 */
+.inspection-system-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* 筛选区 */
+.inspection-system-filter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: #f8f9fc;
+  border-radius: var(--border-radius-md);
+
+  .filter-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+  }
+}
+
+/* 列表区 */
+.inspection-system-list {
+  background: var(--bg-card);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 分页区 */
+.inspection-system-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--spacing-lg);
+}
+
+/* 抽屉内容 */
+.inspection-system-drawer-content {
+  padding: var(--spacing-lg);
+}
+
+/* 模态框 */
+.inspection-system-modal {
+  border-radius: var(--border-radius-xl);
+}
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+  .inspection-system-page {
+    padding: var(--spacing-md);
+  }
+
+  .inspection-system-page-header {
+    flex-direction: column;
+    gap: var(--spacing-md);
+    text-align: center;
+  }
+
+  .inspection-system-filter {
+    flex-direction: column;
+
+    .filter-actions {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}

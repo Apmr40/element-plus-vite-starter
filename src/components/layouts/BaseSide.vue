@@ -20,7 +20,6 @@ function handleClose(key: string, keyPath: string[]) {
 <template>
   <el-menu
     router
-    default-active="1"
     class="el-menu-vertical-demo"
     @open="handleOpen"
     @close="handleClose"

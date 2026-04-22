@@ -13,9 +13,8 @@ import 'element-plus/theme-chalk/src/message.scss'
 import 'element-plus/theme-chalk/src/message-box.scss'
 import 'element-plus/theme-chalk/src/overlay.scss'
 
-import { routes } from 'vue-router/auto-routes'
-
-// 使用 ViteSSG + auto-routes
+// 使用 ViteSSG + unplugin-vue-router
+// unplugin-vue-router 会自动注入 routes，无需手动导入
 import { ViteSSG } from 'vite-ssg'
 import App from './App.vue'
 
