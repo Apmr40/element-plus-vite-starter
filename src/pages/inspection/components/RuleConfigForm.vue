@@ -145,7 +145,7 @@
             @click="handleTest"
             :disabled="testLoading"
           >
-            <el-icon><Running /></el-icon>
+            <el-icon><Play /></el-icon>
             测试
           </el-button>
 
@@ -234,7 +234,7 @@ import {
   Upload,
   List,
   TestTube,
-  Running,
+  Play,
   Equals,
   NotEquals,
   Contains,
@@ -245,6 +245,25 @@ import {
   Not,
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+// RuleConfig 接口定义
+interface RuleConfig {
+  id?: string
+  name: string
+  version?: string
+  techStacks?: Array<{ value: string; label: string }>
+  tagOptions?: Array<{ value: string; label: string }>
+  csvFields?: string[]
+  logicBlocks?: Array<{ type: string; label: string; icon: string }>
+  testResult?: {
+    passed: boolean
+    total: number
+    compliant: number
+    nonCompliant: number
+    complianceRate: number
+    nonCompliantItems: Array<{ appId: string; instanceId: string; reason: string; riskLevel: 'high' | 'medium' | 'low' }>
+  }
+}
 
 // 属性
 const props = defineProps<{
