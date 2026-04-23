@@ -145,7 +145,7 @@
             @click="handleTest"
             :disabled="testLoading"
           >
-            <el-icon><Play /></el-icon>
+            <el-icon><CircleCheck /></el-icon>
             测试
           </el-button>
 
@@ -234,7 +234,7 @@ import {
   Upload,
   List,
   TestTube,
-  Play,
+  CircleCheck,
   Equals,
   NotEquals,
   Contains,
