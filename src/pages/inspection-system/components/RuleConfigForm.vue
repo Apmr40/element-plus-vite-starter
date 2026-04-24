@@ -145,7 +145,7 @@
             @click="handleTest"
             :disabled="testLoading"
           >
-            <el-icon><CircleCheck /></el-icon>
+            <el-icon><Running /></el-icon>
             测试
           </el-button>
 
@@ -234,34 +234,28 @@ import {
   Upload,
   List,
   TestTube,
-  CircleCheck,
+  Running,
+  Equals,
+  NotEquals,
+  Contains,
+  Regex,
+  Range,
+  And,
+  Or,
+  Not,
 } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-
-// 从 types.ts 导入标准类型定义
-import type { RuleConfig as StandardRuleConfig, LogicBlock } from '@/types'
-
-// 本地使用继承标准定义的类型
-interface RuleConfigFields {
-  id?: string
-  name: string
-  version?: string
-  techStacks?: Array<{ value: string; label: string }>
-  tagOptions?: Array<{ value: string; label: string }>
-  csvFields?: string[]
-  logicBlocks?: LogicBlock[]
-}
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 // 属性
 const props = defineProps<{
   techStacks?: Array<{ value: string; label: string }>
   tagOptions?: Array<{ value: string; label: string }>
-  modelValue?: RuleConfigFields
+  modelValue?: RuleConfig
 }>()
 
-// emits
+//  emits
 const emit = defineEmits<{
-  (e: 'submit', data: RuleConfigFields): void
+  (e: 'submit', data: RuleConfig): void
   (e: 'cancel'): void
 }>()
 
@@ -278,7 +272,7 @@ const ruleId = ref('')
 const ruleName = ref('')
 const ruleVersion = ref('')
 
-// 逻辑块定义（从标准类型复制）
+// 逻辑块定义
 const logicBlocks = reactive([
   { type: 'equals', label: '等于', icon: 'Equals' },
   { type: 'notEquals', label: '不等于', icon: 'NotEquals' },
@@ -316,27 +310,19 @@ const handleFileChange = (event: Event) => {
 }
 
 const processFile = (file: File) => {
-  try {
-    // 校验文件大小
-    if (file.size > 10 * 1024 * 1024) {
-      ElMessage.error('文件大小不能超过 10MB，请压缩后上传')
-      return
-    }
-
-    csvFile.value = file
-
-    // 1️⃣ 实现真实的 CSV 解析（使用 papaparse）
-    // TODO: 安装 papaparse 后替换为真实解析
-    // import papaparse from 'papaparse'
-    
-    // 临时实现：显示提示信息，等待后续实现
-    setTimeout(() => {
-      csvFields.value = ['应用模块编号', '实例 ID', '服务器 IP', '端口号', 'SSL配置']
-      ElMessage.success('文件上传成功（等待 CSV 解析实现）')
-    }, 500)
-  } catch (error) {
-    ElMessage.error('文件解析失败，请检查文件格式')
+  // 校验文件大小
+  if (file.size > 10 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过 10MB，请压缩后上传')
+    return
   }
+
+  csvFile.value = file
+
+  // 模拟解析 CSV
+  setTimeout(() => {
+    csvFields.value = ['应用模块编号', '实例 ID', '服务器 IP', '端口号', 'SSL配置']
+    ElMessage.success('文件上传成功')
+  }, 500)
 }
 
 const removeField = (field: string) => {
@@ -352,20 +338,6 @@ const addFieldToCanvas = (field: string) => {
 const handleDragStart = (event: DragEvent, block: any) => {
   if (event.dataTransfer) {
     event.dataTransfer.setData('blockType', block.type)
-  }
-}
-
-// 拖拽 drop 处理器（P1 修复）
-const handleDragOver = (event: DragEvent) => {
-  event.preventDefault()
-}
-
-const handleDrop = (event: DragEvent) => {
-  event.preventDefault()
-  const blockType = event.dataTransfer?.getData('blockType')
-  if (blockType) {
-    ElMessage.info(`拖拽添加逻辑块: ${blockType}`)
-    logicBlocksCount.value++
   }
 }
 
@@ -390,9 +362,7 @@ const handlePrevStep = () => {
 const handleTest = () => {
   testLoading.value = true
 
-  // TODO: 3️⃣ 实现真实的规则评估引擎
-  // 目前返回 mock 数据，等待评估引擎实现
-  
+  // 模拟测试执行
   setTimeout(() => {
     testResult.value = {
       passed: true,
@@ -416,7 +386,7 @@ const handleTest = () => {
       ],
     }
     testLoading.value = false
-    ElMessage.success('测试执行完成（等待评估引擎实现）')
+    ElMessage.success('测试执行完成')
   }, 2000)
 }
 
@@ -449,16 +419,14 @@ const getRiskLevelLabel = (level: string) => {
 const handleSubmit = () => {
   submitLoading.value = true
 
-  // TODO: 5️⃣ 实现真实的 API 调用保存
-  // 目前使用 mock 数据，等待 API 集成
-  
+  // 模拟保存
   setTimeout(() => {
     ruleId.value = 'R' + Math.random().toString(36).substring(2, 8).toUpperCase()
     ruleName.value = props.modelValue?.name || '新建规则'
     ruleVersion.value = 'V1.0'
 
     currentStep.value++
-    ElMessage.success('规则保存成功（等待 API 集成）')
+    ElMessage.success('规则保存成功')
 
     setTimeout(() => {
       emit('submit', {
@@ -466,7 +434,7 @@ const handleSubmit = () => {
         name: ruleName.value,
         version: ruleVersion.value,
         ...props.modelValue,
-      } as RuleConfigFields)
+      } as RuleConfig)
     }, 1500)
   }, 1000)
 }
@@ -476,14 +444,6 @@ onMounted(() => {
   if (props.modelValue) {
     ruleName.value = props.modelValue.name || ''
   }
-  
-  // TODO: 2️⃣ 实现 Blockly 初始化
-  //Blockly.initWorkspaces()
-})
-
-onUnmounted(() => {
-  // TODO: 9️⃣ 实现清理逻辑
-  //Blockly.disposeWorkspace()
 })
 
 defineExpose({
@@ -580,7 +540,6 @@ defineExpose({
         border: 1px solid #d2dde5;
         border-radius: 8px;
         position: relative;
-        cursor: copy;
 
         &::before {
           content: '';
