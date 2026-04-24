@@ -122,7 +122,7 @@
     <div v-if="currentStep === 3" class="step-section">
       <div class="test-section">
         <div class="test-header">
-          <el-icon><Play /></el-icon>
+          <el-icon><VideoPlay /></el-icon>
           规则测试
         </div>
 
@@ -233,7 +233,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import {
   Upload,
   List,
-  Play,
+  VideoPlay,
   CircleCheck,
   Close,
   Search,
