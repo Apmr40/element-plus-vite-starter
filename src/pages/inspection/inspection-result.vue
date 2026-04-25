@@ -1,363 +1,218 @@
-<!-- 应用配置巡检系统 - 巡检结果页 -->
+<!-- 应用配置巡检系统 - 巡检详情页（UX 优化版） -->
 <template>
-  <div class="inspection-result-page">
-    <!-- 页面头部 -->
+  <div class="inspection-detail-page">
+    <!-- 页面顶部导航 -->
     <div class="page-header">
-      <h2>巡检结果</h2>
-      <el-button type="primary" @click="handleExport">
+      <el-button type="primary" link @click="handleBack">
+        <el-icon><ArrowLeft /></el-icon>
+        返回列表
+      </el-button>
+      <h2>巡检详情页</h2>
+      <el-button type="primary" plain @click="handleExportPDF">
         <el-icon><Download /></el-icon>
-        导出 Excel
+        导出 PDF
       </el-button>
     </div>
 
-    <!-- 筛选区 -->
-    <div class="filter-section">
-      <el-space wrap>
-        <el-select v-model="filter.appName" placeholder="应用名称" clearable>
-          <el-option label="APP-A" value="app-a" />
-          <el-option label="APP-B" value="app-b" />
-          <el-option label="APP-C" value="app-c" />
-        </el-select>
-        <el-select v-model="filter.techStack" placeholder="技术栈" clearable>
-          <el-option label="Java" value="java" />
-          <el-option label="Python" value="python" />
-          <el-option label="Go" value="go" />
-        </el-select>
-        <el-radio-group v-model="filter.status">
-          <el-radio-button label="all">全部</el-radio-button>
-          <el-radio-button label="compliant">全部通过</el-radio-button>
-          <el-radio-button label="non-compliant">存在不合规</el-radio-button>
-        </el-radio-group>
-        <el-date-picker
-          v-model="filter.timeRange"
-          type="daterange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          default-time="['00:00:00', '23:59:59']"
-          style="width: 240px"
-        />
-      </el-space>
-      <div class="filter-actions">
-        <el-button @click="handleReset">重置</el-button>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleOpenStatView">📊 统计视图</el-button>
-      </div>
-    </div>
-
-    <!-- 列表区 -->
-    <div class="list-section">
-      <el-table
-        v-loading="loading"
-        :data="tableData"
-        style="width: 100%"
-        border
-      >
-        <el-table-column type="selection" width="55" />
-        <el-table-column label="巡检 ID" prop="id" width="100" />
-        <el-table-column label="应用名称" prop="appName" />
-        <el-table-column label="技术栈" prop="techStack" width="100">
-          <template #default="{ row }">
-            <el-tag size="small" type="info">{{ getTechStackLabel(row.techStack) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="巡检时间" prop="inspectedAt" width="160" />
-        <el-table-column label="✅ 合规" prop="compliant" width="100" />
-        <el-table-column label="❌ 不合规" prop="nonCompliant" width="100" />
-        <el-table-column label="状态" prop="status" width="120">
-          <template #default="{ row }">
-            <el-tag v-if="row.status === 'compliant'" type="success">
-              <el-icon><Check /></el-icon> 全部通过
+    <!-- 详情内容区 -->
+    <div class="detail-content">
+      <!-- 1️⃣ 核心信息区 -->
+      <el-card class="section-card" shadow="never">
+        <template #header>
+          <div class="card-title">核心信息</div>
+        </template>
+        
+        <!-- 行1：基础信息 -->
+        <div class="info-row">
+          <div class="info-item">
+            <span class="info-label">巡检 ID</span>
+            <span class="info-value">{{ currentInspection?.id || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">应用名称</span>
+            <span class="info-value">{{ currentInspection?.appName || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">技术栈</span>
+            <span class="info-value">{{ getTechStackLabel(currentInspection?.techStack || '') }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">巡检时间</span>
+            <span class="info-value">{{ currentInspection?.inspectedAt || '-' }}</span>
+          </div>
+        </div>
+        
+        <!-- 行2：统计信息 -->
+        <div class="info-row">
+          <div class="info-item">
+            <span class="info-label">合规数量</span>
+            <span class="info-value status-compliant">{{ currentInspection?.compliant ?? '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">不合规数量</span>
+            <span class="info-value status-noncompliant">{{ currentInspection?.nonCompliant ?? '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">整改时效</span>
+            <span class="info-value" :class="{
+              'status-urgent': currentInspection?.nonCompliant > 0,
+              'status-none': currentInspection?.nonCompliant === 0
+            }">
+              {{ currentInspection?.nonCompliant > 0 ? currentInspection.deadlineRemaining : '--' }}
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">状态</span>
+            <el-tag v-if="currentInspection?.nonCompliant === 0" type="success" effect="plain">
+              <el-icon><Check /></el-icon> 全部合规
             </el-tag>
-            <el-tag v-else type="warning">
-              <el-icon><Warning /></el-icon> 存在不合规
+            <el-tag v-else type="danger" effect="plain">
+              <el-icon><Warning /></el-icon> 未通过
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
-          <template #default="{ row }">
-            <el-button-group>
-              <el-button size="small" type="primary" @click="handleViewDetails(row)">
-                详情
-              </el-button>
-              <el-button size="small" @click="handleExportRow(row)">
-                导出
-              </el-button>
-              <el-button
-                size="small"
-                v-permission="['admin']"
-                @click="handleBatchCreateOrder(row)"
-              >
-                批量创建工单
-              </el-button>
-            </el-button-group>
-          </template>
-        </el-table-column>
-      </el-table>
+          </div>
+        </div>
+      </el-card>
 
-      <!-- 分页 -->
-      <div class="pagination-section">
-        <el-pagination
-          v-model:current-page="pagination.currentPage"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          :page-sizes="[20, 50, 100]"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-    </div>
-
-    <!-- 详情抽屉 -->
-    <el-drawer
-      v-model="drawerVisible"
-      title="巡检详情"
-      :size="960"
-      direction="rtl"
-      :close-on-click-modal="false"
-      destroy-on-close
-    >
-      <div v-loading="drawerLoading" class="drawer-content">
-        <!-- 基本信息 -->
-        <el-card class="section-card" shadow="never">
-          <template #header>
-            <div class="card-title">基本信息</div>
-          </template>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="巡检 ID">
-              {{ currentInspection?.id }}
-            </el-descriptions-item>
-            <el-descriptions-item label="应用名称">
-              {{ currentInspection?.appName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="技术栈">
-              {{ getTechStackLabel(currentInspection?.techStack || '') }}
-            </el-descriptions-item>
-            <el-descriptions-item label="巡检时间">
-              {{ currentInspection?.inspectedAt }}
-            </el-descriptions-item>
-            <el-descriptions-item label="数据源" :span="2">
-              {{ currentInspection?.dataSource }}
-            </el-descriptions-item>
-            <el-descriptions-item label="规则版本" :span="2">
-              {{ currentInspection?.ruleVersion }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </el-card>
-
-        <!-- 统计概览 -->
-        <el-card class="section-card" shadow="never" style="margin-top: 16px">
-          <template #header>
-            <div class="card-title">统计概览</div>
-          </template>
-          <el-space class="statistics">
-            <el-statistic
-              title="✅ 合规数量"
-              :value="currentInspection?.compliant"
-              :value-style="{ color: '#00C771' }"
-            >
-              <template #prefix>
-                <el-icon><Check /></el-icon>
-              </template>
-            </el-statistic>
-            <el-statistic
-              title="❌ 不合规数量"
-              :value="currentInspection?.nonCompliant"
-              :value-style="{ color: '#F13039' }"
-            >
-              <template #prefix>
-                <el-icon><Warning /></el-icon>
-              </template>
-            </el-statistic>
-            <el-statistic
-              title="合规率"
-              :value="currentInspection?.complianceRate"
-              :precision="1"
-              suffix="%"
-            >
-              <template #prefix>
-                <el-icon><TrendCharts /></el-icon>
-              </template>
-            </el-statistic>
-          </el-space>
-        </el-card>
-
-        <!-- 检查项明细 -->
-        <el-card class="section-card" shadow="never" style="margin-top: 16px">
-          <template #header>
-            <div class="card-title">检查项明细</div>
-          </template>
-          <el-table :data="currentInspection?.checks || []" border>
-            <el-table-column label="规则名称" prop="ruleName" />
-            <el-table-column label="规则版本" prop="ruleVersion" width="100" />
-            <el-table-column label="检查结果" width="100">
-              <template #default="{ row }">
-                <el-tag v-if="row.status === 'passed'" type="success">
-                  <el-icon><Check /></el-icon> 通过
-                </el-tag>
-                <el-tag v-else type="danger">
-                  <el-icon><Close /></el-icon> 不通过
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="不合规原因" prop="reason" />
-            <el-table-column label="操作" width="100">
-              <template #default="{ row }">
-                <el-button size="small" @click="handleCheckDetail(row)">
-                  详情
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-
-        <!-- 不合规项高亮展示 -->
-        <el-card
-          v-if="currentInspection?.nonCompliant > 0"
-          class="section-card"
-          shadow="never"
-          style="margin-top: 16px"
-          :class="currentInspection?.nonCompliant ? 'warning-card' : ''"
-        >
-          <template #header>
-            <div class="card-title">
-              <el-icon v-if="currentInspection?.nonCompliant"><Warning /></el-icon>
-              不合规明细
+      <!-- 2️⃣ 不合规检查项（红色高亮，默认展开） -->
+      <el-card v-if="currentInspection?.nonCompliant > 0" class="section-card" shadow="never">
+        <template #header>
+          <div class="card-title warning-title">
+            <el-icon><Warning /></el-icon>
+            不合规检查项（{{ currentInspection.nonCompliantItems?.length || 0 }} 项）
+          </div>
+        </template>
+        <div class="non-compliant-list">
+          <div 
+            v-for="(item, index) in currentInspection.nonCompliantItems" 
+            :key="index" 
+            class="nc-item-card"
+          >
+            <div class="nc-item-header">
+              <el-icon class="nc-icon danger-icon"><Warning /></el-icon>
+              <span class="nc-rulename">{{ item.ruleName }}</span>
+              <span class="nc-ruleversion">{{ item.ruleVersion || 'v1.0' }}</span>
+              <el-tag type="danger" size="small" class="nc-status-tag">不合规</el-tag>
+              <span class="nc-timeremaining">剩余 3 天</span>
             </div>
-          </template>
-          <el-table
-            :data="currentInspection?.nonCompliantItems || []"
-            border
-            size="small"
-          >
-            <el-table-column label="实例 ID" prop="instanceId" width="150" />
-            <el-table-column label="规则" prop="ruleName" />
-            <el-table-column label="不合规原因" prop="reason" />
-            <el-table-column label="风险等级" width="120">
-              <template #default="{ row }">
-                <el-tag
-                  :type="getRiskLevelType(row.riskLevel)"
-                  size="small"
-                >
-                  {{ getRiskLevelLabel(row.riskLevel) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="{ row }">
-                <el-button size="small" type="primary" @click="handleCreateOrder(row)">
-                  创建整改工单
-                </el-button>
-                <el-button size="small" @click="handleViewDetails(currentInspection!)">
-                  查看详情
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
+            <div class="nc-reason">
+              <span class="nc-reason-label">不合规原因：</span>
+              <span class="nc-reason-text">{{ item.reason }}</span>
+            </div>
+            <div class="nc-datasource">
+              <span class="nc-datasource-label">数据源文件：</span>
+              <code class="nc-datasource-path">{{ item.dataSource || 'jdbc-config.yaml' }}</code>
+              <span class="nc-datasource-info">当期值：{{ item.currentValue || 5 }} | 要求值：{{ item.requireValue || '≥20' }}</span>
+            </div>
+            <div class="nc-actions">
+              <el-button size="small" type="primary" link @click="handleViewRule(item)">
+                查看规则
+              </el-button>
+              <el-button size="small" type="primary" link @click="handleCreateOrder(item)">
+                创建整改
+              </el-button>
+              <el-button size="small" type="primary" link @click="handleIgnore(item)">
+                忽略
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </el-card>
 
-        <!-- 底部操作 -->
-        <div class="drawer-actions">
-          <el-button @click="drawerVisible = false">返回列表</el-button>
-          <el-button @click="handleExportdrawer">
-            导出明细
-          </el-button>
-          <el-button
-            v-if="currentInspection?.nonCompliant > 0"
-            type="primary"
-            @click="handleBatchCreateOrders"
+      <!-- 3️⃣ 合规检查项（灰色弱化，默认折叠） -->
+      <el-card class="section-card" shadow="never">
+        <template #header>
+          <div 
+            class="card-title compliant-title" 
+            @click="toggleCompliantItems"
           >
-            批量创建工单
+            <el-icon class="compliant-icon"><Check /></el-icon>
+            <span>合规检查项</span>
+            <span class="compliant-count">({{ currentInspection?.checks?.length || 0 }} 项)</span>
+            <el-icon class="toggle-icon" :class="{ 'expanded': compliantExpanded }">
+              <ArrowDown />
+            </el-icon>
+          </div>
+        </template>
+        <div v-show="compliantExpanded" class="compliant-list">
+          <div 
+            v-for="(item, index) in currentInspection?.checks || []" 
+            :key="index" 
+            class="compliant-item"
+          >
+            <div class="compliant-header">
+              <span class="compliant-rulename">{{ item.ruleName }}</span>
+              <span class="compliant-ruleversion">{{ item.ruleVersion || 'v1.0' }}</span>
+              <el-tag type="info" size="small" class="compliant-status-tag" effect="plain">
+                <el-icon><Check /></el-icon> 合规
+              </el-tag>
+            </div>
+            <div class="compliant-datasource">
+              <span class="compliant-datasource-label">数据源文件：</span>
+              <code class="compliant-datasource-path">{{ item.dataSource || 'port-config.yaml' }}</code>
+              <span class="compliant-datasource-info">当前值：{{ item.currentValue || '8080' }} | 要求值：{{ item.requireValue || '8080' }}</span>
+            </div>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 4️⃣ 历史对比区 -->
+      <el-card class="section-card" shadow="never">
+        <template #header>
+          <div class="card-title">
+            <el-icon><TrendCharts /></el-icon>
+            <span>历史对比</span>
+            <span class="history-label">（近 3 次同规则同应用）</span>
+          </div>
+        </template>
+        <div class="history-table">
+          <table>
+            <thead>
+              <tr>
+                <th>规则名称</th>
+                <th v-for="(date, index) in historyDates" :key="index">{{ date }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, rowIndex) in historyData" :key="rowRuleName">
+                <td>{{ row.ruleName }}</td>
+                <td v-for="(cell, cellIndex) in row.results" :key="cellIndex" :class="['history-cell', cell.status, cell.diff ? 'history-diff' : '']">
+                  <span v-if="cell.showDiff" class="diff-arrow">{{ cell.showDiff }}</span>
+                  {{ cell.icon }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="history-tip">
+            <el-icon class="tip-icon"><Info-filled /></el-icon>
+            <span>黄色背景标记表示与上次巡检结果有差异</span>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 5️⃣ 关联操作区 -->
+      <el-card class="section-card" shadow="never">
+        <template #header>
+          <div class="card-title">
+            <el-icon><Link /></el-icon>
+            <span>关联操作</span>
+          </div>
+        </template>
+        <div class="related-actions">
+          <el-button @click="handleViewOrders">
+            <el-icon><Document /></el-icon>
+            查看整改工单
+          </el-button>
+          <el-button @click="handleViewRules">
+            <el-icon><Setting /></el-icon>
+            规则配置
+          </el-button>
+          <el-button @click="handleDownloadSource">
+            <el-icon><Folder /></el-icon>
+            下载数据源
           </el-button>
         </div>
-      </div>
-    </el-drawer>
-
-    <!-- 统计视图弹窗 -->
-    <el-dialog
-      v-model="statViewVisible"
-      title="统计视图"
-      width="1000px"
-      :close-on-click-modal="false"
-    >
-      <div class="stat-view-content">
-        <el-row :gutter="16">
-          <el-col :span="8">
-            <el-card class="stat-card">
-              <div class="stat-title">巡检次数</div>
-              <div class="stat-value">128</div>
-              <div class="stat-trend">
-                <el-icon :size="16" color="#00C771"><TrendCharts /></el-icon>
-                <span>↑ 12% (较上周)</span>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :span="8">
-            <el-card class="stat-card">
-              <div class="stat-title">合规率</div>
-              <div class="stat-value">96.5%</div>
-              <div class="stat-trend">
-                <el-icon :size="16" color="#00C771"><TrendCharts /></el-icon>
-                <span>↑ 2.3% (较上周)</span>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :span="8">
-            <el-card class="stat-card">
-              <div class="stat-title">不合规项</div>
-              <div class="stat-value">432</div>
-              <div class="stat-trend">
-                <el-icon :size="16" color="#F13039"><TrendCharts /></el-icon>
-                <span>↓ 8% (较上周)</span>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="16" style="margin-top: 16px">
-          <el-col :span="12">
-            <el-card class="stat-card">
-              <div class="stat-title">技术栈分布</div>
-              <div class="stat-content">
-                <el-statistic
-                  v-for="item in techStackData"
-                  :key="item.name"
-                  :title="item.name"
-                  :value="item.value"
-                  :value-style="{
-                    color: item.name === 'Java' ? '#409EFF' : item.name === 'Python' ? '#67C23A' : item.name === 'Go' ? '#E6A23C' : '#909399'
-                  }"
-                  style="margin-right: 16px; margin-bottom: 8px"
-                />
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :span="12">
-            <el-card class="stat-card">
-              <div class="stat-title">风险等级分布</div>
-              <div class="stat-content">
-                <el-space wrap>
-                  <el-tag
-                    v-for="item in riskLevelData"
-                    :key="item.name"
-                    :type="item.name === '高风险' ? 'danger' : item.name === '中风险' ? 'warning' : 'success'"
-                    size="large"
-                    style="padding: 8px 16px"
-                  >
-                    {{ item.name }}: {{ item.value }}
-                  </el-tag>
-                </el-space>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-      </div>
-
-      <template #footer>
-        <el-button @click="statViewVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+      </el-card>
+    </div>
   </div>
 </template>
 
@@ -369,51 +224,153 @@ import {
   Check,
   Warning,
   TrendCharts,
+  ArrowLeft,
+  ArrowDown,
+  Link,
+  InfoFilled,
+  Document,
+  Setting,
+  Folder
 } from '@element-plus/icons-vue'
+
+// 类型定义
+interface InspectionDetail {
+  id: string
+  appName: string
+  techStack: string
+  inspectedAt: string
+  compliant: number
+  nonCompliant: number
+  complianceRate: number
+  dataSource: string
+  ruleVersion: string
+  checks?: Array<{
+    ruleName: string
+    ruleVersion: string
+    status: string
+    dataSource?: string
+    currentValue?: string
+    requireValue?: string
+  }>
+  nonCompliantItems?: Array<{
+    ruleName: string
+    ruleVersion: string
+    status: string
+    reason: string
+    dataSource: string
+    currentValue: number | string
+    requireValue: string
+    riskLevel: 'high' | 'medium' | 'low'
+    deadlineRemaining?: string
+  }>
+  deadlineRemaining?: string
+}
 
 // 状态
 const loading = ref(false)
-const drawerVisible = ref(false)
-const drawerLoading = ref(false)
-const statViewVisible = ref(false)
-const currentInspection = ref<InspectionResult | null>(null)
+const compliantExpanded = ref(false)
+const currentInspection = ref<InspectionDetail | null>(null)
 
-// 筛选条件
-const filter = reactive({
-  appName: '',
-  techStack: '',
-  status: 'all',
-  timeRange: [] as Date[],
+// 模拟数据
+const mockInspectionData = ref({
+  id: 'INS-20260424001',
+  appName: '订单管理系统',
+  techStack: 'java',
+  inspectedAt: '2026-04-24 09:30:00',
+  compliant: 15,
+  nonCompliant: 3,
+  deadlineRemaining: '5 天 12 小时',
+  complianceRate: 97.6,
+  dataSource: 'order-system-20260424.csv',
+  ruleVersion: 'V2.1',
+  checks: [
+    { ruleName: 'SSL 检查', ruleVersion: 'V2.1', status: 'passed', dataSource: 'ssl-config.yaml', currentValue: 'enabled', requireValue: 'enabled' },
+    { ruleName: '端口检查', ruleVersion: 'V1.0', status: 'passed', dataSource: 'port-config.yaml', currentValue: '8080', requireValue: '8080' },
+    { ruleName: '日志级别检查', ruleVersion: 'V1.0', status: 'passed', dataSource: 'log-config.yaml', currentValue: 'INFO', requireValue: 'INFO' },
+  ],
+  nonCompliantItems: [
+    {
+      ruleName: '数据库连接池检查',
+      ruleVersion: 'V1.2',
+      status: 'failed',
+      reason: '连接池最大连接数配置为 5，低于最低要求 20',
+      dataSource: 'jdbc-config.yaml > database.connectionPool.max',
+      currentValue: 5,
+      requireValue: '≥20',
+      riskLevel: 'high',
+    },
+    {
+      ruleName: '超时配置检查',
+      ruleVersion: 'V1.1',
+      status: 'failed',
+      reason: '数据库连接超时时间配置为 10s，低于最低要求 30s',
+      dataSource: 'jdbc-config.yaml > database.connectionTimeout',
+      currentValue: 10,
+      requireValue: '≥30s',
+      riskLevel: 'medium',
+    },
+    {
+      ruleName: '缓存配置检查',
+      ruleVersion: 'V1.0',
+      status: 'failed',
+      reason: 'Redis 连接池大小配置为 50，低于最低要求 100',
+      dataSource: 'redis-config.yaml > connection.poolSize',
+      currentValue: 50,
+      requireValue: '≥100',
+      riskLevel: 'low',
+    },
+  ],
 })
 
-// 分页
-const pagination = reactive({
-  currentPage: 1,
-  pageSize: 20,
-  total: 0,
-})
+// 方法
+const handleBack = () => {
+  ElMessage.success('返回列表功能开发中...')
+}
 
-// 表格数据
-const tableData = ref<InspectionResult[]>([])
+const handleViewRule = (item: any) => {
+  ElMessage.success(`查看规则: ${item.ruleName}`)
+}
 
-// 统计视图数据
-const techStackData = ref([
-  { name: 'Java', value: 45 },
-  { name: 'Python', value: 30 },
-  { name: 'Go', value: 15 },
-  { name: 'Node.js', value: 10 },
+const handleCreateOrder = (item: any) => {
+  ElMessage.success(`创建整改工单: ${item.ruleName}`)
+}
+
+const handleIgnore = (item: any) => {
+  ElMessage.success(`忽略规则: ${item.ruleName}（需填写忽略原因）`)
+}
+
+const handleViewOrders = () => {
+  ElMessage.success('跳转整改工单列表页（筛选当前巡检 ID）')
+}
+
+const handleViewRules = () => {
+  ElMessage.success('跳转规则配置列表页（新标签）')
+}
+
+const handleDownloadSource = () => {
+  ElMessage.success('下载数据源文件（JSON/YAML）')
+}
+
+const handleExportPDF = () => {
+  ElMessage.success('正在生成 PDF 文件...')
+}
+
+// 历史对比数据
+const historyDates = ref(['2026-04-20', '2026-04-22', '2026-04-24'])
+
+const historyData = ref([
+  { ruleName: '数据库连接池检查', results: [{icon: '✅'}, {icon: '🔴', diff: true}, {icon: '🔴', diff: true}] },
+  { ruleName: '端口配置检查', results: [{icon: '✅'}, {icon: '✅'}, {icon: '✅'}] },
+  { ruleName: '日志级别检查', results: [{icon: '✅', showDiff: '←'}, {icon: '✅'}, {icon: '✅'}] },
 ])
 
-const riskLevelData = ref([
-  { name: '高风险', value: 12 },
-  { name: '中风险', value: 24 },
-  { name: '低风险', value: 36 },
-])
+const toggleCompliantItems = () => {
+  compliantExpanded.value = !compliantExpanded.value
+}
 
-// 计算属性
 const getTechStackLabel = (techStack: string) => {
   const map: Record<string, string> = {
-    java: 'Java',
+    java: 'Java/Spring',
     python: 'Python',
     go: 'Go',
     nodejs: 'Node.js',
@@ -421,160 +378,22 @@ const getTechStackLabel = (techStack: string) => {
   return map[techStack] || techStack
 }
 
-const getRiskLevelType = (level: string) => {
-  switch (level) {
-    case 'high':
-      return 'danger'
-    case 'medium':
-      return 'warning'
-    case 'low':
-      return 'info'
-    default:
-      return 'info'
-  }
-}
-
-const getRiskLevelLabel = (level: string) => {
-  switch (level) {
-    case 'high':
-      return '🔴 高风险'
-    case 'medium':
-      return '🟡 中风险'
-    case 'low':
-      return '🟢 低风险'
-    default:
-      return level
-  }
-}
-
-// 方法
-const handleSearch = () => {
-  loading.value = true
-
-  // 模拟查询
-  setTimeout(() => {
-    tableData.value = [
-      {
-        id: 'I001',
-        appName: 'APP-A',
-        techStack: 'java',
-        inspectedAt: '2026-04-21 06:00',
-        compliant: 120,
-        nonCompliant: 3,
-        status: 'non-compliant',
-        complianceRate: 97.6,
-        dataSource: 'app-a-20260421.csv',
-        ruleVersion: 'V2.1',
-        checks: [
-          { ruleName: 'SSL 检查', ruleVersion: 'V2.1', status: 'passed', reason: '-' },
-          { ruleName: '端口检查', ruleVersion: 'V1.0', status: 'failed', reason: '未配置 SSL' },
-        ],
-        nonCompliantItems: [
-          {
-            instanceId: '192.168.1.1',
-            ruleName: '端口检查',
-            reason: '未配置 SSL',
-            riskLevel: 'high',
-          },
-          {
-            instanceId: '192.168.1.2',
-            ruleName: '端口检查',
-            reason: '端口超出范围',
-            riskLevel: 'medium',
-          },
-        ],
-      },
-      {
-        id: 'I002',
-        appName: 'APP-B',
-        techStack: 'python',
-        inspectedAt: '2026-04-21 06:00',
-        compliant: 123,
-        nonCompliant: 0,
-        status: 'compliant',
-        complianceRate: 100,
-        dataSource: 'app-b-20260421.csv',
-        ruleVersion: 'V1.2',
-        checks: [{ ruleName: '全量检查', ruleVersion: 'V1.2', status: 'passed', reason: '-' }],
-        nonCompliantItems: [],
-      },
-    ]
-    pagination.total = 2
-    loading.value = false
-  }, 500)
-}
-
-const handleViewDetails = (row: InspectionResult) => {
-  currentInspection.value = { ...row }
-  drawerVisible.value = true
-}
-
-const handleExport = () => {
-  ElMessage.success('导出功能开发中...')
-}
-
-const handleExportRow = (row: InspectionResult) => {
-  ElMessage.success(`已导出 ${row.appName} 的巡检结果`)
-}
-
-const handleExportdrawer = () => {
-  ElMessage.success('明细已导出')
-}
-
-const handleBatchCreateOrder = (row: InspectionResult) => {
-  ElMessage.success(`批量创建 ${row.appName} 的整改工单`)
-}
-
-const handleBatchCreateOrders = () => {
-  if (currentInspection.value?.nonCompliant) {
-    ElMessage.success('已批量创建整改工单')
-  }
-}
-
-const handleOpenStatView = () => {
-  statViewVisible.value = true
-}
-
-const handleReset = () => {
-  filter.appName = ''
-  filter.techStack = ''
-  filter.status = 'all'
-  filter.timeRange = []
-}
-
-const handleSizeChange = (size: number) => {
-  pagination.pageSize = size
-  handleSearch()
-}
-
-const handleCurrentChange = (page: number) => {
-  pagination.currentPage = page
-  handleSearch()
-}
-
-const handleCheckDetail = (row: any) => {
-  ElMessage.info(`查看 ${row.ruleName} 详情`)
-}
-
-const handleCreateOrder = (row: any) => {
-  ElMessage.success(`已创建整改工单: ${row.instanceId}`)
-}
-
 // 生命周期
 onMounted(() => {
-  handleSearch()
+  currentInspection.value = { ...mockInspectionData.value }
 })
 </script>
 
 <style lang="scss" scoped>
-.inspection-result-page {
-  padding: 16px;
+.inspection-detail-page {
+  padding: 24px;
+  background: #f3f5fa;
 
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
 
     h2 {
       margin: 0;
@@ -584,88 +403,284 @@ onMounted(() => {
     }
   }
 
-  .filter-section {
+  .detail-content {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding: 12px;
-    background: #f8f9fc;
-    border-radius: 8px;
-
-    :deep(.el-space) {
-      flex-wrap: wrap;
-    }
-
-    .filter-actions {
-      display: flex;
-      gap: 8px;
-    }
-  }
-
-  .list-section {
-    margin-bottom: 16px;
-  }
-
-  .pagination-section {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 16px;
-  }
-
-  .drawer-content {
-    padding: 16px;
+    flex-direction: column;
+    gap: 24px;
   }
 
   .section-card {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
     .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-weight: 500;
       font-size: 16px;
       color: #2f2e4b;
-    }
+      padding: 12px 16px;
 
-    .statistics {
-      display: flex;
-      gap: 24px;
-    }
-  }
+      .warning-title {
+        color: #f13039;
+      }
 
-  .warning-card {
-    border-left: 4px solid #ffb100;
-  }
-
-  .stat-view-content {
-    .stat-card {
-      .stat-title {
-        font-size: 14px;
+      .compliant-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
         color: #91969d;
-        margin-bottom: 8px;
-      }
 
-      .stat-value {
-        font-size: 32px;
-        font-weight: 500;
-        color: #2f2e4b;
-        margin-bottom: 8px;
-      }
+        .compliant-icon {
+          color: #00c771;
+        }
 
-      .stat-trend {
-        font-size: 14px;
-        color: #00c771;
+        .compliant-count {
+          color: #91969d;
+          font-weight: normal;
+        }
 
-        .el-icon {
-          margin-right: 4px;
+        .toggle-icon {
+          margin-left: auto;
+          color: #91969d;
+          &.expanded {
+            transform: rotate(180deg);
+          }
         }
       }
     }
-  }
 
-  .drawer-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    padding-top: 16px;
-    border-top: 1px solid #e8e9eb;
+    .info-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      padding: 16px;
+      border-bottom: 1px solid #e8e9eb;
+
+      .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .info-label {
+          font-size: 13px;
+          color: #91969d;
+        }
+
+        .info-value {
+          font-size: 14px;
+          font-weight: 500;
+          color: #2f2e4b;
+
+          &.status-compliant {
+            color: #00c771;
+          }
+
+          &.status-noncompliant {
+            color: #f13039;
+          }
+
+          &.status-urgent {
+            color: #f13039;
+          }
+
+          &.status-none {
+            color: #91969d;
+          }
+        }
+      }
+    }
+
+    .non-compliant-list {
+      .nc-item-card {
+        border: 1px solid #e8e9eb;
+        border-left: 4px solid #f13039;
+        border-radius: 4px;
+        padding: 16px;
+        margin-bottom: 16px;
+        background: #fff;
+
+        .nc-item-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 12px;
+
+          .nc-icon {
+            color: #f13039;
+          }
+
+          .nc-rulename {
+            font-size: 14px;
+            font-weight: 500;
+            color: #2f2e4b;
+          }
+
+          .nc-ruleversion {
+            font-size: 12px;
+            color: #91969d;
+          }
+
+          .nc-status-tag {
+            font-size: 12px;
+          }
+
+          .nc-timeremaining {
+            font-size: 12px;
+            color: #f13039;
+            margin-left: auto;
+          }
+        }
+
+        .nc-reason {
+          margin-bottom: 12px;
+          padding: 12px;
+          background: #fff1f0;
+          border-radius: 4px;
+
+          .nc-reason-label {
+            font-weight: 500;
+            color: #f13039;
+          }
+
+          .nc-reason-text {
+            color: #f13039;
+            margin-left: 4px;
+          }
+        }
+
+        .nc-datasource {
+          margin-bottom: 12px;
+          padding: 8px 12px;
+          background: #f8f9fc;
+          border-radius: 4px;
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          color: #3b5369;
+
+          .nc-datasource-label {
+            font-weight: 500;
+          }
+        }
+
+        .nc-actions {
+          display: flex;
+          gap: 16px;
+        }
+      }
+    }
+
+    .compliant-list {
+      .compliant-item {
+        margin-bottom: 16px;
+        padding: 12px;
+        border: 1px solid #e8e9eb;
+        border-left: 4px solid #e8e9eb;
+        border-radius: 4px;
+        background: #fff;
+
+        .compliant-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 8px;
+
+          .compliant-rulename {
+            font-size: 14px;
+            color: #91969d;
+          }
+
+          .compliant-ruleversion {
+            font-size: 12px;
+            color: #91969d;
+          }
+
+          .compliant-status-tag {
+            font-size: 12px;
+            background: #f5f5f5;
+          }
+        }
+
+        .compliant-datasource {
+          font-family: 'Courier New', monospace;
+          font-size: 13px;
+          color: #91969d;
+
+          .compliant-datasource-label {
+            font-weight: 500;
+          }
+
+          .compliant-datasource-info {
+            margin-left: 12px;
+          }
+        }
+      }
+    }
+
+    .history-table {
+      padding: 16px;
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th, td {
+          padding: 12px;
+          text-align: center;
+          border-bottom: 1px solid #e8e9eb;
+        }
+
+        th {
+          font-weight: 500;
+          font-size: 14px;
+          color: #25303c;
+          background: #f3f5fa;
+        }
+
+        .history-cell {
+          &.history-compliant {
+            color: #00c771;
+          }
+
+          &.history-noncompliant {
+            color: #f13039;
+          }
+
+          &.history-diff {
+            background: #fffbe6;
+          }
+        }
+      }
+
+      .history-tip {
+        margin-top: 12px;
+        padding: 8px 12px;
+        background: #fffbe6;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #ffb100;
+
+        .tip-icon {
+          color: #ffb100;
+        }
+      }
+    }
+
+    .related-actions {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+
+      .el-button {
+        min-width: 120px;
+      }
+    }
   }
 }
 </style>
