@@ -118,165 +118,17 @@
       :close-on-click-modal="false"
       destroy-on-close
     >
-      <div v-loading="drawerLoading" class="drawer-content">
-        <!-- 基本信息 -->
-        <el-card class="section-card" shadow="never">
-          <template #header>
-            <div class="card-title">基本信息</div>
-          </template>
-          <el-descriptions :column="2" border>
-            <el-descriptions-item label="巡检 ID">
-              {{ currentInspection?.id }}
-            </el-descriptions-item>
-            <el-descriptions-item label="应用名称">
-              {{ currentInspection?.appName }}
-            </el-descriptions-item>
-            <el-descriptions-item label="技术栈">
-              {{ getTechStackLabel(currentInspection?.techStack || '') }}
-            </el-descriptions-item>
-            <el-descriptions-item label="巡检时间">
-              {{ currentInspection?.inspectedAt }}
-            </el-descriptions-item>
-            <el-descriptions-item label="数据源" :span="2">
-              {{ currentInspection?.dataSource }}
-            </el-descriptions-item>
-            <el-descriptions-item label="规则版本" :span="2">
-              {{ currentInspection?.ruleVersion }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </el-card>
-
-        <!-- 统计概览 -->
-        <el-card class="section-card" shadow="never" style="margin-top: 16px">
-          <template #header>
-            <div class="card-title">统计概览</div>
-          </template>
-          <el-space class="statistics">
-            <el-statistic
-              title="✅ 合规数量"
-              :value="currentInspection?.compliant"
-              :value-style="{ color: '#00C771' }"
-            >
-              <template #prefix>
-                <el-icon><Check /></el-icon>
-              </template>
-            </el-statistic>
-            <el-statistic
-              title="❌ 不合规数量"
-              :value="currentInspection?.nonCompliant"
-              :value-style="{ color: '#F13039' }"
-            >
-              <template #prefix>
-                <el-icon><Warning /></el-icon>
-              </template>
-            </el-statistic>
-            <el-statistic
-              title="合规率"
-              :value="currentInspection?.complianceRate"
-              :precision="1"
-              suffix="%"
-            >
-              <template #prefix>
-                <el-icon><TrendCharts /></el-icon>
-              </template>
-            </el-statistic>
-          </el-space>
-        </el-card>
-
-        <!-- 检查项明细 -->
-        <el-card class="section-card" shadow="never" style="margin-top: 16px">
-          <template #header>
-            <div class="card-title">检查项明细</div>
-          </template>
-          <el-table :data="currentInspection?.checks || []" border>
-            <el-table-column label="规则名称" prop="ruleName" />
-            <el-table-column label="规则版本" prop="ruleVersion" width="100" />
-            <el-table-column label="检查结果" width="100">
-              <template #default="{ row }">
-                <el-tag v-if="row.status === 'passed'" type="success">
-                  <el-icon><Check /></el-icon> 通过
-                </el-tag>
-                <el-tag v-else type="danger">
-                  <el-icon><Close /></el-icon> 不通过
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="不合规原因" prop="reason" />
-            <el-table-column label="操作" width="100">
-              <template #default="{ row }">
-                <el-button size="small" @click="handleCheckDetail(row)">
-                  详情
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-
-        <!-- 不合规项高亮展示 -->
-        <el-card
-          v-if="currentInspection?.nonCompliant > 0"
-          class="section-card"
-          shadow="never"
-          style="margin-top: 16px"
-          :class="currentInspection?.nonCompliant ? 'warning-card' : ''"
-        >
-          <template #header>
-            <div class="card-title">
-              <el-icon v-if="currentInspection?.nonCompliant"><Warning /></el-icon>
-              不合规明细
-            </div>
-          </template>
-          <el-table
-            :data="currentInspection?.nonCompliantItems || []"
-            border
-            size="small"
-          >
-            <el-table-column label="实例 ID" prop="instanceId" width="150" />
-            <el-table-column label="规则" prop="ruleName" />
-            <el-table-column label="不合规原因" prop="reason" />
-            <el-table-column label="风险等级" width="120">
-              <template #default="{ row }">
-                <el-tag
-                  :type="getRiskLevelType(row.riskLevel)"
-                  size="small"
-                >
-                  {{ getRiskLevelLabel(row.riskLevel) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="200">
-              <template #default="{ row }">
-                <el-button size="small" type="primary" @click="handleCreateOrder(row)">
-                  创建整改工单
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-
-        <!-- 底部操作 -->
-        <div class="drawer-actions">
-          <el-button @click="drawerVisible = false">返回列表</el-button>
-          <el-button @click="handleExportDrawer">
-            导出明细
-          </el-button>
-          <el-button
-            v-if="currentInspection?.nonCompliant > 0"
-            type="primary"
-            @click="handleBatchCreateOrders"
-          >
-            批量创建工单
-          </el-button>
-        </div>
-      </div>
+      <InspectionResultDrawer
+        v-model="drawerVisible"
+        :current-inspection="currentInspection"
+      />
     </el-drawer>
-
+    
     <!-- 统计视图弹窗 -->
     <el-dialog
       v-model="statViewVisible"
       title="统计视图"
-      width="1000px"
-      :close-on-click-modal="false"
+      width="960px"
     >
       <div class="stat-view-content">
         <el-row :gutter="16">
@@ -367,11 +219,11 @@ import {
   Warning,
   TrendCharts,
 } from '@element-plus/icons-vue'
+import InspectionResultDrawer from './inspection-result-drawer.vue'
 
 // 状态
 const loading = ref(false)
 const drawerVisible = ref(false)
-const drawerLoading = ref(false)
 const statViewVisible = ref(false)
 const currentInspection = ref<InspectionResult | null>(null)
 
@@ -514,18 +366,8 @@ const handleExportRow = (row: InspectionResult) => {
   ElMessage.success(`已导出 ${row.appName} 的巡检结果`)
 }
 
-const handleExportDrawer = () => {
-  ElMessage.success('明细已导出')
-}
-
 const handleBatchCreateOrder = (row: InspectionResult) => {
-  ElMessage.success(`批量创建 ${row.appName} 的整改工单`)
-}
-
-const handleBatchCreateOrders = () => {
-  if (currentInspection.value?.nonCompliant) {
-    ElMessage.success('已批量创建整改工单')
-  }
+  ElMessage.success(`已为 ${row.appName} 创建整改工单`)
 }
 
 const handleOpenStatView = () => {
@@ -547,14 +389,6 @@ const handleSizeChange = (size: number) => {
 const handleCurrentChange = (page: number) => {
   pagination.currentPage = page
   handleSearch()
-}
-
-const handleCheckDetail = (row: { ruleName: string }) => {
-  ElMessage.info(`查看 ${row.ruleName} 详情`)
-}
-
-const handleCreateOrder = (row: { instanceId: string }) => {
-  ElMessage.success(`已创建整改工单: ${row.instanceId}`)
 }
 
 // 生命周期
