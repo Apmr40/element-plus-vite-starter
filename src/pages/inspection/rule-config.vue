@@ -1,4 +1,4 @@
-<!-- 规则配置页面（集成可视化规则编排引擎） -->
+<!-- 应用配置巡检系统 - 规则配置页（集成可视化规则编排引擎） -->
 <template>
   <div class="rule-config-page">
     <!-- 页面头部 -->
@@ -106,7 +106,7 @@
                     <el-dropdown-item
                       v-if="row.status === 'enabled'"
                       command="disable"
-                      dividers
+                      divided
                     >
                       <el-icon><Top /></el-icon>
                       禁用
@@ -132,28 +132,27 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <!-- 分页 -->
-      <div class="pagination-section">
-        <el-pagination
-          v-model:current-page="pagination.currentPage"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          :page-sizes="[20, 50, 100]"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
     </div>
 
-    <!-- 新增/编辑弹窗 -->
+    <!-- 分页 -->
+    <div class="pagination-section">
+      <el-pagination
+        v-model:current-page="pagination.currentPage"
+        :page-size="pagination.pageSize"
+        :total="pagination.total"
+        layout="prev, pager, next, jumper"
+        @current-change="handleCurrentChange"
+      />
+    </div>
+
+    <!-- 编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
       width="1200px"
       destroy-on-close
       :close-on-click-modal="false"
+      @close="handleDialogClose"
     >
       <rule-config-form-v2
         v-if="dialogVisible"
@@ -185,14 +184,9 @@
       </div>
       <template #footer>
         <el-button @click="deleteDialogVisible = false">取消</el-button>
-        <el-button
-          v-if="!currentRule?.hasAssociation"
-          type="danger"
-          @click="handleDeleteConfirm"
-        >
-          确定删除
+        <el-button type="danger" @click="handleDeleteConfirm">
+          确认删除
         </el-button>
-        <el-button v-else @click="deleteDialogVisible = false">知道了</el-button>
       </template>
     </el-dialog>
   </div>
@@ -200,7 +194,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import {
   Plus,
   Search,
@@ -277,8 +271,7 @@ const handleAddRule = () => {
     tags: [],
     status: 'disabled',
     version: 'V1.0',
-    description: '',
-    config: null,
+    hasAssociation: false,
   }
   dialogVisible.value = true
 }
@@ -286,7 +279,6 @@ const handleAddRule = () => {
 const handleEdit = (row: RuleConfig) => {
   currentRule.value = { ...row }
   dialogVisible.value = true
-  handleModeChange('simple') // 切换到简易模式
 }
 
 const handleCopy = (row: RuleConfig) => {
@@ -323,31 +315,39 @@ const handleDeleteConfirm = () => {
   if (!currentRule.value) return
   tableData.value = tableData.value.filter((r) => r.id !== currentRule.value?.id)
   deleteDialogVisible.value = false
-  ElMessage.success('规则已删除')
+  ElMessage.success('规则删除成功')
 }
 
-const updateRuleStatus = (id: string, status: string) => {
-  ElMessage.success(`规则状态已更新为 ${status === 'enabled' ? '启用' : '禁用'}`)
+const handleFormSubmit = (data: any) => {
+  if (currentRule.value && data.id) {
+    // 编辑模式：更新现有规则
+    const index = tableData.value.findIndex((r) => r.id === data.id)
+    if (index !== -1) {
+      tableData.value[index] = { ...data }
+    }
+  } else {
+    // 新增模式：添加新规则
+    data.id = `R${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    data.version = 'V1.0'
+    data.hasAssociation = false
+    data.updatedAt = new Date().toLocaleString('zh-CN')
+    tableData.value.push(data)
+  }
+  dialogVisible.value = false
+  ElMessage.success('规则保存成功')
 }
 
-const getTechStackLabel = (techStack: string) => {
-  const option = techStackOptions.value.find((o) => o.value === techStack)
-  return option ? option.label : techStack
-}
-
-const getTagLabel = (tag: string) => {
-  const option = tagOptions.value.find((o) => o.value === tag)
-  return option ? option.label : tag
+const handleModeChange = (mode: string) => {
+  console.log('模式切换:', mode)
 }
 
 const handleSearch = () => {
   loading.value = true
-  // 模拟查询
   setTimeout(() => {
     tableData.value = [
       {
         id: 'R001',
-        name: 'SSL 配置检查',
+        name: 'SSL证书有效期检查',
         techStack: 'java',
         tags: ['security'],
         status: 'enabled',
@@ -376,31 +376,42 @@ const handleReset = () => {
   filter.tags = []
   filter.status = 'all'
   filter.keyword = ''
-}
-
-const handleExport = () => {
-  ElMessage.success('导出功能开发中...')
-}
-
-const handleFormSubmit = (data: RuleConfig) => {
-  ElMessage.success('规则保存成功')
-  dialogVisible.value = false
-  handleSearch()
-}
-
-const handleModeChange = (mode: string) => {
-  console.log('模式切换:', mode)
-  // 可以在这里添加模式切换的额外逻辑
-}
-
-const handleSizeChange = (size: number) => {
-  pagination.pageSize = size
   handleSearch()
 }
 
 const handleCurrentChange = (page: number) => {
   pagination.currentPage = page
   handleSearch()
+}
+
+const handleExport = () => {
+  ElMessage.success('数据导出中...')
+}
+
+const updateRuleStatus = (id: string, status: 'enabled' | 'disabled') => {
+  const rule = tableData.value.find((r) => r.id === id)
+  if (rule) {
+    rule.status = status
+    ElMessage.success(`规则已${status === 'enabled' ? '启用' : '禁用'}`)
+  }
+}
+
+const getTechStackLabel = (techStack: string | string[]) => {
+  if (Array.isArray(techStack)) {
+    const options = techStackOptions.value
+    return techStack
+      .map((t) => options.find((o) => o.value === t)?.label || t)
+      .join(', ')
+  }
+  return techStackOptions.value.find((o) => o.value === techStack)?.label || techStack
+}
+
+const getTagLabel = (tag: string) => {
+  return tagOptions.value.find((o) => o.value === tag)?.label || tag
+}
+
+const handleDialogClose = () => {
+  currentRule.value = null
 }
 
 // 生命周期
@@ -448,9 +459,5 @@ onMounted(() => {
     justify-content: flex-end;
     margin-top: 16px;
   }
-}
-
-.alert-box {
-  margin-top: 16px;
 }
 </style>
