@@ -1,4 +1,4 @@
-<!-- 应用配置巡检系统 - 规则配置页 -->
+<!-- 规则配置页面（集成可视化规则编排引擎） -->
 <template>
   <div class="rule-config-page">
     <!-- 页面头部 -->
@@ -97,7 +97,7 @@
               <el-button size="small" @click="handleCopy(row)">
                 复制
               </el-button>
-              <el-dropdown @command="handleMoreCommand">
+              <el-dropdown @command="(cmd) => handleMoreCommand(cmd, row)">
                 <el-button size="small">
                   更多 <el-icon><ArrowDown /></el-icon>
                 </el-button>
@@ -111,11 +111,17 @@
                       <el-icon><Top /></el-icon>
                       禁用
                     </el-dropdown-item>
-                    <el-dropdown-item v-else command="enable">
+                    <el-dropdown-item
+                      v-else
+                      command="enable"
+                    >
                       <el-icon><Bottom /></el-icon>
                       启用
                     </el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>
+                    <el-dropdown-item
+                      command="delete"
+                      divided
+                    >
                       <el-icon><Delete /></el-icon>
                       删除
                     </el-dropdown-item>
@@ -145,17 +151,16 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="960px"
+      width="1200px"
       destroy-on-close
       :close-on-click-modal="false"
     >
-      <rule-config-form
+      <rule-config-form-v2
         v-if="dialogVisible"
-        :tech-stacks="techStackOptions"
-        :tag-options="tagOptions"
         :model-value="currentRule"
         @submit="handleFormSubmit"
         @cancel="dialogVisible = false"
+        @mode-change="handleModeChange"
       />
     </el-dialog>
 
@@ -206,7 +211,21 @@ import {
   Top,
   Bottom,
 } from '@element-plus/icons-vue'
-import RuleConfigForm from './components/RuleConfigForm.vue'
+import RuleConfigFormV2 from './components/RuleConfigFormV2.vue'
+
+// 类型定义
+interface RuleConfig {
+  id: string
+  name: string
+  techStack: string | string[]
+  tags: string[]
+  status: 'enabled' | 'disabled'
+  version: string
+  description?: string
+  config?: any
+  hasAssociation?: boolean
+  updatedAt?: string
+}
 
 // 状态
 const loading = ref(false)
@@ -267,6 +286,7 @@ const handleAddRule = () => {
 const handleEdit = (row: RuleConfig) => {
   currentRule.value = { ...row }
   dialogVisible.value = true
+  handleModeChange('simple') // 切换到简易模式
 }
 
 const handleCopy = (row: RuleConfig) => {
@@ -281,7 +301,8 @@ const handleCopy = (row: RuleConfig) => {
   ElMessage.success('规则复制成功')
 }
 
-const handleMoreCommand = (command: string) => {
+const handleMoreCommand = (command: string, row: RuleConfig) => {
+  currentRule.value = row
   if (!currentRule.value) return
   switch (command) {
     case 'enable':
@@ -362,8 +383,14 @@ const handleExport = () => {
 }
 
 const handleFormSubmit = (data: RuleConfig) => {
- ElMessage.success('规则保存成功')
+  ElMessage.success('规则保存成功')
   dialogVisible.value = false
+  handleSearch()
+}
+
+const handleModeChange = (mode: string) => {
+  console.log('模式切换:', mode)
+  // 可以在这里添加模式切换的额外逻辑
 }
 
 const handleSizeChange = (size: number) => {
