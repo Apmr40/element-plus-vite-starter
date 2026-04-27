@@ -205,7 +205,7 @@ import {
   Top,
   Bottom,
 } from '@element-plus/icons-vue'
-import RuleConfigFormV2 from './components/RuleConfigFormV2.vue'
+import RuleConfigFormV2 from './RuleConfigFormV2.vue'
 
 // 类型定义
 interface RuleConfig {
