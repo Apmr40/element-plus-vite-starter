@@ -91,9 +91,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
+import { 
   Search,
   List,
   Timer,
@@ -246,6 +246,20 @@ const addFields = (fields: string[]) => {
   })
   emit('fields-added', csvFields.value)
 }
+
+// Props
+const props = defineProps<{
+  csvFields: string[]
+}>()
+
+// Watch for props changes
+watch(() => props.csvFields, (newFields) => {
+  newFields.forEach(field => {
+    if (!csvFields.value.includes(field)) {
+      csvFields.value.push(field)
+    }
+  })
+})
 
 // Emit
 const emit = defineEmits<{
