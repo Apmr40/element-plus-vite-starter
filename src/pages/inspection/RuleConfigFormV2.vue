@@ -198,24 +198,11 @@ onMounted(() => {
     <!-- 步骤 1: CSV 上传 -->
     <div v-if="currentStep === 1" class="step-section">
       <CsvUpload
-        v-if="currentMode === 'advanced'"
+
         ref="csvUploadRef"
         @file-upload="handleFileUpload"
         @next-step="handleNextStep"
       />
-      <div v-else class="step-content">
-        <el-alert
-          title="简易模式：使用原有表单配置方式"
-          type="info"
-          :closable="false"
-        />
-        <div class="legacy-form">
-          <p>原始表单配置区域（简易模式）</p>
-        </div>
-        <el-button type="primary" style="margin-top: 16px" @click="handleNextStep">
-          下一步：配置规则逻辑
-        </el-button>
-      </div>
     </div>
 
     <!-- 步骤 2: 规则逻辑配置 -->
