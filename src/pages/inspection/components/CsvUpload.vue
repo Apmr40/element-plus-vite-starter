@@ -60,12 +60,14 @@
         <div class="file-actions">
           <!-- 别名编辑 -->
           <el-input
+            ref="aliasInputRefs"
             v-model="file.alias"
             placeholder="别名"
             size="small"
             style="width: 120px; margin-right: 8px"
             @focus="handleAliasFocus(index)"
             @blur="handleAliasBlur(index)"
+            class="alias-input"
           />
 
           <!-- 更多操作 -->
@@ -118,7 +120,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick } from 'vue'
+import { ref, reactive, nextTick, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import { 
   Upload, 
   Document, 
@@ -212,21 +215,27 @@ const processFiles = async (files: FileList): Promise<void> => {
       break
     }
 
-    // 模拟解析 CSV (实际应该读取文件内容)
-    const alias = file.name.replace('.csv', '')
-    const fields = ['field_1', 'field_2', 'field_3'] // 模拟字段
-    
-    newFiles.push({
-      id: generateId(),
-      originalName: file.name,
-      fileName: file.name,
-      size: file.size,
-      columns: fields,
-      rows: 100, // 模拟行数
-      alias: alias,
-      expanded: false,
-      status: 'success',
-    })
+    // 使用 FileReader 读取真实 CSV 内容
+    try {
+      const alias = file.name.replace('.csv', '')
+      const content = await readFileContent(file)
+      const parsed = parseCSV(content)
+      
+      newFiles.push({
+        id: generateId(),
+        originalName: file.name,
+        fileName: file.name,
+        size: file.size,
+        columns: parsed.columns,
+        rows: parsed.rows.length,
+        alias: alias,
+        expanded: false,
+        status: 'success',
+      })
+    } catch (error) {
+      ElMessage.error(`文件 ${file.name} 解析失败: ${error}`)
+      continue
+    }
   }
 
   if (newFiles.length > 0) {
@@ -235,6 +244,46 @@ const processFiles = async (files: FileList): Promise<void> => {
     await nextTick()
     emit('file-upload', uploadedFiles.value)
   }
+}
+
+// 读取文件内容
+const readFileContent = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const content = e.target?.result as string
+      if (content) {
+        resolve(content)
+      } else {
+        reject(new Error('读取文件失败'))
+      }
+    }
+    reader.onerror = () => reject(new Error('文件读取错误'))
+    reader.readAsText(file)
+  })
+}
+
+// 解析 CSV 内容
+const parseCSV = (content: string): { columns: string[]; rows: string[][] } => {
+  const lines = content.split('\n').filter(line => line.trim())
+  if (lines.length === 0) {
+    return { columns: [], rows: [] }
+  }
+  
+  // 第一行是 header
+  const columns = lines[0].split(',').map(cell => cell.trim().replace(/['"]/g, ''))
+  
+  // 后续行是数据
+  const rows: string[][] = []
+  for (let i = 1; i < lines.length; i++) {
+    // 简单 CSV 解析（不处理引号内的逗号）
+    const cells = lines[i].split(',').map(cell => cell.trim().replace(/['"]/g, ''))
+    if (cells.length > 0 && cells[0]) {
+      rows.push(cells)
+    }
+  }
+  
+  return { columns, rows }
 }
 
 const removeFile = (index: number) => {
@@ -247,7 +296,7 @@ const handleFileCommand = (index: number, command: string) => {
   
   switch (command) {
     case 'editAlias':
-      file.expanded = true
+      file.expanded = false
       break
     case 'viewFields':
       file.expanded = !file.expanded
@@ -264,9 +313,9 @@ const removeFieldFromFile = (fileIndex: number, field: string) => {
 }
 
 const handleAliasFocus = (index: number) => {
-  const input = document.querySelectorAll('.file-input')[index] as HTMLInputElement
-  if (input) {
-    input.select()
+  const aliasInputs = document.querySelectorAll('.alias-input .el-input__wrapper') as NodeListOf<HTMLElement>
+  if (aliasInputs[index]) {
+    aliasInputs[index].focus()
   }
 }
 
@@ -293,13 +342,6 @@ const emit = defineEmits<{
   'file-upload': [files: UploadedFile[]]
   'next-step': []
 }>()
-
-// Computed
-const computed = {
-  hasSuccess: computed(() => 
-    uploadedFiles.value.some(f => f.status === 'success')
-  )
-}
 </script>
 
 <style lang="scss" scoped>

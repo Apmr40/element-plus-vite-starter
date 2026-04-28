@@ -47,11 +47,11 @@
       <!-- 参数配置表单 -->
       <el-form label-position="top" label-width="80px">
         <el-form-item label="字段名称">
-          <el-input v-model="selectedBlock?.params?.field" />
+          <el-input v-model="selectedBlock.params.field" />
         </el-form-item>
         
         <el-form-item label="操作符">
-          <el-select v-model="selectedBlock?.params?.operator" placeholder="请选择">
+          <el-select v-model="selectedBlock.params.operator" placeholder="请选择">
             <el-option label="等于" value="=" />
             <el-option label="不等于" value="!=" />
             <el-option label="包含" value="contains" />
@@ -60,7 +60,7 @@
         </el-form-item>
         
         <el-form-item label="比较值">
-          <el-input v-model="selectedBlock?.params?.value" />
+          <el-input v-model="selectedBlock.params.value" />
         </el-form-item>
       </el-form>
     </div>
@@ -69,13 +69,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as Blockly from 'blockly'
 import { 
   Undo, 
   Redo, 
   CopyDocument, 
   Delete, 
-  Close 
+  Close,
 } from '@element-plus/icons-vue'
 
 // 状态
@@ -100,7 +101,7 @@ const initBlockly = () => {
         <block type="logic_operation"></block>
         <block type="logic_compare"></block>
       </category>
-      <category name="字符串处理" colour="%{BKY_LOOPS_HUE}">
+      <category name="字符串处理" colour="%{BKY_TEXTS_HUE}">
         <block type="text_print"></block>
         <block type="text_length"></block>
         <block type="text_changeCase"></block>
@@ -113,7 +114,7 @@ const initBlockly = () => {
         <block type="lists_indexOf"></block>
         <block type="lists_getIndex"></block>
       </category>
-      <category name="操作类" colour="%{BKY_LISTS_HUE}">
+      <category name="操作类" colour="%{BKY_PROCEDURES_HUE}">
         <block type="alert"></block>
         <block type="output"></block>
       </category>
@@ -183,7 +184,7 @@ const deleteSelected = () => {
 const zoomIn = () => {
   if (workspace) {
     const currentScale = workspace.getMetrics().scale
-    workspace.zoom(currentScale * 1.2)
+    workspace.setScale(currentScale * 1.2)
     zoomLevel.value = Math.round(currentScale * 1.2 * 100)
   }
 }
@@ -191,23 +192,23 @@ const zoomIn = () => {
 const zoomOut = () => {
   if (workspace) {
     const currentScale = workspace.getMetrics().scale
-    workspace.zoom(currentScale / 1.2)
+    workspace.setScale(currentScale / 1.2)
     zoomLevel.value = Math.round(currentScale / 1.2 * 100)
   }
 }
 
 const fitCanvas = () => {
   if (workspace) {
-    workspace.markFocused()
-    workspace.zoom(1)
-    zoomLevel.value = 100
+    workspace.zoomToFit()
+    const currentMetrics = workspace.getMetrics()
+    zoomLevel.value = Math.round(currentMetrics.scale * 100)
   }
 }
 
 const updateUndoRedoState = () => {
   if (workspace) {
-    canUndo.value = workspace.isRollbackEnabled()
-    canRedo.value = workspace.canRedo()
+    canUndo.value = (workspace as any).undoStack?.length > 0
+    canRedo.value = (workspace as any).redoStack?.length > 0
   }
 }
 

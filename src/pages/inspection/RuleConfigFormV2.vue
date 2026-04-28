@@ -64,10 +64,10 @@
             </div>
             <el-form label-position="top" label-width="80px">
               <el-form-item label="字段名称">
-                <el-input v-model="selectedBlock?.params?.field" />
+                <el-input v-model="selectedBlock.params.field" />
               </el-form-item>
               <el-form-item label="操作符">
-                <el-select v-model="selectedBlock?.params?.operator" placeholder="请选择">
+                <el-select v-model="selectedBlock.params.operator" placeholder="请选择">
                   <el-option label="等于" value="=" />
                   <el-option label="不等于" value="!=" />
                   <el-option label="包含" value="contains" />
@@ -75,7 +75,7 @@
                 </el-select>
               </el-form-item>
               <el-form-item label="比较值">
-                <el-input v-model="selectedBlock?.params?.value" />
+                <el-input v-model="selectedBlock.params.value" />
               </el-form-item>
             </el-form>
           </div>
@@ -403,13 +403,14 @@ const emit = defineEmits<{
 }>()
 
 const handleSaveRule = () => {
+  if (!saveForm.name.trim()) {
+    ElMessage.warning('请输入规则名称')
+    return
+  }
+  
   saving.value = true
   setTimeout(() => {
     saving.value = false
-    if (!saveForm.name.trim()) {
-      ElMessage.warning('请输入规则名称')
-      return
-    }
     ElMessage.success('规则保存成功')
     emit('submit', {
       ...saveForm,

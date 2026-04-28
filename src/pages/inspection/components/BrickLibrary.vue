@@ -81,7 +81,7 @@
           draggable
           @dragstart="handleFunctionDragStart($event, func)"
         >
-          <el-icon :size="16"><Function /></el-icon>
+          <el-icon :size="16"><Notebook /></el-icon>
           <span>{{ func.name }}</span>
           <span class="func-args">{{ func.args }}</span>
         </div>
@@ -92,18 +92,17 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
+import { ElMessage } from 'element-plus'
 import {
   Search,
   List,
   Timer,
-  Function as FunctionIcon,
   If,
   And,
   Or,
   Not,
   Text,
   FindReplace,
-  Timer as TimerIcon,
   Plus,
 } from '@element-plus/icons-vue'
 

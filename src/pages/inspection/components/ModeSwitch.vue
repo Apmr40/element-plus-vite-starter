@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 
 // 状态
 const currentMode = ref<'simple' | 'advanced'>('simple')
@@ -126,9 +127,6 @@ watch(currentMode, (newMode) => {
 const emit = defineEmits<{
   'mode-change': [mode: 'simple' | 'advanced']
 }>()
-
-// Computed
-const computed = {}
 </script>
 
 <style lang="scss" scoped>
