@@ -1,83 +1,15 @@
 <!-- Blockly 画布集成组件 -->
-<template>
-  <div class="blockly-integration">
-    <!-- 顶部工具栏 -->
-    <div class="toolbar">
-      <el-button-group>
-        <el-button size="small" @click="undo" :disabled="!canUndo">
-          <el-icon><Undo /></el-icon> 撤销
-        </el-button>
-        <el-button size="small" @click="redo" :disabled="!canRedo">
-          <el-icon><Redo /></el-icon> 重做
-        </el-button>
-      </el-button-group>
-      
-      <el-button-group>
-        <el-button size="small" @click="copy">
-          <el-icon><CopyDocument /></el-icon> 复制
-        </el-button>
-        <el-button size="small" @click="deleteSelected">
-          <el-icon><Delete /></el-icon> 删除
-        </el-button>
-      </el-button-group>
-      
-      <div class="zoom-controls">
-        <el-button size="small" @click="zoomOut">−</el-button>
-        <span class="zoom-level">{{ zoomLevel }}%</span>
-        <el-button size="small" @click="zoomIn">+</el-button>
-        <el-button size="small" @click="fitCanvas">适应</el-button>
-      </div>
-    </div>
-
-    <!-- Blockly 画布容器 -->
-    <div class="blockly-container" ref="blocklyContainer">
-      <!-- 
-        Blockly 将渲染到这个 DOM 元素
-        预计高度: 600px
-      -->
-    </div>
-
-    <!-- 右侧参数面板 -->
-    <div v-if="selectedBlock" class="properties-panel">
-      <div class="panel-header">
-        <span>积木参数</span>
-        <el-icon @click="selectedBlock = null"><Close /></el-icon>
-      </div>
-      
-      <!-- 参数配置表单 -->
-      <el-form label-position="top" label-width="80px">
-        <el-form-item label="字段名称">
-          <el-input v-model="selectedBlock.params.field" />
-        </el-form-item>
-        
-        <el-form-item label="操作符">
-          <el-select v-model="selectedBlock.params.operator" placeholder="请选择">
-            <el-option label="等于" value="=" />
-            <el-option label="不等于" value="!=" />
-            <el-option label="包含" value="contains" />
-            <el-option label="正则匹配" value="regex" />
-          </el-select>
-        </el-form-item>
-        
-        <el-form-item label="比较值">
-          <el-input v-model="selectedBlock.params.value" />
-        </el-form-item>
-      </el-form>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import * as Blockly from 'blockly'
-import { 
-  Undo, 
-  Redo, 
-  CopyDocument, 
-  Delete, 
+import {
+  CaretLeft,
+  CaretRight,
   Close,
+  CopyDocument,
+  Delete,
 } from '@element-plus/icons-vue'
+import * as Blockly from 'blockly'
+import { ElMessage } from 'element-plus'
+import { onMounted, reactive, ref, watch } from 'vue'
 
 // 状态
 const blocklyContainer = ref<HTMLElement | null>(null)
@@ -90,8 +22,9 @@ const canRedo = ref(false)
 let workspace: Blockly.WorkspaceSvg | null = null
 
 // 方法
-const initBlockly = () => {
-  if (!blocklyContainer.value) return
+function initBlockly() {
+  if (!blocklyContainer.value)
+    return
 
   // 配置 Blockly
   workspace = Blockly.inject(blocklyContainer.value, {
@@ -122,15 +55,15 @@ const initBlockly = () => {
     theme: Blockly.Theme.defineTheme('myTheme', {
       base: Blockly.Themes.CLASSIC,
       styles: {
-        'connectionDragStyle': {
+        connectionDragStyle: {
           stroke: '#ff6600',
           strokeWidth: 3,
         },
-        'connectionHighlightStyle': {
+        connectionHighlightStyle: {
           stroke: '#ffcc00',
           strokeWidth: 3,
         },
-        'hashFieldHighlightStyle': {
+        hashFieldHighlightStyle: {
           stroke: '#ffcc00',
           strokeWidth: 3,
         },
@@ -153,21 +86,21 @@ const initBlockly = () => {
   })
 }
 
-const undo = () => {
+function undo() {
   if (workspace) {
     workspace.undo()
     updateUndoRedoState()
   }
 }
 
-const redo = () => {
+function redo() {
   if (workspace) {
     workspace.redo()
     updateUndoRedoState()
   }
 }
 
-const copy = () => {
+function copy() {
   // 复制选中的积木
   if (workspace) {
     const selectedBlocks = workspace.getTopBlocks(true)
@@ -175,13 +108,13 @@ const copy = () => {
   }
 }
 
-const deleteSelected = () => {
+function deleteSelected() {
   if (workspace) {
     workspace.deleteCurrentBlock()
   }
 }
 
-const zoomIn = () => {
+function zoomIn() {
   if (workspace) {
     const currentScale = workspace.getMetrics().scale
     workspace.setScale(currentScale * 1.2)
@@ -189,7 +122,7 @@ const zoomIn = () => {
   }
 }
 
-const zoomOut = () => {
+function zoomOut() {
   if (workspace) {
     const currentScale = workspace.getMetrics().scale
     workspace.setScale(currentScale / 1.2)
@@ -197,7 +130,7 @@ const zoomOut = () => {
   }
 }
 
-const fitCanvas = () => {
+function fitCanvas() {
   if (workspace) {
     workspace.zoomToFit()
     const currentMetrics = workspace.getMetrics()
@@ -205,7 +138,7 @@ const fitCanvas = () => {
   }
 }
 
-const updateUndoRedoState = () => {
+function updateUndoRedoState() {
   if (workspace) {
     canUndo.value = (workspace as any).undoStack?.length > 0
     canRedo.value = (workspace as any).redoStack?.length > 0
@@ -223,6 +156,82 @@ watch(zoomLevel, (newVal) => {
   // 可以添加缩放变化的监听逻辑
 })
 </script>
+
+<template>
+  <div class="blockly-integration">
+    <!-- 顶部工具栏 -->
+    <div class="toolbar">
+      <el-button-group>
+        <el-button size="small" :disabled="!canUndo" @click="undo">
+          <el-icon><CaretLeft /></el-icon> 撤销
+        </el-button>
+        <el-button size="small" :disabled="!canRedo" @click="redo">
+          <el-icon><CaretRight /></el-icon> 重做
+        </el-button>
+      </el-button-group>
+
+      <el-button-group>
+        <el-button size="small" @click="copy">
+          <el-icon><CopyDocument /></el-icon> 复制
+        </el-button>
+        <el-button size="small" @click="deleteSelected">
+          <el-icon><Delete /></el-icon> 删除
+        </el-button>
+      </el-button-group>
+
+      <div class="zoom-controls">
+        <el-button size="small" @click="zoomOut">
+          −
+        </el-button>
+        <span class="zoom-level">{{ zoomLevel }}%</span>
+        <el-button size="small" @click="zoomIn">
+          +
+        </el-button>
+        <el-button size="small" @click="fitCanvas">
+          适应
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Blockly 画布容器 -->
+    <div ref="blocklyContainer" class="blockly-container">
+      <!--
+        Blockly 将渲染到这个 DOM 元素
+        预计高度: 600px
+      -->
+    </div>
+
+    <!-- 右侧参数面板 -->
+    <div v-if="selectedBlock" class="properties-panel">
+      <div class="panel-header">
+        <span>积木参数</span>
+        <el-icon @click="selectedBlock = null">
+          <Close />
+        </el-icon>
+      </div>
+
+      <!-- 参数配置表单 -->
+      <el-form label-position="top" label-width="80px">
+        <el-form-item label="字段名称">
+          <el-input v-model="selectedBlock.params.field" />
+        </el-form-item>
+
+        <el-form-item label="操作符">
+          <el-select v-model="selectedBlock.params.operator" placeholder="请选择">
+            <el-option label="等于" value="=" />
+            <el-option label="不等于" value="!=" />
+            <el-option label="包含" value="contains" />
+            <el-option label="正则匹配" value="regex" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="比较值">
+          <el-input v-model="selectedBlock.params.value" />
+        </el-form-item>
+      </el-form>
+    </div>
+  </div>
+</template>
 
 <style lang="scss" scoped>
 .blockly-integration {
@@ -244,7 +253,7 @@ watch(zoomLevel, (newVal) => {
       align-items: center;
       gap: 8px;
       margin-left: auto;
-      
+
       .zoom-level {
         min-width: 48px;
         text-align: center;
@@ -273,7 +282,7 @@ watch(zoomLevel, (newVal) => {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
-      
+
       span {
         font-weight: 600;
         color: #25303c;

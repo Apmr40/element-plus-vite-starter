@@ -1,4 +1,190 @@
 <!-- 规则配置表单组件 v2（集成可视化规则编排引擎的四步流程） -->
+<script setup lang="ts">
+import { Close } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { computed, onMounted, reactive, ref } from 'vue'
+import BlocklyIntegration from './components/BlocklyIntegration.vue'
+import BrickLibrary from './components/BrickLibrary.vue'
+import CsvUpload from './components/CsvUpload.vue'
+import ModeSwitch from './components/ModeSwitch.vue'
+
+interface UploadedFile {
+  id: string
+  originalName: string
+  fileName: string
+  size: number
+  columns: string[]
+  rows: number
+  alias: string
+  expanded: boolean
+  status: 'uploading' | 'success' | 'error'
+}
+
+interface TestResult {
+  passed: number
+  total: number
+  details: Array<{ ruleName: string, status: 'pass' | 'fail', message: string }>
+}
+
+const props = defineProps<{
+  modelValue?: any
+}>()
+const emit = defineEmits<{
+  (e: 'submit', data: any): void
+  (e: 'cancel'): void
+  (e: 'mode-change', mode: string): void
+}>()
+const currentStep = ref(1)
+const currentMode = ref<'simple' | 'advanced'>('simple')
+const csvUploadRef = ref<InstanceType<typeof CsvUpload> | null>(null)
+const blocklyRef = ref<InstanceType<typeof BlocklyIntegration> | null>(null)
+const testing = ref(false)
+const saving = ref(false)
+const selectedBlock = ref<any>(null)
+const uploadedFiles = ref<UploadedFile[]>([])
+const testResult = ref<TestResult | null>(null)
+
+const simpleForm = reactive({
+  field: '',
+  operator: '',
+  value: '',
+  description: '',
+})
+
+const saveForm = reactive({
+  name: '基础合规检查规则',
+  techStack: ['java', 'python', 'nodejs'],
+  tags: ['security', 'performance', 'standard'],
+  description: '基础合规检查规则，用于监控服务器基本配置',
+})
+
+const techStacks = computed(() => [
+  { value: 'java', label: 'Java' },
+  { value: 'python', label: 'Python' },
+  { value: 'go', label: 'Go' },
+  { value: 'nodejs', label: 'Node.js' },
+])
+
+const tagOptions = computed(() => [
+  { value: 'security', label: '安全' },
+  { value: 'performance', label: '性能' },
+  { value: 'standard', label: '规范' },
+])
+
+const uploadedFields = computed(() => {
+  const fields = new Set<string>()
+  uploadedFiles.value.forEach((file) => {
+    file.columns.forEach((field) => {
+      fields.add(`${file.alias}.${field}`)
+    })
+  })
+  return Array.from(fields)
+})
+
+const totalFields = computed(() => uploadedFiles.value.reduce((sum, file) => sum + file.columns.length, 0))
+
+function handleFileUpload(files: UploadedFile[]) {
+  uploadedFiles.value = files
+  ElMessage.success(`成功上传 ${files.length} 个文件`)
+}
+
+function handleFieldsAdded(fields: string[]) {
+  console.log('字段已添加:', fields)
+}
+
+function handleModeChange(mode: string) {
+  currentMode.value = mode as 'simple' | 'advanced'
+  ElMessage.info(`已切换到 ${mode === 'simple' ? '简易模式' : '高级模式'}`)
+  if (mode === 'simple') {
+    simpleForm.field = ''
+    simpleForm.operator = ''
+    simpleForm.value = ''
+  }
+}
+
+function handleSwitchToSimple() {
+  currentMode.value = 'simple'
+  ElMessage.success('已切换到简易模式')
+}
+
+function handleNextStep() {
+  if (currentStep.value < 4) {
+    if (currentStep.value === 1 && uploadedFiles.value.length === 0) {
+      ElMessage.warning('请先上传 CSV 文件')
+      return
+    }
+    if (currentStep.value === 2) {
+      if (currentMode.value === 'simple' && !simpleForm.field) {
+        ElMessage.warning('请选择字段')
+        return
+      }
+    }
+    currentStep.value++
+  }
+}
+
+function runMockTest() {
+  testing.value = true
+  setTimeout(() => {
+    testResult.value = {
+      passed: 7,
+      total: 10,
+      details: [
+        { ruleName: 'SSL证书有效期检查', status: 'pass', message: '规则匹配成功，23个服务器符合条件' },
+        { ruleName: '端口合规检查', status: 'pass', message: '规则匹配成功，512个端口符合规范' },
+        { ruleName: '磁盘空间使用率检查', status: 'pass', message: '规则匹配成功，98%的磁盘使用率低于阈值' },
+        { ruleName: '内存使用率检查', status: 'fail', message: '规则匹配失败，发现5个服务器内存使用率超过80%' },
+        { ruleName: 'CPU使用率检查', status: 'pass', message: '规则匹配成功，CPU使用率均在合理范围内' },
+        { ruleName: '网络连接数检查', status: 'pass', message: '规则匹配成功，网络连接数正常' },
+        { ruleName: '日志文件大小检查', status: 'fail', message: '规则匹配失败，发现3个服务器日志文件过大' },
+        { ruleName: '用户登录检查', status: 'pass', message: '规则匹配成功，用户登录行为正常' },
+        { ruleName: '服务状态检查', status: 'pass', message: '规则匹配成功，所有核心服务运行正常' },
+        { ruleName: '备份状态检查', status: 'pass', message: '规则匹配成功，备份任务全部完成' },
+      ],
+    }
+    testing.value = false
+    ElMessage.success('测试运行完成')
+  }, 1500)
+}
+
+function handleTestRun() {
+  runMockTest()
+}
+
+function handleExportCSV() {
+  ElMessage.success('测试结果导出中...')
+}
+
+function handleSaveRule() {
+  if (!saveForm.name.trim()) {
+    ElMessage.warning('请输入规则名称')
+    return
+  }
+
+  saving.value = true
+  setTimeout(() => {
+    saving.value = false
+    ElMessage.success('规则保存成功')
+    emit('submit', {
+      ...saveForm,
+      mode: currentMode.value,
+      config: {
+        type: currentMode.value,
+        fields: uploadedFields.value,
+      },
+    })
+  }, 1000)
+}
+
+onMounted(() => {
+  if (props.modelValue) {
+    saveForm.name = props.modelValue.name || ''
+    saveForm.techStack = props.modelValue.techStack || []
+    saveForm.tags = props.modelValue.tags || []
+  }
+})
+</script>
+
 <template>
   <div class="rule-config-form-v2">
     <!-- 步骤条 -->
@@ -26,7 +212,7 @@
         <div class="legacy-form">
           <p>原始表单配置区域（简易模式）</p>
         </div>
-        <el-button type="primary" @click="handleNextStep" style="margin-top: 16px">
+        <el-button type="primary" style="margin-top: 16px" @click="handleNextStep">
           下一步：配置规则逻辑
         </el-button>
       </div>
@@ -36,7 +222,7 @@
     <div v-if="currentStep === 2" class="step-section">
       <div class="mode-switch-container">
         <ModeSwitch
-          v-model:currentMode="currentMode"
+          v-model:current-mode="currentMode"
           @mode-change="handleModeChange"
         />
         <el-text v-if="currentMode === 'advanced'" type="info" size="small" style="margin-left: 16px">
@@ -48,7 +234,7 @@
         <div class="visual-layout">
           <div class="field-toolbox">
             <BrickLibrary
-              :csvFields="uploadedFields"
+              :csv-fields="uploadedFields"
               @fields-added="handleFieldsAdded"
             />
           </div>
@@ -60,7 +246,9 @@
           <div v-if="selectedBlock" class="properties-panel">
             <div class="panel-header">
               <span>积木参数</span>
-              <el-icon @click="selectedBlock = null"><Close /></el-icon>
+              <el-icon @click="selectedBlock = null">
+                <Close />
+              </el-icon>
             </div>
             <el-form label-position="top" label-width="80px">
               <el-form-item label="字段名称">
@@ -81,7 +269,9 @@
           </div>
         </div>
         <div class="visual-actions">
-          <el-button @click="handleSwitchToSimple">切换到简易模式</el-button>
+          <el-button @click="handleSwitchToSimple">
+            切换到简易模式
+          </el-button>
         </div>
       </div>
 
@@ -125,8 +315,12 @@
       </div>
 
       <div class="step-actions">
-        <el-button @click="currentStep = 1">上一步</el-button>
-        <el-button type="primary" @click="handleNextStep">下一步：测试验证</el-button>
+        <el-button @click="currentStep = 1">
+          上一步
+        </el-button>
+        <el-button type="primary" @click="handleNextStep">
+          下一步：测试验证
+        </el-button>
       </div>
     </div>
 
@@ -155,8 +349,12 @@
             </div>
           </template>
           <div class="test-run">
-            <el-button type="primary" @click="handleTestRun" :loading="testing">运行测试</el-button>
-            <el-button @click="handleExportCSV" style="margin-left: 8px">导出测试结果</el-button>
+            <el-button type="primary" :loading="testing" @click="handleTestRun">
+              运行测试
+            </el-button>
+            <el-button style="margin-left: 8px" @click="handleExportCSV">
+              导出测试结果
+            </el-button>
           </div>
 
           <div v-if="testResult" class="test-result" style="margin-top: 16px">
@@ -177,19 +375,25 @@
               <el-table-column prop="message" label="详情" />
             </el-table>
           </div>
-          
+
           <div v-if="!testResult" class="mock-section">
             <el-alert title="模拟数据已准备就绪" type="success" :closable="false" />
             <div class="mock-buttons">
-              <el-button type="primary" @click="runMockTest">模拟运行测试</el-button>
+              <el-button type="primary" @click="runMockTest">
+                模拟运行测试
+              </el-button>
             </div>
           </div>
         </el-card>
       </div>
 
       <div class="step-actions">
-        <el-button @click="currentStep = 2">上一步</el-button>
-        <el-button type="primary" @click="handleNextStep">下一步：保存规则</el-button>
+        <el-button @click="currentStep = 2">
+          上一步
+        </el-button>
+        <el-button type="primary" @click="handleNextStep">
+          下一步：保存规则
+        </el-button>
       </div>
     </div>
 
@@ -233,8 +437,10 @@
           </el-form>
 
           <div class="save-actions">
-            <el-button @click="currentStep = 3">上一步</el-button>
-            <el-button type="primary" @click="handleSaveRule" :loading="saving" style="margin-left: 8px">
+            <el-button @click="currentStep = 3">
+              上一步
+            </el-button>
+            <el-button type="primary" :loading="saving" style="margin-left: 8px" @click="handleSaveRule">
               保存规则
             </el-button>
           </div>
@@ -243,194 +449,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Close } from '@element-plus/icons-vue'
-import CsvUpload from './CsvUpload.vue'
-import ModeSwitch from './ModeSwitch.vue'
-import BrickLibrary from './BrickLibrary.vue'
-import BlocklyIntegration from './BlocklyIntegration.vue'
-
-interface UploadedFile {
-  id: string
-  originalName: string
-  fileName: string
-  size: number
-  columns: string[]
-  rows: number
-  alias: string
-  expanded: boolean
-  status: 'uploading' | 'success' | 'error'
-}
-
-interface TestResult {
-  passed: number
-  total: number
-  details: Array<{ ruleName: string; status: 'pass' | 'fail'; message: string }>
-}
-
-const currentStep = ref(1)
-const currentMode = ref<'simple' | 'advanced'>('simple')
-const csvUploadRef = ref<InstanceType<typeof CsvUpload> | null>(null)
-const blocklyRef = ref<InstanceType<typeof BlocklyIntegration> | null>(null)
-const testing = ref(false)
-const saving = ref(false)
-const selectedBlock = ref<any>(null)
-const uploadedFiles = ref<UploadedFile[]>([])
-const testResult = ref<TestResult | null>(null)
-
-const simpleForm = reactive({
-  field: '',
-  operator: '',
-  value: '',
-  description: '',
-})
-
-const saveForm = reactive({
-  name: '基础合规检查规则',
-  techStack: ['java', 'python', 'nodejs'],
-  tags: ['security', 'performance', 'standard'],
-  description: '基础合规检查规则，用于监控服务器基本配置',
-})
-
-const props = defineProps<{
-  modelValue?: any
-}>()
-
-const techStacks = computed(() => [
-  { value: 'java', label: 'Java' },
-  { value: 'python', label: 'Python' },
-  { value: 'go', label: 'Go' },
-  { value: 'nodejs', label: 'Node.js' },
-])
-
-const tagOptions = computed(() => [
-  { value: 'security', label: '安全' },
-  { value: 'performance', label: '性能' },
-  { value: 'standard', label: '规范' },
-])
-
-const uploadedFields = computed(() => {
-  const fields = new Set<string>()
-  uploadedFiles.value.forEach(file => {
-    file.columns.forEach(field => {
-      fields.add(`${file.alias}.${field}`)
-    })
-  })
-  return Array.from(fields)
-})
-
-const totalFields = computed(() => uploadedFiles.value.reduce((sum, file) => sum + file.columns.length, 0))
-
-const handleFileUpload = (files: UploadedFile[]) => {
-  uploadedFiles.value = files
-  ElMessage.success(`成功上传 ${files.length} 个文件`)
-}
-
-const handleFieldsAdded = (fields: string[]) => {
-  console.log('字段已添加:', fields)
-}
-
-const handleModeChange = (mode: string) => {
-  currentMode.value = mode as 'simple' | 'advanced'
-  ElMessage.info(`已切换到 ${mode === 'simple' ? '简易模式' : '高级模式'}`)
-  if (mode === 'simple') {
-    simpleForm.field = ''
-    simpleForm.operator = ''
-    simpleForm.value = ''
-  }
-}
-
-const handleSwitchToSimple = () => {
-  currentMode.value = 'simple'
-  ElMessage.success('已切换到简易模式')
-}
-
-const handleNextStep = () => {
-  if (currentStep.value < 4) {
-    if (currentStep.value === 1 && uploadedFiles.value.length === 0) {
-      ElMessage.warning('请先上传 CSV 文件')
-      return
-    }
-    if (currentStep.value === 2) {
-      if (currentMode.value === 'simple' && !simpleForm.field) {
-        ElMessage.warning('请选择字段')
-        return
-      }
-    }
-    currentStep.value++
-  }
-}
-
-const runMockTest = () => {
-  testing.value = true
-  setTimeout(() => {
-    testResult.value = {
-      passed: 7,
-      total: 10,
-      details: [
-        { ruleName: 'SSL证书有效期检查', status: 'pass', message: '规则匹配成功，23个服务器符合条件' },
-        { ruleName: '端口合规检查', status: 'pass', message: '规则匹配成功，512个端口符合规范' },
-        { ruleName: '磁盘空间使用率检查', status: 'pass', message: '规则匹配成功，98%的磁盘使用率低于阈值' },
-        { ruleName: '内存使用率检查', status: 'fail', message: '规则匹配失败，发现5个服务器内存使用率超过80%' },
-        { ruleName: 'CPU使用率检查', status: 'pass', message: '规则匹配成功，CPU使用率均在合理范围内' },
-        { ruleName: '网络连接数检查', status: 'pass', message: '规则匹配成功，网络连接数正常' },
-        { ruleName: '日志文件大小检查', status: 'fail', message: '规则匹配失败，发现3个服务器日志文件过大' },
-        { ruleName: '用户登录检查', status: 'pass', message: '规则匹配成功，用户登录行为正常' },
-        { ruleName: '服务状态检查', status: 'pass', message: '规则匹配成功，所有核心服务运行正常' },
-        { ruleName: '备份状态检查', status: 'pass', message: '规则匹配成功，备份任务全部完成' },
-      ],
-    }
-    testing.value = false
-    ElMessage.success('测试运行完成')
-  }, 1500)
-}
-
-const handleTestRun = () => {
-  runMockTest()
-}
-
-const handleExportCSV = () => {
-  ElMessage.success('测试结果导出中...')
-}
-
-const emit = defineEmits<{
-  (e: 'submit', data: any): void
-  (e: 'cancel'): void
-  (e: 'mode-change', mode: string): void
-}>()
-
-const handleSaveRule = () => {
-  if (!saveForm.name.trim()) {
-    ElMessage.warning('请输入规则名称')
-    return
-  }
-  
-  saving.value = true
-  setTimeout(() => {
-    saving.value = false
-    ElMessage.success('规则保存成功')
-    emit('submit', {
-      ...saveForm,
-      mode: currentMode.value,
-      config: {
-        type: currentMode.value,
-        fields: uploadedFields.value,
-      },
-    })
-  }, 1000)
-}
-
-onMounted(() => {
-  if (props.modelValue) {
-    saveForm.name = props.modelValue.name || ''
-    saveForm.techStack = props.modelValue.techStack || []
-    saveForm.tags = props.modelValue.tags || []
-  }
-})
-</script>
 
 <style lang="scss" scoped>
 .rule-config-form-v2 {
@@ -495,7 +513,8 @@ onMounted(() => {
     border-top: 1px solid #e8e9eb;
   }
 
-  .test-section {}
+  .test-section {
+  }
 
   .card-header {
     font-weight: 600;
@@ -507,7 +526,8 @@ onMounted(() => {
     }
   }
 
-  .test-result {}
+  .test-result {
+  }
 
   .mock-section {
     .mock-buttons {
@@ -515,7 +535,8 @@ onMounted(() => {
     }
   }
 
-  .save-section {}
+  .save-section {
+  }
 
   .save-actions {
     display: flex;
