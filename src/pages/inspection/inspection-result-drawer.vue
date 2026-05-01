@@ -232,6 +232,7 @@ import {
   Setting,
   Folder
 } from '@element-plus/icons-vue'
+import type { InspectionResult } from '../../types'
 
 // 类型定义
 interface InspectionDetail {
@@ -269,7 +270,7 @@ interface InspectionDetail {
 // Props
 const props = defineProps<{
   modelValue: boolean
-  currentInspection: any | null
+  currentInspection: InspectionResult | null
 }>()
 
 const emit = defineEmits<{

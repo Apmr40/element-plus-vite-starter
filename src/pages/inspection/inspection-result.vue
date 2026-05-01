@@ -220,6 +220,7 @@ import {
   TrendCharts,
 } from '@element-plus/icons-vue'
 import InspectionResultDrawer from './inspection-result-drawer.vue'
+import type { InspectionResult } from '../../types'
 
 // 状态
 const loading = ref(false)
