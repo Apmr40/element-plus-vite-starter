@@ -218,27 +218,34 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus,
   Trophy,
+  Setting,
+  User,
+  Monitor,
   Document,
 } from '@element-plus/icons-vue'
+import {
+  getRoleList,
+  createRole,
+  updateRolePermissions,
+  deleteRole,
+} from '~/demo/api/system'
+import type { Role } from '~/demo/types/inspection'
 
 // 状态
 const permissionDialogVisible = ref(false)
 const addRoleDialogVisible = ref(false)
-const permissionLoading = ref(false)
-const saving = ref(false)
 const currentRole = ref<Role | null>(null)
 
-// 新增角色表单
+// 表单数据
 const newRoleForm = reactive({
   name: '',
   description: '',
 })
 
-// 权限表单
 const permissionForm = reactive({
   rulePermissions: [] as string[],
   inspectionPermissions: [] as string[],
@@ -250,91 +257,26 @@ const permissionForm = reactive({
 })
 
 // 预置角色
-const predefinRoles = ref<Role[]>([
-  {
-    id: 'superadmin',
-    name: '平台超管',
-    type: 'superadmin',
-    description: '全权限，可配置角色、权限、存储路径',
-    permissions: {
-      rulePermissions: ['view', 'create', 'edit', 'delete'],
-      inspectionPermissions: ['view', 'export'],
-      orderPermissions: ['view', 'handle', 'create'],
-      systemPermissions: ['role', 'config', 'audit'],
-    },
-    dataPermissions: {
-      techStackScope: ['all'],
-      appScope: ['all'],
-    },
-    assignedUsers: [
-      { id: 'u1', name: '系统管理员' },
-    ],
-  },
-  {
-    id: 'tech-admin',
-    name: '技术栈管理员',
-    type: 'tech-admin',
-    description: '操作自己技术栈的规则，查看巡检结果',
-    permissions: {
-      rulePermissions: ['view', 'edit'],
-      inspectionPermissions: ['view'],
-      orderPermissions: ['view'],
-      systemPermissions: [],
-    },
-    dataPermissions: {
-      techStackScope: ['java', 'python'],
-      appScope: [],
-    },
-    assignedUsers: [
-      { id: 'u2', name: 'Java 管理员' },
-      { id: 'u3', name: 'Python 管理员' },
-    ],
-  },
-  {
-    id: 'one-line-admin',
-    name: '一线管理员',
-    type: 'one-line-admin',
-    description: '查看负责应用结果，确认/转单',
-    permissions: {
-      rulePermissions: ['view'],
-      inspectionPermissions: ['view'],
-      orderPermissions: ['view', 'handle'],
-      systemPermissions: [],
-    },
-    dataPermissions: {
-      techStackScope: [],
-      appScope: ['app-a', 'app-b'],
-    },
-    assignedUsers: [
-      { id: 'u4', name: '一线管理员-张三' },
-      { id: 'u5', name: '一线管理员-李四' },
-    ],
-  },
-  {
-    id: 'two-line-admin',
-    name: '二线管理员',
-    type: 'two-line-admin',
-    description: '查看负责应用结果，提交整改',
-    permissions: {
-      rulePermissions: ['view'],
-      inspectionPermissions: ['view'],
-      orderPermissions: ['view', 'handle'],
-      systemPermissions: [],
-    },
-    dataPermissions: {
-      techStackScope: [],
-      appScope: ['app-a', 'app-b', 'app-c'],
-    },
-    assignedUsers: [
-      { id: 'u6', name: '二线管理员-王五' },
-    ],
-  },
-])
+const predefinRoles = ref<Role[]>([])
 
 // 自定义角色
 const customRoles = ref<Role[]>([])
 
+// 计算属性
+const allRoles = computed(() => [...predefinRoles.value, ...customRoles.value])
+
 // 方法
+const loadRoles = async () => {
+  try {
+    const res = await getRoleList()
+    const roles = res.data
+    predefinRoles.value = roles.filter(r => r.type !== 'custom')
+    customRoles.value = roles.filter(r => r.type === 'custom')
+  } catch (error) {
+    ElMessage.error('加载角色列表失败')
+  }
+}
+
 const getRoleIcon = (type: string) => {
   switch (type) {
     case 'superadmin':
@@ -371,33 +313,20 @@ const handleAddRole = () => {
   addRoleDialogVisible.value = true
 }
 
-const handleAddRoleSubmit = () => {
+const handleAddRoleSubmit = async () => {
   if (!newRoleForm.name) {
     ElMessage.warning('请输入角色名称')
     return
   }
 
-  const newRole: Role = {
-    id: 'custom-' + Date.now(),
-    name: newRoleForm.name,
-    type: 'custom',
-    description: newRoleForm.description,
-    permissions: {
-      rulePermissions: [],
-      inspectionPermissions: [],
-      orderPermissions: [],
-      systemPermissions: [],
-    },
-    dataPermissions: {
-      techStackScope: [],
-      appScope: [],
-    },
-    assignedUsers: [],
+  try {
+    await createRole(newRoleForm.name, newRoleForm.description)
+    addRoleDialogVisible.value = false
+    ElMessage.success('角色创建成功')
+    loadRoles()
+  } catch (error) {
+    ElMessage.error('创建失败')
   }
-
-  customRoles.value.push(newRole)
-  addRoleDialogVisible.value = false
-  ElMessage.success('角色创建成功')
 }
 
 const handleViewPermissions = (role: Role) => {
@@ -432,65 +361,56 @@ const removeUser = (user: any) => {
   permissionForm.assignedUsers = permissionForm.assignedUsers.filter((u) => u.id !== user.id)
 }
 
-const handleSavePermissions = () => {
+const handleSavePermissions = async () => {
   if (!currentRole.value) return
 
-  currentRole.value.permissions = {
-    rulePermissions: permissionForm.rulePermissions,
-    inspectionPermissions: permissionForm.inspectionPermissions,
-    orderPermissions: permissionForm.orderPermissions,
-    systemPermissions: permissionForm.systemPermissions,
+  try {
+    await updateRolePermissions(currentRole.value.id, {
+      permissions: {
+        rulePermissions: permissionForm.rulePermissions,
+        inspectionPermissions: permissionForm.inspectionPermissions,
+        orderPermissions: permissionForm.orderPermissions,
+        systemPermissions: permissionForm.systemPermissions,
+      },
+      dataPermissions: {
+        techStackScope: permissionForm.techStackScope,
+        appScope: permissionForm.appScope,
+      },
+      assignedUsers: permissionForm.assignedUsers,
+    })
+
+    permissionDialogVisible.value = false
+    ElMessage.success('权限配置已保存')
+    loadRoles()
+  } catch (error) {
+    ElMessage.error('保存失败')
   }
-
-  currentRole.value.dataPermissions = {
-    techStackScope: permissionForm.techStackScope,
-    appScope: permissionForm.appScope,
-  }
-
-  currentRole.value.assignedUsers = permissionForm.assignedUsers
-
-  permissionDialogVisible.value = false
-  ElMessage.success('权限配置已保存')
 }
 
-const handleDeleteRole = (role: Role) => {
+const handleDeleteRole = async (role: Role) => {
   if (role.type === 'superadmin') {
     ElMessage.warning('平台超管角色不可删除')
     return
   }
 
-  ElMessageBox.confirm(`确定要删除角色「${role.name}」吗？`, '删除确认', {
-    type: 'warning',
-  }).then(() => {
-    if (role.type === 'custom') {
-      customRoles.value = customRoles.value.filter((r) => r.id !== role.id)
-      ElMessage.success('角色已删除')
-    }
-  }).catch(() => {})
-}
+  try {
+    await ElMessageBox.confirm(`确定要删除角色「${role.name}」吗？`, '删除确认', {
+      type: 'warning',
+    })
 
-// 类型定义
-interface Role {
-  id: string
-  name: string
-  type: 'superadmin' | 'tech-admin' | 'one-line-admin' | 'two-line-admin' | 'custom'
-  description: string
-  permissions: {
-    rulePermissions: string[]
-    inspectionPermissions: string[]
-    orderPermissions: string[]
-    systemPermissions: string[]
+    await deleteRole(role.id)
+    ElMessage.success('角色已删除')
+    loadRoles()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+    }
   }
-  dataPermissions: {
-    techStackScope: string[]
-    appScope: string[]
-  }
-  assignedUsers: Array<{ id: string; name: string }>
 }
 
 // 生命周期
 onMounted(() => {
-  // 初始化
+  loadRoles()
 })
 </script>
 

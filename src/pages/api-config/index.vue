@@ -492,8 +492,8 @@ VALUES ('${safeApiId}', '1', ${index + 1}, 'str_${safePlatformCode}_${safeFieldN
         const safeFieldName = escapeSqlString(field.fieldName.toLowerCase())
         const safeFieldDesc = escapeSqlString(field.fieldName)
         apiParmSql += `INSERT INTO iop_mc_api_parm_rln (apiid, parmrlntype, orderindex, parmname, parmalisname, res1, res2, res3, res4, res5)
-VALUES ('${safeApiId}', '0', ${index + 1}, 'str_${safePlatformCode_${safeFieldName}', '${safeFieldDesc}', NULL, NULL, NULL, NULL, NULL);
-`
+        VALUES ('${safeApiId}', '0', ${index + 1}, 'str_${safePlatformCode}_${safeFieldName}', '${safeFieldDesc}', NULL, NULL, NULL, NULL, NULL);
+        `
       })
     }
   })

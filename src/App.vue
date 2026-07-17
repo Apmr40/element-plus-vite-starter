@@ -1,10 +1,8 @@
-<!-- 应用配置巡检系统 - 主应用组件 -->
-<script setup>
-import zhCn from 'element-plus/es/locale/lang/zh-cn'
+<script setup lang="ts">
 </script>
 
 <template>
-  <el-config-provider namespace="ep" :locale="zhCn">
+  <el-config-provider namespace="ep">
     <BaseHeader />
     <div class="main-container flex">
       <BaseSide />

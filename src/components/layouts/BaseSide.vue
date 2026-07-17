@@ -4,6 +4,13 @@ import {
   Menu as IconMenu,
   Location,
   Setting,
+  Monitor,
+  List,
+  Check,
+  Tickets,
+  Lock,
+  Switch,
+  Tools,
 } from '@element-plus/icons-vue'
 
 // const isCollapse = ref(true)
@@ -20,6 +27,7 @@ function handleClose(key: string, keyPath: string[]) {
 <template>
   <el-menu
     router
+    default-active="1"
     class="el-menu-vertical-demo"
     @open="handleOpen"
     @close="handleClose"
@@ -80,61 +88,51 @@ function handleClose(key: string, keyPath: string[]) {
         Navigator Four
       </template>
     </el-menu-item>
-    <el-menu-item index="/nav/5">
-      <el-icon>
-        <Setting />
-      </el-icon>
+
+    <!-- Demo 模块：应用配置巡检系统 -->
+    <el-sub-menu index="demo">
       <template #title>
-        应用模块巡检首页
+        <el-icon>
+          <Monitor />
+        </el-icon>
+        <span>应用配置巡检</span>
       </template>
+      <el-menu-item index="/inspection">
+        <el-icon><Location /></el-icon>
+        <span>巡检首页</span>
+      </el-menu-item>
+      <el-sub-menu index="demo-inspection">
+        <template #title>
+          <el-icon><List /></el-icon>
+          <span>巡检管理</span>
+        </template>
+        <el-menu-item index="/inspection/rule">
+          <el-icon><Setting /></el-icon>
+          <span>规则配置</span>
+        </el-menu-item>
+        <el-menu-item index="/inspection/result">
+          <el-icon><Check /></el-icon>
+          <span>巡检结果</span>
+        </el-menu-item>
+        <el-menu-item index="/inspection/order">
+          <el-icon><Tickets /></el-icon>
+          <span>整改工单</span>
+        </el-menu-item>
+      </el-sub-menu>
+      <el-menu-item index="/inspection/admin">
+        <el-icon><Lock /></el-icon>
+        <span>权限后台</span>
+      </el-menu-item>
+    </el-sub-menu>
+
+    <el-menu-item index="/change-protection">
+      <el-icon><Switch /></el-icon>
+      <template #title>变更特护视图</template>
     </el-menu-item>
-    <el-menu-item index="/nav/6">
-      <el-icon>
-        <Setting />
-      </el-icon>
-      <template #title>
-        变更特护视图
-      </template>
-    </el-menu-item>
-    <el-menu-item index="/nav/7">
-      <el-icon>
-        <Setting />
-      </el-icon>
-      <template #title>
-        操作资源配置
-      </template>
-    </el-menu-item>
-    <el-menu-item index="/inspection/rule-config">
-      <el-icon>
-        <Setting />
-      </el-icon>
-      <template #title>
-        规则配置
-      </template>
-    </el-menu-item>
-    <el-menu-item index="/inspection/inspection-result">
-      <el-icon>
-        <Setting />
-      </el-icon>
-      <template #title>
-        巡检结果
-      </template>
-    </el-menu-item>
-    <el-menu-item index="/inspection/rectification-order">
-      <el-icon>
-        <Setting />
-      </el-icon>
-      <template #title>
-        整改工单
-      </template>
-    </el-menu-item>
-    <el-menu-item index="/inspection/system-admin">
-      <el-icon>
-        <Setting />
-      </el-icon>
-      <template #title>
-        权限后台
-      </template>
+
+    <el-menu-item index="/api-config">
+      <el-icon><Tools /></el-icon>
+      <template #title>操作资源配置</template>
     </el-menu-item>
   </el-menu>
 </template>

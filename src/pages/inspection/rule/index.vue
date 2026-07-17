@@ -206,20 +206,8 @@ import {
   Bottom,
 } from '@element-plus/icons-vue'
 import RuleConfigFormV2 from './RuleConfigFormV2.vue'
-
-// 类型定义
-interface RuleConfig {
-  id: string
-  name: string
-  techStack: string | string[]
-  tags: string[]
-  status: 'enabled' | 'disabled'
-  version: string
-  description?: string
-  config?: any
-  hasAssociation?: boolean
-  updatedAt?: string
-}
+import { getRuleList, createRule, updateRule, deleteRule, toggleRuleStatus, copyRule } from '~/demo/api/rule'
+import type { RuleConfig, RuleFilter, RuleFormData } from '~/demo/types/inspection'
 
 // 状态
 const loading = ref(false)
@@ -228,9 +216,9 @@ const deleteDialogVisible = ref(false)
 const currentRule = ref<RuleConfig | null>(null)
 
 // 筛选条件
-const filter = reactive({
+const filter = reactive<RuleFilter>({
   techStack: '',
-  tags: [] as string[],
+  tags: [],
   status: 'all',
   keyword: '',
 })
@@ -281,29 +269,37 @@ const handleEdit = (row: RuleConfig) => {
   dialogVisible.value = true
 }
 
-const handleCopy = (row: RuleConfig) => {
-  const copiedRule = {
-    ...row,
-    id: `R${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-    name: `${row.name}_副本`,
-    version: 'V1.0',
-    status: 'disabled',
+const handleCopy = async (row: RuleConfig) => {
+  try {
+    const res = await copyRule(row.id)
+    tableData.value.push(res.data)
+    ElMessage.success('规则复制成功')
+  } catch (error) {
+    ElMessage.error('规则复制失败')
   }
-  tableData.value.push(copiedRule)
-  ElMessage.success('规则复制成功')
 }
 
-const handleMoreCommand = (command: string, row: RuleConfig) => {
+const handleMoreCommand = async (command: string, row: RuleConfig) => {
   currentRule.value = row
   if (!currentRule.value) return
   switch (command) {
     case 'enable':
-      currentRule.value.status = 'enabled'
-      updateRuleStatus(currentRule.value.id, 'enabled')
+      try {
+        await toggleRuleStatus(row.id, 'enabled')
+        currentRule.value.status = 'enabled'
+        ElMessage.success('规则已启用')
+      } catch (error) {
+        ElMessage.error('操作失败')
+      }
       break
     case 'disable':
-      currentRule.value.status = 'disabled'
-      updateRuleStatus(currentRule.value.id, 'disabled')
+      try {
+        await toggleRuleStatus(row.id, 'disabled')
+        currentRule.value.status = 'disabled'
+        ElMessage.success('规则已禁用')
+      } catch (error) {
+        ElMessage.error('操作失败')
+      }
       break
     case 'delete':
       deleteDialogVisible.value = true
@@ -311,64 +307,57 @@ const handleMoreCommand = (command: string, row: RuleConfig) => {
   }
 }
 
-const handleDeleteConfirm = () => {
+const handleDeleteConfirm = async () => {
   if (!currentRule.value) return
-  tableData.value = tableData.value.filter((r) => r.id !== currentRule.value?.id)
-  deleteDialogVisible.value = false
-  ElMessage.success('规则删除成功')
+  try {
+    await deleteRule(currentRule.value.id)
+    tableData.value = tableData.value.filter((r) => r.id !== currentRule.value?.id)
+    deleteDialogVisible.value = false
+    ElMessage.success('规则删除成功')
+  } catch (error) {
+    ElMessage.error('删除失败')
+  }
 }
 
-const handleFormSubmit = (data: any) => {
-  if (currentRule.value && data.id) {
-    // 编辑模式：更新现有规则
-    const index = tableData.value.findIndex((r) => r.id === data.id)
-    if (index !== -1) {
-      tableData.value[index] = { ...data }
+const handleFormSubmit = async (data: RuleFormData) => {
+  try {
+    if (data.id) {
+      // 编辑模式
+      const res = await updateRule(data.id, data)
+      const index = tableData.value.findIndex((r) => r.id === data.id)
+      if (index !== -1) {
+        tableData.value[index] = res.data
+      }
+    } else {
+      // 新增模式
+      const res = await createRule(data)
+      tableData.value.push(res.data)
     }
-  } else {
-    // 新增模式：添加新规则
-    data.id = `R${Math.random().toString(36).substring(2, 8).toUpperCase()}`
-    data.version = 'V1.0'
-    data.hasAssociation = false
-    data.updatedAt = new Date().toLocaleString('zh-CN')
-    tableData.value.push(data)
+    dialogVisible.value = false
+    ElMessage.success('规则保存成功')
+  } catch (error) {
+    ElMessage.error('保存失败')
   }
-  dialogVisible.value = false
-  ElMessage.success('规则保存成功')
 }
 
 const handleModeChange = (mode: string) => {
   console.log('模式切换:', mode)
 }
 
-const handleSearch = () => {
+const handleSearch = async () => {
   loading.value = true
-  setTimeout(() => {
-    tableData.value = [
-      {
-        id: 'R001',
-        name: 'SSL证书有效期检查',
-        techStack: 'java',
-        tags: ['security'],
-        status: 'enabled',
-        version: 'V2.1',
-        updatedAt: '2026-04-20 18:30',
-        hasAssociation: false,
-      },
-      {
-        id: 'R002',
-        name: '端口合规检查',
-        techStack: 'python',
-        tags: ['performance'],
-        status: 'disabled',
-        version: 'V1.0',
-        updatedAt: '2026-04-19 10:15',
-        hasAssociation: false,
-      },
-    ]
-    pagination.total = 2
+  try {
+    const res = await getRuleList(filter, {
+      currentPage: pagination.currentPage,
+      pageSize: pagination.pageSize,
+    })
+    tableData.value = res.data.list
+    pagination.total = res.data.total
+  } catch (error) {
+    ElMessage.error('查询失败')
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
 const handleReset = () => {
@@ -376,6 +365,7 @@ const handleReset = () => {
   filter.tags = []
   filter.status = 'all'
   filter.keyword = ''
+  pagination.currentPage = 1
   handleSearch()
 }
 
@@ -386,14 +376,6 @@ const handleCurrentChange = (page: number) => {
 
 const handleExport = () => {
   ElMessage.success('数据导出中...')
-}
-
-const updateRuleStatus = (id: string, status: 'enabled' | 'disabled') => {
-  const rule = tableData.value.find((r) => r.id === id)
-  if (rule) {
-    rule.status = status
-    ElMessage.success(`规则已${status === 'enabled' ? '启用' : '禁用'}`)
-  }
 }
 
 const getTechStackLabel = (techStack: string | string[]) => {

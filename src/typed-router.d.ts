@@ -30,48 +30,118 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/api-config/': RouteRecordInfo<
+      '/api-config/',
+      '/api-config',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/change-protection/': RouteRecordInfo<
+      '/change-protection/',
+      '/change-protection',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/inspection': RouteRecordInfo<
       '/inspection',
       '/inspection',
       Record<never, never>,
       Record<never, never>,
-      | '/inspection/components/RuleConfigForm'
-      | '/inspection/inspection-result'
-      | '/inspection/rectification-order'
-      | '/inspection/rule-config'
-      | '/inspection/system-admin'
+      | '/inspection/'
+      | '/inspection/admin/'
+      | '/inspection/components/BlocklyIntegration'
+      | '/inspection/components/BrickLibrary'
+      | '/inspection/components/CsvUpload'
+      | '/inspection/components/FeatToggle'
+      | '/inspection/components/ModeSwitch'
+      | '/inspection/order/'
+      | '/inspection/result/'
+      | '/inspection/result/inspection-result-drawer'
+      | '/inspection/rule/'
+      | '/inspection/rule/RuleConfigFormV2'
     >,
-    '/inspection/components/RuleConfigForm': RouteRecordInfo<
-      '/inspection/components/RuleConfigForm',
-      '/inspection/components/RuleConfigForm',
+    '/inspection/': RouteRecordInfo<
+      '/inspection/',
+      '/inspection',
       Record<never, never>,
       Record<never, never>,
       | never
     >,
-    '/inspection/inspection-result': RouteRecordInfo<
-      '/inspection/inspection-result',
-      '/inspection/inspection-result',
+    '/inspection/admin/': RouteRecordInfo<
+      '/inspection/admin/',
+      '/inspection/admin',
       Record<never, never>,
       Record<never, never>,
       | never
     >,
-    '/inspection/rectification-order': RouteRecordInfo<
-      '/inspection/rectification-order',
-      '/inspection/rectification-order',
+    '/inspection/components/BlocklyIntegration': RouteRecordInfo<
+      '/inspection/components/BlocklyIntegration',
+      '/inspection/components/BlocklyIntegration',
       Record<never, never>,
       Record<never, never>,
       | never
     >,
-    '/inspection/rule-config': RouteRecordInfo<
-      '/inspection/rule-config',
-      '/inspection/rule-config',
+    '/inspection/components/BrickLibrary': RouteRecordInfo<
+      '/inspection/components/BrickLibrary',
+      '/inspection/components/BrickLibrary',
       Record<never, never>,
       Record<never, never>,
       | never
     >,
-    '/inspection/system-admin': RouteRecordInfo<
-      '/inspection/system-admin',
-      '/inspection/system-admin',
+    '/inspection/components/CsvUpload': RouteRecordInfo<
+      '/inspection/components/CsvUpload',
+      '/inspection/components/CsvUpload',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/inspection/components/FeatToggle': RouteRecordInfo<
+      '/inspection/components/FeatToggle',
+      '/inspection/components/FeatToggle',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/inspection/components/ModeSwitch': RouteRecordInfo<
+      '/inspection/components/ModeSwitch',
+      '/inspection/components/ModeSwitch',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/inspection/order/': RouteRecordInfo<
+      '/inspection/order/',
+      '/inspection/order',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/inspection/result/': RouteRecordInfo<
+      '/inspection/result/',
+      '/inspection/result',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/inspection/result/inspection-result-drawer': RouteRecordInfo<
+      '/inspection/result/inspection-result-drawer',
+      '/inspection/result/inspection-result-drawer',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/inspection/rule/': RouteRecordInfo<
+      '/inspection/rule/',
+      '/inspection/rule',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/inspection/rule/RuleConfigFormV2': RouteRecordInfo<
+      '/inspection/rule/RuleConfigFormV2',
+      '/inspection/rule/RuleConfigFormV2',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -104,27 +174,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/nav/5': RouteRecordInfo<
-      '/nav/5',
-      '/nav/5',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/nav/6': RouteRecordInfo<
-      '/nav/6',
-      '/nav/6',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/nav/7': RouteRecordInfo<
-      '/nav/7',
-      '/nav/7',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
   }
 
   /**
@@ -144,44 +193,105 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
+    'src/pages/api-config/index.vue': {
+      routes:
+        | '/api-config/'
+      views:
+        | never
+    }
+    'src/pages/change-protection/index.vue': {
+      routes:
+        | '/change-protection/'
+      views:
+        | never
+    }
     'src/pages/inspection.vue': {
       routes:
         | '/inspection'
-        | '/inspection/components/RuleConfigForm'
-        | '/inspection/inspection-result'
-        | '/inspection/rectification-order'
-        | '/inspection/rule-config'
-        | '/inspection/system-admin'
+        | '/inspection/'
+        | '/inspection/admin/'
+        | '/inspection/components/BlocklyIntegration'
+        | '/inspection/components/BrickLibrary'
+        | '/inspection/components/CsvUpload'
+        | '/inspection/components/FeatToggle'
+        | '/inspection/components/ModeSwitch'
+        | '/inspection/order/'
+        | '/inspection/result/'
+        | '/inspection/result/inspection-result-drawer'
+        | '/inspection/rule/'
+        | '/inspection/rule/RuleConfigFormV2'
       views:
         | 'default'
     }
-    'src/pages/inspection/components/RuleConfigForm.vue': {
+    'src/pages/inspection/index.vue': {
       routes:
-        | '/inspection/components/RuleConfigForm'
+        | '/inspection/'
       views:
         | never
     }
-    'src/pages/inspection/inspection-result.vue': {
+    'src/pages/inspection/admin/index.vue': {
       routes:
-        | '/inspection/inspection-result'
+        | '/inspection/admin/'
       views:
         | never
     }
-    'src/pages/inspection/rectification-order.vue': {
+    'src/pages/inspection/components/BlocklyIntegration.vue': {
       routes:
-        | '/inspection/rectification-order'
+        | '/inspection/components/BlocklyIntegration'
       views:
         | never
     }
-    'src/pages/inspection/rule-config.vue': {
+    'src/pages/inspection/components/BrickLibrary.vue': {
       routes:
-        | '/inspection/rule-config'
+        | '/inspection/components/BrickLibrary'
       views:
         | never
     }
-    'src/pages/inspection/system-admin.vue': {
+    'src/pages/inspection/components/CsvUpload.vue': {
       routes:
-        | '/inspection/system-admin'
+        | '/inspection/components/CsvUpload'
+      views:
+        | never
+    }
+    'src/pages/inspection/components/FeatToggle.vue': {
+      routes:
+        | '/inspection/components/FeatToggle'
+      views:
+        | never
+    }
+    'src/pages/inspection/components/ModeSwitch.vue': {
+      routes:
+        | '/inspection/components/ModeSwitch'
+      views:
+        | never
+    }
+    'src/pages/inspection/order/index.vue': {
+      routes:
+        | '/inspection/order/'
+      views:
+        | never
+    }
+    'src/pages/inspection/result/index.vue': {
+      routes:
+        | '/inspection/result/'
+      views:
+        | never
+    }
+    'src/pages/inspection/result/inspection-result-drawer.vue': {
+      routes:
+        | '/inspection/result/inspection-result-drawer'
+      views:
+        | never
+    }
+    'src/pages/inspection/rule/index.vue': {
+      routes:
+        | '/inspection/rule/'
+      views:
+        | never
+    }
+    'src/pages/inspection/rule/RuleConfigFormV2.vue': {
+      routes:
+        | '/inspection/rule/RuleConfigFormV2'
       views:
         | never
     }
@@ -206,24 +316,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/nav/4.vue': {
       routes:
         | '/nav/4'
-      views:
-        | never
-    }
-    'src/pages/nav/5.vue': {
-      routes:
-        | '/nav/5'
-      views:
-        | never
-    }
-    'src/pages/nav/6.vue': {
-      routes:
-        | '/nav/6'
-      views:
-        | never
-    }
-    'src/pages/nav/7.vue': {
-      routes:
-        | '/nav/7'
       views:
         | never
     }

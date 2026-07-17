@@ -220,7 +220,8 @@ import {
   TrendCharts,
 } from '@element-plus/icons-vue'
 import InspectionResultDrawer from './inspection-result-drawer.vue'
-import type { InspectionResult } from '../../types'
+import { getInspectionList, exportInspection, batchCreateOrders } from '~/demo/api/inspection'
+import type { InspectionResult, InspectionFilter } from '~/demo/types/inspection'
 
 // 状态
 const loading = ref(false)
@@ -229,11 +230,11 @@ const statViewVisible = ref(false)
 const currentInspection = ref<InspectionResult | null>(null)
 
 // 筛选条件
-const filter = reactive({
+const filter = reactive<InspectionFilter>({
   appName: '',
   techStack: '',
   status: 'all',
-  timeRange: [] as Date[],
+  timeRange: [],
 })
 
 // 分页
@@ -298,60 +299,20 @@ const getRiskLevelLabel = (level: string) => {
 }
 
 // 方法
-const handleSearch = () => {
+const handleSearch = async () => {
   loading.value = true
-
-  // 模拟查询
-  setTimeout(() => {
-    tableData.value = [
-      {
-        id: 'I001',
-        appName: 'APP-A',
-        techStack: 'java',
-        inspectedAt: '2026-04-21 06:00',
-        compliant: 120,
-        nonCompliant: 3,
-        status: 'non-compliant',
-        complianceRate: 97.6,
-        dataSource: 'app-a-20260421.csv',
-        ruleVersion: 'V2.1',
-        checks: [
-          { ruleName: 'SSL 检查', ruleVersion: 'V2.1', status: 'passed', reason: '-' },
-          { ruleName: '端口检查', ruleVersion: 'V1.0', status: 'failed', reason: '未配置 SSL' },
-        ],
-        nonCompliantItems: [
-          {
-            instanceId: '192.168.1.1',
-            ruleName: '端口检查',
-            reason: '未配置 SSL',
-            riskLevel: 'high',
-          },
-          {
-            instanceId: '192.168.1.2',
-            ruleName: '端口检查',
-            reason: '端口超出范围',
-            riskLevel: 'medium',
-          },
-        ],
-      },
-      {
-        id: 'I002',
-        appName: 'APP-B',
-        techStack: 'python',
-        inspectedAt: '2026-04-21 06:00',
-        compliant: 123,
-        nonCompliant: 0,
-        status: 'compliant',
-        complianceRate: 100,
-        dataSource: 'app-b-20260421.csv',
-        ruleVersion: 'V1.2',
-        checks: [{ ruleName: '全量检查', ruleVersion: 'V1.2', status: 'passed', reason: '-' }],
-        nonCompliantItems: [],
-      },
-    ]
-    pagination.total = 2
+  try {
+    const res = await getInspectionList(filter, {
+      currentPage: pagination.currentPage,
+      pageSize: pagination.pageSize,
+    })
+    tableData.value = res.data.list
+    pagination.total = res.data.total
+  } catch (error) {
+    ElMessage.error('查询失败')
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
 const handleViewDetails = (row: InspectionResult) => {
@@ -359,16 +320,30 @@ const handleViewDetails = (row: InspectionResult) => {
   drawerVisible.value = true
 }
 
-const handleExport = () => {
-  ElMessage.success('导出功能开发中...')
+const handleExport = async () => {
+  try {
+    const ids = tableData.value.map(item => item.id)
+    await exportInspection(ids)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    ElMessage.error('导出失败')
+  }
 }
 
 const handleExportRow = (row: InspectionResult) => {
-  ElMessage.success(`已导出 ${row.appName} 的巡检结果`)
+  exportInspection([row.id])
+    .then(() => ElMessage.success(`已导出 ${row.appName} 的巡检结果`))
+    .catch(() => ElMessage.error('导出失败'))
 }
 
-const handleBatchCreateOrder = (row: InspectionResult) => {
-  ElMessage.success(`已为 ${row.appName} 创建整改工单`)
+const handleBatchCreateOrder = async (row: InspectionResult) => {
+  try {
+    const nonCompliantIds = row.nonCompliantItems.map((_, idx) => `nc-${row.id}-${idx}`)
+    await batchCreateOrders(row.id, nonCompliantIds)
+    ElMessage.success(`已为 ${row.appName} 创建整改工单`)
+  } catch (error) {
+    ElMessage.error('创建工单失败')
+  }
 }
 
 const handleOpenStatView = () => {
@@ -380,6 +355,8 @@ const handleReset = () => {
   filter.techStack = ''
   filter.status = 'all'
   filter.timeRange = []
+  pagination.currentPage = 1
+  handleSearch()
 }
 
 const handleSizeChange = (size: number) => {

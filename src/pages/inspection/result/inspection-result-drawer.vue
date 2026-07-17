@@ -217,57 +217,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
-  Download,
+  ArrowLeft,
   Check,
   Warning,
   TrendCharts,
-  ArrowLeft,
+  Download,
   ArrowDown,
-  Link,
   InfoFilled,
+  Link,
   Document,
   Setting,
-  Folder
+  Folder,
 } from '@element-plus/icons-vue'
-import type { InspectionResult } from '../../types'
+import type { InspectionResult, NonCompliantItem, InspectionCheck } from '~/demo/types/inspection'
 
-// 类型定义
-interface InspectionDetail {
-  id: string
-  appName: string
-  techStack: string
-  inspectedAt: string
-  compliant: number
-  nonCompliant: number
-  complianceRate: number
-  dataSource: string
-  ruleVersion: string
-  checks?: Array<{
-    ruleName: string
-    ruleVersion: string
-    status: string
-    dataSource?: string
-    currentValue?: string
-    requireValue?: string
-  }>
-  nonCompliantItems?: Array<{
-    ruleName: string
-    ruleVersion: string
-    status: string
-    reason: string
-    dataSource: string
-    currentValue: number | string
-    requireValue: string
-    riskLevel: 'high' | 'medium' | 'low'
-    deadlineRemaining?: string
-  }>
-  deadlineRemaining?: string
-}
-
-// Props
 const props = defineProps<{
   modelValue: boolean
   currentInspection: InspectionResult | null
@@ -277,24 +243,57 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
 }>()
 
-// 状态
 const drawerLoading = ref(false)
 const compliantExpanded = ref(false)
 
-// 方法
+const historyDates = ref(['2026-04-20', '2026-04-22', '2026-04-24'])
+
+const historyData = ref([
+  {
+    ruleName: '数据库连接池检查',
+    results: [
+      { icon: '✅' },
+      { icon: '🔴', diff: true },
+      { icon: '🔴', diff: true },
+    ],
+  },
+  {
+    ruleName: '端口配置检查',
+    results: [{ icon: '✅' }, { icon: '✅' }, { icon: '✅' }],
+  },
+  {
+    ruleName: '日志级别检查',
+    results: [
+      { icon: '✅', showDiff: '←' },
+      { icon: '✅' },
+      { icon: '✅' },
+    ],
+  },
+])
+
+const getTechStackLabel = (techStack: string) => {
+  const map: Record<string, string> = {
+    java: 'Java/Spring',
+    python: 'Python',
+    go: 'Go',
+    nodejs: 'Node.js',
+  }
+  return map[techStack] || techStack
+}
+
 const handleClose = () => {
   emit('update:modelValue', false)
 }
 
-const handleViewRule = (item: any) => {
+const handleViewRule = (item: NonCompliantItem) => {
   ElMessage.success(`查看规则: ${item.ruleName}`)
 }
 
-const handleCreateOrder = (item: any) => {
+const handleCreateOrder = (item: NonCompliantItem) => {
   ElMessage.success(`创建整改工单: ${item.ruleName}`)
 }
 
-const handleIgnore = (item: any) => {
+const handleIgnore = (item: NonCompliantItem) => {
   ElMessage.success(`忽略规则: ${item.ruleName}（需填写忽略原因）`)
 }
 
@@ -314,27 +313,8 @@ const handleExportPDF = () => {
   ElMessage.success('正在生成 PDF 文件...')
 }
 
-// 历史对比数据
-const historyDates = ref(['2026-04-20', '2026-04-22', '2026-04-24'])
-
-const historyData = ref([
-  { ruleName: '数据库连接池检查', results: [{icon: '✅'}, {icon: '🔴', diff: true}, {icon: '🔴', diff: true}] },
-  { ruleName: '端口配置检查', results: [{icon: '✅'}, {icon: '✅'}, {icon: '✅'}] },
-  { ruleName: '日志级别检查', results: [{icon: '✅', showDiff: '←'}, {icon: '✅'}, {icon: '✅'}] },
-])
-
 const toggleCompliantItems = () => {
   compliantExpanded.value = !compliantExpanded.value
-}
-
-const getTechStackLabel = (techStack: string) => {
-  const map: Record<string, string> = {
-    java: 'Java/Spring',
-    python: 'Python',
-    go: 'Go',
-    nodejs: 'Node.js',
-  }
-  return map[techStack] || techStack
 }
 </script>
 

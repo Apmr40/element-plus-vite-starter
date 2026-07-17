@@ -328,12 +328,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Plus, TrendCharts } from '@element-plus/icons-vue'
 import {
-  Plus,
-  TrendCharts,
-} from '@element-plus/icons-vue'
+  getOrderList,
+  getOrderDetail,
+  closeAsFalseAlarm,
+  transferOrder,
+  submitRectification,
+} from '~/demo/api/order'
+import type { Order, OrderFilter } from '~/demo/types/inspection'
 
 // 状态
 const loading = ref(false)
@@ -354,11 +359,11 @@ const form = reactive({
 })
 
 // 筛选条件
-const filter = reactive({
+const filter = reactive<OrderFilter>({
   status: 'all',
   riskLevel: '',
   appName: '',
-  createdAt: [] as Date[],
+  createdAt: [],
 })
 
 // 分页
@@ -460,61 +465,33 @@ const getProcessStep = (status: string) => {
 }
 
 // 方法
-const handleSearch = () => {
+const handleSearch = async () => {
   loading.value = true
-
-  // 模拟查询
-  setTimeout(() => {
-    tableData.value = [
-      {
-        id: 'T001',
-        appName: 'APP-A',
-        nonCompliantItem: '端口检查',
-        riskLevel: 'high',
-        remainingTimeMs: 23 * 60 * 60 * 1000, // 23 小时
-        status: 'pending-confirm',
-        handler: '一线管理员 - 张三',
-        ruleName: '端口检查',
-        checkItem: 'SSL 证书配置',
-        reason: '未配置 SSL 证书',
-        instanceId: '192.168.1.1',
-        dataSource: 'app-a-20260421.csv',
-        createdAt: '2026-04-21 08:00',
-        techStack: 'java',
-        history: [
-          { time: '2026-04-21 08:00', content: '系统自动创建工单', user: 'system' },
-          { time: '2026-04-21 08:05', content: '派单给一线管理员 - 张三', user: 'system' },
-        ],
-      },
-      {
-        id: 'T002',
-        appName: 'APP-B',
-        nonCompliantItem: 'SSL 配置',
-        riskLevel: 'medium',
-        remainingTimeMs: 47 * 60 * 60 * 1000, // 47 小时
-        status: 'pending-rectify',
-        handler: '二线管理员 - 李四',
-        ruleName: 'SSL 配置检查',
-        checkItem: 'SSL 证书有效期',
-        reason: 'SSL 证书即将过期',
-        instanceId: '192.168.1.2',
-        dataSource: 'app-b-20260421.csv',
-        createdAt: '2026-04-21 09:00',
-        techStack: 'python',
-        history: [
-          { time: '2026-04-21 09:00', content: '系统自动创建工单', user: 'system' },
-          { time: '2026-04-21 09:05', content: '派单给二线管理员 - 李四', user: 'system' },
-        ],
-      },
-    ]
-    pagination.total = 2
+  try {
+    const res = await getOrderList(filter, {
+      currentPage: pagination.currentPage,
+      pageSize: pagination.pageSize,
+    })
+    tableData.value = res.data.list
+    pagination.total = res.data.total
+  } catch (error) {
+    ElMessage.error('查询失败')
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
-const handleViewDetails = (row: Order) => {
-  currentOrder.value = { ...row }
-  drawerVisible.value = true
+const handleViewDetails = async (row: Order) => {
+  drawerLoading.value = true
+  try {
+    const res = await getOrderDetail(row.id)
+    currentOrder.value = res.data
+    drawerVisible.value = true
+  } catch (error) {
+    ElMessage.error('获取详情失败')
+  } finally {
+    drawerLoading.value = false
+  }
 }
 
 const formatRemainingTime = (timeMs: number) => {
@@ -541,38 +518,53 @@ const handleSubmitRectify = () => {
   rectifyDialogVisible.value = true
 }
 
-const handleFalseAlarmSubmit = () => {
-  ElMessage.success('工单已闭环（误报）')
-  falseAlarmDialogVisible.value = false
-  if (currentOrder.value) {
-    currentOrder.value.status = 'closed'
+const handleFalseAlarmSubmit = async () => {
+  if (!currentOrder.value) return
+  try {
+    await closeAsFalseAlarm(currentOrder.value.id, form.falseAlarmReason)
+    ElMessage.success('工单已闭环（误报）')
+    falseAlarmDialogVisible.value = false
+    form.falseAlarmReason = ''
+    handleSearch()
+  } catch (error) {
+    ElMessage.error('操作失败')
   }
 }
 
-const handleTransferSubmit = () => {
-  ElMessage.success('工单已转单给二线管理员')
-  transferDialogVisible.value = false
-  if (currentOrder.value) {
-    currentOrder.value.status = 'pending-rectify'
-    currentOrder.value.handler = '二线管理员 - ' + (form.handler === 'li-si' ? '李四' : '王五')
-    currentOrder.value.history?.push({
-      time: new Date().toLocaleString('zh-CN', { hour12: false }),
-      content: `转单给二线管理员 - ${form.handler === 'li-si' ? '李四' : '王五'}`,
-      user: 'system',
-    })
+const handleTransferSubmit = async () => {
+  if (!currentOrder.value) return
+  try {
+    const handlerName = form.handler === 'li-si' ? '李四' : '王五'
+    await transferOrder(
+      currentOrder.value.id,
+      `二线管理员 - ${handlerName}`,
+      form.transferNote
+    )
+    ElMessage.success('工单已转单给二线管理员')
+    transferDialogVisible.value = false
+    form.handler = ''
+    form.transferNote = ''
+    handleSearch()
+  } catch (error) {
+    ElMessage.error('转单失败')
   }
 }
 
-const handleRectifySubmit = () => {
-  ElMessage.success('整改已提交，等待审核')
-  rectifyDialogVisible.value = false
-  if (currentOrder.value) {
-    currentOrder.value.status = 'pending-review'
-    currentOrder.value.history?.push({
-      time: new Date().toLocaleString('zh-CN', { hour12: false }),
-      content: `二线管理员提交整改：${form.rectifyNote}`,
-      user: 'system',
-    })
+const handleRectifySubmit = async () => {
+  if (!currentOrder.value) return
+  try {
+    await submitRectification(
+      currentOrder.value.id,
+      form.rectifyNote,
+      form.attachments
+    )
+    ElMessage.success('整改已提交，等待审核')
+    rectifyDialogVisible.value = false
+    form.rectifyNote = ''
+    form.attachments = []
+    handleSearch()
+  } catch (error) {
+    ElMessage.error('提交失败')
   }
 }
 
@@ -588,6 +580,8 @@ const handleReset = () => {
   filter.riskLevel = ''
   filter.appName = ''
   filter.createdAt = []
+  pagination.currentPage = 1
+  handleSearch()
 }
 
 const handleFileChange = (file: any) => {

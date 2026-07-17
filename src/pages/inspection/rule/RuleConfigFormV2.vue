@@ -3,34 +3,18 @@
 import { Close } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { computed, onMounted, reactive, ref } from 'vue'
-import BlocklyIntegration from './components/BlocklyIntegration.vue'
-import BrickLibrary from './components/BrickLibrary.vue'
-import CsvUpload from './components/CsvUpload.vue'
-import ModeSwitch from './components/ModeSwitch.vue'
-
-interface UploadedFile {
-  id: string
-  originalName: string
-  fileName: string
-  size: number
-  columns: string[]
-  rows: number
-  alias: string
-  expanded: boolean
-  status: 'uploading' | 'success' | 'error'
-}
-
-interface TestResult {
-  passed: number
-  total: number
-  details: Array<{ ruleName: string, status: 'pass' | 'fail', message: string }>
-}
+import BlocklyIntegration from '../components/BlocklyIntegration.vue'
+import BrickLibrary from '../components/BrickLibrary.vue'
+import CsvUpload from '../components/CsvUpload.vue'
+import ModeSwitch from '../components/ModeSwitch.vue'
+import { runRuleTest } from '~/demo/api/rule'
+import type { UploadedFile, TestResult, RuleFormData } from '~/demo/types/inspection'
 
 const props = defineProps<{
   modelValue?: any
 }>()
 const emit = defineEmits<{
-  (e: 'submit', data: any): void
+  (e: 'submit', data: RuleFormData): void
   (e: 'cancel'): void
   (e: 'mode-change', mode: string): void
 }>()
@@ -51,7 +35,7 @@ const simpleForm = reactive({
   description: '',
 })
 
-const saveForm = reactive({
+const saveForm = reactive<RuleFormData>({
   name: '基础合规检查规则',
   techStack: ['java', 'python', 'nodejs'],
   tags: ['security', 'performance', 'standard'],
@@ -123,28 +107,23 @@ function handleNextStep() {
   }
 }
 
-function runMockTest() {
+async function runMockTest() {
   testing.value = true
-  setTimeout(() => {
-    testResult.value = {
-      passed: 7,
-      total: 10,
-      details: [
-        { ruleName: 'SSL证书有效期检查', status: 'pass', message: '规则匹配成功，23个服务器符合条件' },
-        { ruleName: '端口合规检查', status: 'pass', message: '规则匹配成功，512个端口符合规范' },
-        { ruleName: '磁盘空间使用率检查', status: 'pass', message: '规则匹配成功，98%的磁盘使用率低于阈值' },
-        { ruleName: '内存使用率检查', status: 'fail', message: '规则匹配失败，发现5个服务器内存使用率超过80%' },
-        { ruleName: 'CPU使用率检查', status: 'pass', message: '规则匹配成功，CPU使用率均在合理范围内' },
-        { ruleName: '网络连接数检查', status: 'pass', message: '规则匹配成功，网络连接数正常' },
-        { ruleName: '日志文件大小检查', status: 'fail', message: '规则匹配失败，发现3个服务器日志文件过大' },
-        { ruleName: '用户登录检查', status: 'pass', message: '规则匹配成功，用户登录行为正常' },
-        { ruleName: '服务状态检查', status: 'pass', message: '规则匹配成功，所有核心服务运行正常' },
-        { ruleName: '备份状态检查', status: 'pass', message: '规则匹配成功，备份任务全部完成' },
-      ],
-    }
-    testing.value = false
+  try {
+    const res = await runRuleTest(
+      {
+        mode: currentMode.value,
+        simpleForm: currentMode.value === 'simple' ? simpleForm : null,
+      },
+      uploadedFiles.value
+    )
+    testResult.value = res.data
     ElMessage.success('测试运行完成')
-  }, 1500)
+  } catch (error) {
+    ElMessage.error('测试运行失败')
+  } finally {
+    testing.value = false
+  }
 }
 
 function handleTestRun() {
@@ -156,7 +135,7 @@ function handleExportCSV() {
 }
 
 function handleSaveRule() {
-  if (!saveForm.name.trim()) {
+  if (!saveForm.name?.trim()) {
     ElMessage.warning('请输入规则名称')
     return
   }
@@ -167,7 +146,6 @@ function handleSaveRule() {
     ElMessage.success('规则保存成功')
     emit('submit', {
       ...saveForm,
-      mode: currentMode.value,
       config: {
         type: currentMode.value,
         fields: uploadedFields.value,

@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import type { CalendarInstance, ElDrawer, TabsPaneContext } from 'element-plus'
 import { ref } from 'vue'
-import MyCustomCard from '~/components/MyCustomCard.vue'
-import trans from '~/components/trans.vue'
+import MyCustomCard from '~/demo/components/MyCustomCard.vue'
+import trans from '~/demo/components/trans.vue'
 
 declare global {
   interface Window {

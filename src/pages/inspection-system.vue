@@ -4,5 +4,5 @@
 </template>
 
 <script setup lang="ts">
-import InspectionLayout from '@/components/layouts/InspectionLayout.vue'
+import InspectionLayout from '~/demo/components/layouts/InspectionLayout.vue'
 </script>
