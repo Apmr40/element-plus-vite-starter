@@ -174,6 +174,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/workbench/': RouteRecordInfo<
+      '/workbench/',
+      '/workbench',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -316,6 +323,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/nav/4.vue': {
       routes:
         | '/nav/4'
+      views:
+        | never
+    }
+    'src/pages/workbench/index.vue': {
+      routes:
+        | '/workbench/'
       views:
         | never
     }

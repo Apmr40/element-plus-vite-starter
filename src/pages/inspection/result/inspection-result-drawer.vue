@@ -345,17 +345,17 @@ const toggleCompliantItems = () => {
 
 .section-card {
   background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-radius: var(--uops-radius-card-sm, 8px);
+  box-shadow: var(--uops-shadow-card-small);
 
   .card-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-weight: 500;
     font-size: 16px;
     color: #2f2e4b;
-    padding: 12px 16px;
+    padding: 16px;
 
     .warning-title {
       color: #f13039;
@@ -364,7 +364,7 @@ const toggleCompliantItems = () => {
     .compliant-title {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       cursor: pointer;
       color: #91969d;
 
@@ -392,15 +392,15 @@ const toggleCompliantItems = () => {
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
     padding: 16px;
-    border-bottom: 1px solid #e8e9eb;
+    border-bottom: 1px solid var(--el-border-color-light, #e8e9eb);
 
     .info-item {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 10px;
 
       .info-label {
-        font-size: 13px;
+        font-size: 12px;
         color: #91969d;
       }
 
@@ -430,9 +430,9 @@ const toggleCompliantItems = () => {
 
   .non-compliant-list {
     .nc-item-card {
-      border: 1px solid #e8e9eb;
+      border: 1px solid var(--el-border-color-light, #e8e9eb);
       border-left: 4px solid #f13039;
-      border-radius: 4px;
+      border-radius: var(--uops-radius-input, 4px);
       padding: 16px;
       margin-bottom: 16px;
       background: #fff;
@@ -440,8 +440,8 @@ const toggleCompliantItems = () => {
       .nc-item-header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 12px;
+        gap: 16px;
+        margin-bottom: 16px;
 
         .nc-icon {
           color: #f13039;
@@ -470,10 +470,10 @@ const toggleCompliantItems = () => {
       }
 
       .nc-reason {
-        margin-bottom: 12px;
-        padding: 12px;
-        background: #fff1f0;
-        border-radius: 4px;
+        margin-bottom: 16px;
+        padding: 16px;
+        background: var(--uops-bg-card-small, #f3f6f9);
+        border-radius: var(--uops-radius-input, 4px);
 
         .nc-reason-label {
           font-weight: 500;
@@ -482,17 +482,17 @@ const toggleCompliantItems = () => {
 
         .nc-reason-text {
           color: #f13039;
-          margin-left: 4px;
+          margin-left: 8px;
         }
       }
 
       .nc-datasource {
-        margin-bottom: 12px;
-        padding: 8px 12px;
-        background: #f8f9fc;
-        border-radius: 4px;
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
+        margin-bottom: 16px;
+        padding: 10px 16px;
+        background: var(--uops-bg-list-nested, #f8f9fc);
+        border-radius: var(--uops-radius-input, 4px);
+        font-family: var(--uops-font-family-mono, 'Courier New', monospace);
+        font-size: 12px;
         color: #3b5369;
 
         .nc-datasource-label {
@@ -510,17 +510,17 @@ const toggleCompliantItems = () => {
   .compliant-list {
     .compliant-item {
       margin-bottom: 16px;
-      padding: 12px;
-      border: 1px solid #e8e9eb;
-      border-left: 4px solid #e8e9eb;
-      border-radius: 4px;
+      padding: 16px;
+      border: 1px solid var(--el-border-color-light, #e8e9eb);
+      border-left: 4px solid var(--el-border-color-light, #e8e9eb);
+      border-radius: var(--uops-radius-input, 4px);
       background: #fff;
 
       .compliant-header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 8px;
+        gap: 16px;
+        margin-bottom: 10px;
 
         .compliant-rulename {
           font-size: 14px;
@@ -534,13 +534,13 @@ const toggleCompliantItems = () => {
 
         .compliant-status-tag {
           font-size: 12px;
-          background: #f5f5f5;
+          background: var(--uops-bg-list-header, #f3f5fa);
         }
       }
 
       .compliant-datasource {
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
+        font-family: var(--uops-font-family-mono, 'Courier New', monospace);
+        font-size: 12px;
         color: #91969d;
 
         .compliant-datasource-label {
@@ -548,7 +548,7 @@ const toggleCompliantItems = () => {
         }
 
         .compliant-datasource-info {
-          margin-left: 12px;
+          margin-left: 16px;
         }
       }
     }
@@ -562,16 +562,16 @@ const toggleCompliantItems = () => {
       border-collapse: collapse;
 
       th, td {
-        padding: 12px;
+        padding: 16px;
         text-align: center;
-        border-bottom: 1px solid #e8e9eb;
+        border-bottom: 1px solid var(--el-border-color-light, #e8e9eb);
       }
 
       th {
         font-weight: 500;
         font-size: 14px;
         color: #25303c;
-        background: #f3f5fa;
+        background: var(--uops-bg-list-header, #f3f5fa);
       }
 
       .history-cell {
@@ -584,20 +584,20 @@ const toggleCompliantItems = () => {
         }
 
         &.history-diff {
-          background: #fffbe6;
+          background: var(--uops-bg-card-small, #f3f6f9);
         }
       }
     }
 
     .history-tip {
-      margin-top: 12px;
-      padding: 8px 12px;
-      background: #fffbe6;
-      border-radius: 4px;
+      margin-top: 16px;
+      padding: 10px 16px;
+      background: var(--uops-bg-card-small, #f3f6f9);
+      border-radius: var(--uops-radius-input, 4px);
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 13px;
+      gap: 10px;
+      font-size: 12px;
       color: #ffb100;
 
       .tip-icon {

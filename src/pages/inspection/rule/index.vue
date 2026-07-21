@@ -418,9 +418,9 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-    padding: 12px;
-    background: #f8f9fc;
-    border-radius: 8px;
+    padding: 16px;
+    background: var(--uops-bg-list-nested, #f8f9fc);
+    border-radius: var(--uops-radius-card-sm, 8px);
 
     :deep(.el-space) {
       flex-wrap: wrap;
@@ -428,7 +428,7 @@ onMounted(() => {
 
     .filter-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
     }
   }
 

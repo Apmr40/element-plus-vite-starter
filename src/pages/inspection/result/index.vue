@@ -175,9 +175,9 @@
                   :title="item.name"
                   :value="item.value"
                   :value-style="{
-                    color: item.name === 'Java' ? '#409EFF' : item.name === 'Python' ? '#67C23A' : item.name === 'Go' ? '#E6A23C' : '#909399'
+                    color: item.name === 'Java' ? '#3290FF' : item.name === 'Python' ? '#00C771' : item.name === 'Go' ? '#FFB100' : '#91969D'
                   }"
-                  style="margin-right: 16px; margin-bottom: 8px"
+                  style="margin-right: 16px; margin-bottom: 10px"
                 />
               </div>
             </el-card>
@@ -398,9 +398,9 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-    padding: 12px;
-    background: #f8f9fc;
-    border-radius: 8px;
+    padding: 16px;
+    background: var(--uops-bg-list-nested, #f8f9fc);
+    border-radius: var(--uops-radius-card-sm, 8px);
 
     :deep(.el-space) {
       flex-wrap: wrap;
@@ -408,7 +408,7 @@ onMounted(() => {
 
     .filter-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
     }
   }
 
@@ -448,14 +448,14 @@ onMounted(() => {
       .stat-title {
         font-size: 14px;
         color: #91969d;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
 
       .stat-value {
-        font-size: 32px;
+        font-size: 24px;
         font-weight: 500;
         color: #2f2e4b;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
 
       .stat-trend {
@@ -463,7 +463,7 @@ onMounted(() => {
         color: #00c771;
 
         .el-icon {
-          margin-right: 4px;
+          margin-right: 10px;
         }
       }
     }
@@ -472,9 +472,9 @@ onMounted(() => {
   .drawer-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 10px;
     padding-top: 16px;
-    border-top: 1px solid #e8e9eb;
+    border-top: 1px solid var(--el-border-color-light, #e8e9eb);
   }
 }
 </style>

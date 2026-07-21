@@ -436,7 +436,7 @@ onMounted(() => {
     .card-title {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       font-weight: 500;
       font-size: 16px;
       color: #2f2e4b;
@@ -447,12 +447,12 @@ onMounted(() => {
     }
 
     .role-card {
-      margin-bottom: 12px;
+      margin-bottom: 16px;
 
       .role-card-header {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 16px;
 
         .role-name {
           font-weight: 500;
@@ -463,25 +463,25 @@ onMounted(() => {
 
       .role-description {
         color: #3b5369;
-        margin-bottom: 12px;
+        margin-bottom: 16px;
       }
 
       .role-actions {
         display: flex;
-        gap: 8px;
+        gap: 10px;
       }
     }
 
     .custom-roles-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 12px;
+      gap: 16px;
     }
   }
 
   .empty-state {
     text-align: center;
-    padding: 48px 0;
+    padding: 40px 0;
 
     .el-empty {
       margin-bottom: 16px;

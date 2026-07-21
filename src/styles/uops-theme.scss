@@ -22,22 +22,29 @@
   --el-color-success: #00c771; /* 成功 */
   --el-color-warning: #ffb100; /* 警告 */
   --el-color-danger: #f13039; /* 严重警告、失败 */
-  --el-color-info: #91969d; /* 映射文档中的“特殊内容文字”灰，或保持默认 */
+  --el-color-info: #3290ff; /* 等待中 */
+  --uops-color-disabled: #ccd3dc; /* 失效 */
+  --uops-color-link: #1677ff; /* 超链接 */
 
   /* --- 03/中性色 - 文字 (Text Color) [cite: 30, 32-42] --- */
   --el-text-color-primary: #25303c; /* 标题文字 */
   --el-text-color-regular: #2f2e4b; /* 正文文字 (Element默认正文) */
   --el-text-color-secondary: #3b5369; /* 次级文字 */
+  --uops-text-color-special: #7c9cb4; /* 特殊内容文字 */
   --el-text-color-placeholder: #91969d; /* 辅助/占位文字 */
-  --el-text-color-disabled: #d2dde5; /* 禁用文字/边框复用 */
+  --el-text-color-disabled: #a4b4bc; /* 禁用文字 */
 
   /* --- 03/中性色 - 边框与背景 (Border & Bg) [cite: 44-57] --- */
   --el-border-color: #d2dde5; /* 边框色 [cite: 51] */
   --el-border-color-light: #e8e9eb; /* 分割线 [cite: 50] */
   --el-fill-color-blank: #ffffff; /* 基础白色 */
 
-  /* 输入框背景色 [cite: 57] */
-  --uops-bg-input: #f2f4fb;
+  /* 背景色定义 [cite: 52-57] */
+  --uops-bg-input: #f2f4fb; /* 输入框背景色 */
+  --uops-bg-card-large: #f0f7ff; /* 大卡背景色 */
+  --uops-bg-card-small: #f3f6f9; /* 小卡背景色 */
+  --uops-bg-list-header: #f3f5fa; /* 列表表头 */
+  --uops-bg-list-nested: #f8f9fc; /* 列表嵌套 */
 
   /* --- 2.2 字体规范 (Fonts) [cite: 80-86] --- */
   /* 注意：需自行引入 'FangZhengLanTingHei' 字体文件 */
@@ -76,6 +83,37 @@
    SCSS 变量与 Mixins (供开发中使用)
    ========================================================== */
 
+/* 颜色变量 (Colors) */
+$uops-primary-color: #3290ff;
+$uops-primary-color-light: rgba($uops-primary-color, 0.1);
+$uops-success-color: #00c771;
+$uops-warning-color: #ffb100;
+$uops-danger-color: #f13039;
+$uops-error-color: #f13039;
+
+/* 文字颜色 */
+$uops-text-primary: #25303c;
+$uops-text-regular: #2f2e4b;
+$uops-text-secondary: #3b5369;
+$uops-text-placeholder: #91969d;
+
+/* 边框与背景 */
+$uops-border-color: #d2dde5;
+$uops-bg-color: #f3f6f9;
+$uops-bg-nested: #f8f9fc;
+
+/* 圆角变量 (Radius) */
+$uops-radius-sm: 4px;
+$uops-radius-md: 8px;
+$uops-radius-lg: 16px;
+
+/* 间距变量 (Spacing) */
+$uops-spacing-xs: 4px;
+$uops-spacing-sm: 8px;
+$uops-spacing-md: 12px;
+$uops-spacing-lg: 16px;
+$uops-spacing-xl: 24px;
+
 /* 图表色系列 (Chart Colors) [cite: 60-79] */
 $chart-colors: (
   1: #3290ff,
@@ -99,10 +137,10 @@ $font-size-base: 14px; /* 正文 */
 $font-size-label: 12px; /* 标签文字 */
 
 /* 背景色定义 [cite: 52-56] */
-$bg-card-large: #f0f7ff; /* 大卡背景色 */
-$bg-card-small: #f3f6f9; /* 小卡背景色 */
-$bg-list-header: #f3f5fa; /* 列表表头 */
-$bg-list-nested: #f8f9fc; /* 列表嵌套 */
+$bg-card-large: var(--uops-bg-card-large); /* 大卡背景色 */
+$bg-card-small: var(--uops-bg-card-small); /* 小卡背景色 */
+$bg-list-header: var(--uops-bg-list-header); /* 列表表头 */
+$bg-list-nested: var(--uops-bg-list-nested); /* 列表嵌套 */
 
 /* ==========================================================
    全局工具类 (Utility Classes)

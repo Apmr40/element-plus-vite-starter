@@ -1,6 +1,9 @@
 // import dark theme
 @use 'element-plus/theme-chalk/src/dark/css-vars.scss' as *;
 
+// UOPS 设计规范变量
+@use './uops-theme.scss';
+
 // :root {
 //   --ep-color-primary: red;
 // }

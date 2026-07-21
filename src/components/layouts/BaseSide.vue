@@ -11,6 +11,7 @@ import {
   Lock,
   Switch,
   Tools,
+  SetUp,
 } from '@element-plus/icons-vue'
 
 // const isCollapse = ref(true)
@@ -133,6 +134,11 @@ function handleClose(key: string, keyPath: string[]) {
     <el-menu-item index="/api-config">
       <el-icon><Tools /></el-icon>
       <template #title>操作资源配置</template>
+    </el-menu-item>
+
+    <el-menu-item index="/workbench">
+      <el-icon><SetUp /></el-icon>
+      <template #title>操作工作台</template>
     </el-menu-item>
   </el-menu>
 </template>

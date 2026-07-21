@@ -401,9 +401,9 @@ onMounted(() => {
 .level-item {
   margin-bottom: 24px;
   padding: 16px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  border: 1px solid #e8e8e8;
+  background: var(--uops-bg-list-nested, #f8f9fc);
+  border-radius: var(--el-border-radius-base, 4px);
+  border: 1px solid var(--el-border-color-light, #e8e9eb);
 }
 
 .level-header {
@@ -416,7 +416,7 @@ onMounted(() => {
 .level-title {
   font-weight: 600;
   font-size: 14px;
-  color: #333;
+  color: var(--el-text-color-primary, #25303c);
 }
 
 .table-selector {
@@ -429,24 +429,24 @@ onMounted(() => {
 }
 
 .table-selector :deep(.el-table th) {
-  background-color: #f5f7fa;
-  color: #333;
+  background-color: var(--uops-bg-list-header, #f3f5fa);
+  color: var(--el-text-color-primary, #25303c);
   font-weight: 600;
   font-size: 14px;
   height: 48px;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid var(--el-border-color-light, #e8e9eb);
 }
 
 .table-selector :deep(.el-table td) {
   padding: 12px 0;
-  border-bottom: 1px solid #e8e8e8;
-  color: #333;
+  border-bottom: 1px solid var(--el-border-color-light, #e8e9eb);
+  color: var(--el-text-color-regular, #2f2e4b);
   font-size: 14px;
 }
 
 .table-selector :deep(.el-table--border) {
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
+  border: 1px solid var(--el-border-color-light, #e8e9eb);
+  border-radius: var(--el-border-radius-base, 4px);
   overflow: hidden;
 }
 
@@ -457,7 +457,7 @@ onMounted(() => {
 }
 
 .level-disabled {
-  color: #999;
+  color: var(--el-text-color-placeholder, #a4b4bc);
 }
 
 :deep(.el-step__title) {

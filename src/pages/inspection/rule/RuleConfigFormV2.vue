@@ -427,9 +427,9 @@ onMounted(() => {
 
   .legacy-form {
     padding: 24px;
-    background: #fafbfc;
-    border-radius: 8px;
-    border: 1px dashed #d2dde5;
+    background: var(--uops-bg-list-nested, #f8f9fc);
+    border-radius: var(--uops-radius-card-sm, 8px);
+    border: 1px dashed var(--el-border-color, #d2dde5);
   }
 
   .mode-switch-container {
@@ -472,22 +472,22 @@ onMounted(() => {
   .step-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 10px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid #e8e9eb;
+    border-top: 1px solid var(--el-border-color-light, #e8e9eb);
   }
 
   .test-section {
   }
 
   .card-header {
-    font-weight: 600;
+    font-weight: 500;
   }
 
   .test-run {
     .el-button {
-      margin-right: 8px;
+      margin-right: 10px;
     }
   }
 
@@ -508,7 +508,7 @@ onMounted(() => {
     justify-content: flex-end;
     margin-top: 16px;
     padding-top: 16px;
-    border-top: 1px solid #e8e9eb;
+    border-top: 1px solid var(--el-border-color-light, #e8e9eb);
   }
 }
 </style>

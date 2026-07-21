@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import CascadePreviewModal from '~/demo/components/CascadePreviewModal.vue'
 
 // 字段配置接口
 interface FieldConfig {
@@ -913,34 +914,35 @@ function previewLevel(index: number) {
 }
 
 .sql-result pre {
-  background: #f5f7fa;
-  padding: 15px;
-  border-radius: 4px;
+  background: var(--uops-bg-list-header, #f3f5fa);
+  padding: 16px;
+  border-radius: var(--uops-radius-input, 4px);
   overflow-x: auto;
   font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   max-height: 400px;
   overflow-y: auto;
+  color: var(--el-text-color-regular, #2f2e4b);
 }
 
 /* 表格边框样式 */
 :deep(.el-table) {
-  margin-bottom: 20px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  margin-bottom: 24px;
+  border: 1px solid var(--el-border-color, #d2dde5);
+  border-radius: var(--uops-radius-input, 4px);
   overflow: hidden;
 }
 
 :deep(.el-table th) {
-  background-color: #f5f7fa;
-  color: #606266;
-  font-weight: 600;
-  border-bottom: 1px solid #dcdfe6;
+  background-color: var(--uops-bg-list-header, #f3f5fa);
+  color: var(--el-text-color-regular, #2f2e4b);
+  font-weight: 500;
+  border-bottom: 1px solid var(--el-border-color, #d2dde5);
 }
 
 :deep(.el-table td) {
-  border-bottom: #ebeef5;
+  border-bottom-color: var(--el-border-color-light, #e8e9eb);
 }
 
 :deep(.el-table--border) {
@@ -948,11 +950,11 @@ function previewLevel(index: number) {
 }
 
 :deep(.el-table--border th) {
-  border-right: #dcdfe6;
+  border-right: var(--el-border-color, #d2dde5);
 }
 
 :deep(.el-table--border td) {
-  border-right: #ebeef5;
+  border-right-color: var(--el-border-color-light, #e8e9eb);
 }
 
 /* 拖拽手柄样式 */
@@ -961,13 +963,13 @@ function previewLevel(index: number) {
   align-items: center;
   justify-content: center;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: var(--uops-radius-input, 4px);
   transition: all 0.2s;
 }
 
 .drag-handle:hover {
-  background-color: #f5f7fa;
-  color: #409eff;
+  background-color: var(--uops-bg-list-header, #f3f5fa);
+  color: var(--el-color-primary, #3290ff);
 }
 
 .drag-handle:active {
@@ -975,8 +977,8 @@ function previewLevel(index: number) {
 }
 
 .drag-handle.drag-over {
-  background-color: #ecf5ff;
-  color: #409eff;
+  background-color: var(--uops-bg-card-large, #f0f7ff);
+  color: var(--el-color-primary, #3290ff);
   transform: scale(1.1);
 }
 
@@ -987,16 +989,16 @@ function previewLevel(index: number) {
   justify-content: center;
   width: 28px;
   height: 28px;
-  background-color: #f5f7fa;
+  background-color: var(--uops-bg-list-header, #f3f5fa);
   border-radius: 50%;
-  font-weight: 600;
-  color: #606266;
+  font-weight: 500;
+  color: var(--el-text-color-regular, #2f2e4b);
   font-size: 14px;
 }
 
 /* 拖拽中的行样式 */
 :deep(.el-table__row.dragging) {
   opacity: 0.5;
-  background-color: #f5f7fa;
+  background-color: var(--uops-bg-list-header, #f3f5fa);
 }
 </style>

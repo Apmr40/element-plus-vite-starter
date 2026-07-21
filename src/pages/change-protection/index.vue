@@ -2281,7 +2281,7 @@ function showTransactionDetail(detail: string) {
 }
 
 .top-row {
-  margin: 12px;
+  margin: 16px;
 }
 
 .control-row {
@@ -2302,7 +2302,7 @@ function showTransactionDetail(detail: string) {
 .button-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 16px;
 }
 
 .button-group .ep-button {
@@ -2316,16 +2316,16 @@ function showTransactionDetail(detail: string) {
   border-radius: var(--uops-radius-card-md);
   background-color: var(--el-fill-color-blank);
   /* 覆盖 Element 默认 shadow，应用规范中的阴影 */
-  box-shadow: 0px 4px 24px rgba(154, 172, 193, 0.23);
+  box-shadow: var(--uops-shadow-card-small);
   overflow: hidden; /* 确保圆角不被子元素遮挡 */
 }
 
 /* --- 顶部列表/日历样式 --- */
 .uops-bg-card-small {
   height: 100%;
-  border-radius: 16px !important; /* 设置16px圆角 */
-  background-color: #f3f6f9; /* 使用小卡片背景色 $bg-card-small */
-  box-shadow: 0px 4px 24px rgba(154, 172, 193, 0.23); /* 使用小卡片阴影 .uops-shadow-sm */
+  border-radius: var(--uops-radius-card-md) !important; /* 设置16px圆角 */
+  background-color: var(--uops-bg-card-small); /* 使用小卡片背景色 */
+  box-shadow: var(--uops-shadow-card-small); /* 使用小卡片阴影 */
 
   /* 必须使用深度选择器来定位卡片内部的 header 元素 */
   :deep(.ep-card__header) {
@@ -2367,7 +2367,7 @@ function showTransactionDetail(detail: string) {
 }
 
 .sidebar-search {
-  padding-bottom: 8px;
+  padding-bottom: 10px;
 
   /* 输入框背景色适配  */
   :deep(.el-input__wrapper) {
@@ -2409,7 +2409,7 @@ function showTransactionDetail(detail: string) {
   font-weight: normal;
   color: #ffffff; /* 主色 [cite: 14] */
   background-color: var(--el-color-primary) !important; /* 主色 [cite: 14] */
-  border-radius: 10px;
+  border-radius: var(--uops-radius-card-sm);
   border: none;
   height: 18px;
   width: 18px;
@@ -2452,7 +2452,7 @@ function showTransactionDetail(detail: string) {
 
 .day-header {
   background-color: #f3f5fa; /* 列表表头色  */
-  padding: 12px 0;
+  padding: 16px 0;
   font-weight: bold;
   font-size: 14px;
   color: var(--el-text-color-secondary); /* 次要文字 [cite: 40] */
@@ -2463,7 +2463,7 @@ function showTransactionDetail(detail: string) {
   flex-direction: column;
   align-items: flex-start;
   background-color: #fff;
-  padding: 8px;
+  padding: 10px;
   cursor: pointer;
   font-size: 12px;
   position: relative;
@@ -2499,12 +2499,12 @@ function showTransactionDetail(detail: string) {
 .activity-count {
   position: absolute;
   bottom: 4px;
-  right: 6px;
-  font-size: 10px;
+  right: 8px;
+  font-size: 12px;
   color: #fff;
   background-color: var(--el-color-primary);
   border-radius: 8px;
-  padding: 0 6px;
+  padding: 0 8px;
   height: 16px;
   line-height: 16px;
   text-align: center;
@@ -2519,7 +2519,7 @@ function showTransactionDetail(detail: string) {
   background-color: #fff;
   border: 1px solid var(--el-border-color);
   border-radius: var(--el-border-radius-base);
-  padding: 16px 8px;
+  padding: 16px 10px;
   position: relative;
   box-shadow: var(--uops-shadow-sm); /* 小卡片阴影  */
 }
@@ -2529,7 +2529,7 @@ function showTransactionDetail(detail: string) {
   height: 32px;
   background-color: #f3f6f9; /* 小卡背景色/轨道背景 [cite: 53] */
   border-radius: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .activity-segment {
@@ -2538,7 +2538,7 @@ function showTransactionDetail(detail: string) {
   bottom: 4px;
   background-color: var(--el-color-primary-light-3); /* 悬停/浅色 [cite: 16] */
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: var(--uops-radius-input);
   transition: all 0.2s;
 }
 
@@ -2557,7 +2557,7 @@ function showTransactionDetail(detail: string) {
   height: 24px;
   position: relative;
   border-top: 1px solid var(--el-border-color-light);
-  padding-top: 8px;
+  padding-top: 10px;
 }
 
 .hour-label {
@@ -2686,7 +2686,7 @@ function showTransactionDetail(detail: string) {
 .diag-card:hover {
   transform: translateY(-2px);
   /* 悬停阴影加深 */
-  box-shadow: 0px 8px 30px rgba(154, 172, 193, 0.4);
+  box-shadow: var(--uops-shadow-card-small);
 }
 
 .diag-card.status-success {
@@ -2704,11 +2704,11 @@ function showTransactionDetail(detail: string) {
 .diag-title {
   font-size: 14px;
   color: var(--el-text-color-secondary); /* 辅助文字颜色 */
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .diag-value {
-  font-size: 28px; /* 加大数字字号 */
+  font-size: 24px; /* 加大数字字号 */
   font-family: '方正兰亭中黑简体';
   font-weight: bold;
   color: var(--el-text-color-primary);
@@ -2721,7 +2721,7 @@ function showTransactionDetail(detail: string) {
 }
 
 .filter-card {
-  padding-bottom: 8px;
+  padding-bottom: 10px;
 }
 
 .filter-item-col {
@@ -2731,7 +2731,7 @@ function showTransactionDetail(detail: string) {
 .filter-label {
   font-size: 14px;
   color: var(--el-text-color-regular);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-weight: bold;
 }
 

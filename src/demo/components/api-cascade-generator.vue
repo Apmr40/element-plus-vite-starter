@@ -417,7 +417,7 @@ function copySQL() {
 
 <style scoped>
 .api-form-generator {
-  padding: 20px;
+  padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -428,26 +428,28 @@ function copySQL() {
   align-items: center;
   font-size: 18px;
   font-weight: bold;
+  color: var(--el-text-color-primary, #25303c);
 }
 
 .sql-result {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .sql-result pre {
-  background: #f5f7fa;
-  padding: 15px;
-  border-radius: 4px;
+  background: var(--uops-bg-list-header, #f3f5fa);
+  padding: 16px;
+  border-radius: var(--el-border-radius-base, 4px);
   overflow-x: auto;
   font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   max-height: 400px;
   overflow-y: auto;
+  color: var(--el-text-color-regular, #2f2e4b);
 }
 
 :deep(.el-table) {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 :deep(.el-input-number) {

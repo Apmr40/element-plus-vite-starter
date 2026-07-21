@@ -292,31 +292,31 @@ defineExpose({
   .brick-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    padding: 8px;
+    gap: 10px;
+    padding: 10px;
     
     .brick-item {
       display: flex;
       align-items: center;
-      padding: 8px 12px;
+      padding: 10px 16px;
       background: #ffffff;
-      border: 1px solid #e8e9eb;
-      border-radius: 8px;
+      border: 1px solid var(--el-border-color-light);
+      border-radius: var(--uops-radius-card-sm);
       cursor: grab;
       transition: all 0.3s;
       
       &:hover {
-        border-color: #3290ff;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: var(--el-color-primary);
+        box-shadow: var(--uops-shadow-card-small);
       }
       
       .brick-icon {
-        margin-right: 8px;
+        margin-right: 10px;
       }
       
       .brick-label {
         font-size: 12px;
-        color: #2f2e4b;
+        color: var(--el-text-color-primary);
         font-weight: 500;
       }
     }
@@ -329,12 +329,12 @@ defineExpose({
     .toolbox-header {
       display: flex;
       align-items: center;
-      font-weight: 600;
-      color: #25303c;
-      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      margin-bottom: 10px;
       
       .el-icon {
-        margin-right: 8px;
+        margin-right: 10px;
         font-size: 16px;
       }
     }
@@ -342,14 +342,14 @@ defineExpose({
 
   .field-list {
     .field-item {
-      margin-right: 8px;
-      margin-bottom: 8px;
+      margin-right: 10px;
+      margin-bottom: 10px;
       cursor: grab;
       transition: all 0.3s;
       
       &:hover {
-        color: #3290ff;
-        border-color: #3290ff;
+        color: var(--el-color-primary);
+        border-color: var(--el-color-primary);
       }
     }
   }
@@ -358,25 +358,25 @@ defineExpose({
     .function-item {
       display: flex;
       align-items: center;
-      padding: 8px 12px;
-      margin-bottom: 4px;
-      background: #f8f9fc;
-      border-radius: 4px;
+      padding: 10px 16px;
+      margin-bottom: 10px;
+      background: var(--uops-bg-list-nested);
+      border-radius: var(--uops-radius-input);
       cursor: grab;
       transition: all 0.3s;
       
       &:hover {
-        background: #f0f7ff;
+        background: var(--uops-bg-card-large);
       }
       
       .el-icon {
-        margin-right: 8px;
-        color: #9e85ff;
+        margin-right: 10px;
+        color: var(--uops-chart-color-5);
       }
       
       span {
         font-size: 12px;
-        color: #2f2e4b;
+        color: var(--el-text-color-primary);
       }
       
       .func-args {
