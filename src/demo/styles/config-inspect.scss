@@ -1,0 +1,122 @@
+/* ==========================================================
+   配置巡检模块 - 共享样式
+   基于 UOPS 一体化生产运维平台设计规范 v1.0
+   ========================================================== */
+
+:root {
+  /* 模块级阴影令牌（规范 2.5 阴影规范） */
+  --ci-shadow-card: 0px 4px 24px rgba(154, 172, 193, 0.23); /* 小卡片阴影 */
+  --ci-shadow-dropdown: 0px 2px 8px rgba(37, 48, 60, 0.18); /* 下拉框阴影 */
+}
+
+/* ---- 页面入场动画 ---- */
+@keyframes ci-fade-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ci-page {
+  animation: ci-fade-slide-in 0.3s ease;
+}
+
+/* ---- 卡片容器（小卡片：8px 圆角 + 规范阴影） ---- */
+.ci-card {
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--uops-radius-card-sm);
+  box-shadow: var(--ci-shadow-card);
+  padding: 12px;
+}
+
+/* ---- 筛选栏（大卡背景色） ---- */
+.ci-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--uops-bg-card-large);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: var(--uops-radius-card-sm);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ci-filter-items {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ci-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ---- 表格分页脚 ---- */
+.ci-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding: 0 4px;
+}
+.ci-table-total {
+  font-size: 12px; /* 标签文字 */
+  color: var(--el-text-color-placeholder);
+}
+
+/* ---- 详情弹窗区块标题（小标题 16px） ---- */
+.ci-section-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 12px;
+}
+.ci-section-dot {
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--el-color-primary);
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.ci-section-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-placeholder);
+  margin-left: 8px;
+}
+
+/* ---- 机器卡片（策略/计划详情共用） ---- */
+.ci-machine-card {
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color);
+  border-radius: var(--uops-radius-card-sm);
+  padding: 10px 12px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.ci-machine-card:hover {
+  border-color: var(--el-color-primary);
+  box-shadow: 0 2px 8px rgba(50, 144, 255, 0.15);
+  transform: translateY(-1px);
+}
+.ci-machine-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ci-machine-ip {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin: 4px 0;
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+/* ---- 等宽字体 ---- */
+.ci-mono {
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
