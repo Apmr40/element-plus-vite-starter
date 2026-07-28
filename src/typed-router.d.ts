@@ -44,6 +44,44 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/config-inspect': RouteRecordInfo<
+      '/config-inspect',
+      '/config-inspect',
+      Record<never, never>,
+      Record<never, never>,
+      | '/config-inspect/'
+      | '/config-inspect/plan/'
+      | '/config-inspect/result/'
+      | '/config-inspect/strategy/'
+    >,
+    '/config-inspect/': RouteRecordInfo<
+      '/config-inspect/',
+      '/config-inspect',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/config-inspect/plan/': RouteRecordInfo<
+      '/config-inspect/plan/',
+      '/config-inspect/plan',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/config-inspect/result/': RouteRecordInfo<
+      '/config-inspect/result/',
+      '/config-inspect/result',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/config-inspect/strategy/': RouteRecordInfo<
+      '/config-inspect/strategy/',
+      '/config-inspect/strategy',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/inspection': RouteRecordInfo<
       '/inspection',
       '/inspection',
@@ -209,6 +247,40 @@ declare module 'vue-router/auto-routes' {
     'src/pages/change-protection/index.vue': {
       routes:
         | '/change-protection/'
+      views:
+        | never
+    }
+    'src/pages/config-inspect.vue': {
+      routes:
+        | '/config-inspect'
+        | '/config-inspect/'
+        | '/config-inspect/plan/'
+        | '/config-inspect/result/'
+        | '/config-inspect/strategy/'
+      views:
+        | 'default'
+    }
+    'src/pages/config-inspect/index.vue': {
+      routes:
+        | '/config-inspect/'
+      views:
+        | never
+    }
+    'src/pages/config-inspect/plan/index.vue': {
+      routes:
+        | '/config-inspect/plan/'
+      views:
+        | never
+    }
+    'src/pages/config-inspect/result/index.vue': {
+      routes:
+        | '/config-inspect/result/'
+      views:
+        | never
+    }
+    'src/pages/config-inspect/strategy/index.vue': {
+      routes:
+        | '/config-inspect/strategy/'
       views:
         | never
     }

@@ -7,6 +7,7 @@
 
 // 导出 demo 组件
 export { default as InspectionLayout } from './components/layouts/InspectionLayout.vue'
+export { default as InspectNav } from './components/layouts/InspectNav.vue' // deprecated: 已融入全局BaseSide导航
 export { default as MyCustomCard } from './components/MyCustomCard.vue'
 export { default as Trans } from './components/trans.vue'
 export { default as ApiCascadeGenerator } from './components/api-cascade-generator.vue'
@@ -24,3 +25,4 @@ export * from './types/inspection'
 // 导出 mock 数据（开发环境）
 export * from './mock/data'
 export * from './mock/service'
+export * from './mock/config-inspect'

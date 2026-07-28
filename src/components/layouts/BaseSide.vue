@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useRoute } from 'vue-router'
 import {
   Document,
   Menu as IconMenu,
@@ -14,24 +15,14 @@ import {
   SetUp,
 } from '@element-plus/icons-vue'
 
-// const isCollapse = ref(true)
-function handleOpen(key: string, keyPath: string[]) {
-  // eslint-disable-next-line no-console
-  console.log(key, keyPath)
-}
-function handleClose(key: string, keyPath: string[]) {
-  // eslint-disable-next-line no-console
-  console.log(key, keyPath)
-}
+const route = useRoute()
 </script>
 
 <template>
   <el-menu
     router
-    default-active="1"
+    :default-active="route.path"
     class="el-menu-vertical-demo"
-    @open="handleOpen"
-    @close="handleClose"
   >
     <el-sub-menu index="1">
       <template #title>
@@ -124,6 +115,24 @@ function handleClose(key: string, keyPath: string[]) {
         <el-icon><Lock /></el-icon>
         <span>权限后台</span>
       </el-menu-item>
+      <el-sub-menu index="demo-config-inspect">
+        <template #title>
+          <el-icon><Monitor /></el-icon>
+          <span>配置巡检</span>
+        </template>
+        <el-menu-item index="/config-inspect/strategy">
+          <el-icon><Setting /></el-icon>
+          <span>巡检策略</span>
+        </el-menu-item>
+        <el-menu-item index="/config-inspect/plan">
+          <el-icon><Tickets /></el-icon>
+          <span>巡检计划</span>
+        </el-menu-item>
+        <el-menu-item index="/config-inspect/result">
+          <el-icon><Check /></el-icon>
+          <span>巡检结果</span>
+        </el-menu-item>
+      </el-sub-menu>
     </el-sub-menu>
 
     <el-menu-item index="/change-protection">

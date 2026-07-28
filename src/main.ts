@@ -23,6 +23,7 @@ import 'element-plus/theme-chalk/src/overlay.scss' // the modal class for messag
 // Demo 模块样式（应用配置巡检系统）
 import '~/demo/styles/inspection.scss'
 import '~/demo/styles/inspection-system.scss'
+import '~/demo/styles/config-inspect.scss'
 
 // if you do not need ssg:
 // import { createApp } from "vue";
