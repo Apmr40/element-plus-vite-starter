@@ -86,7 +86,7 @@
   display: flex;
   gap: $uops-spacing-md;
   margin-left: $uops-spacing-xl;
-  
+
   .source-tab {
     display: flex;
     align-items: center;
@@ -98,21 +98,21 @@
     font-size: 14px;
     color: $uops-text-secondary;
     background: $uops-bg-color;
-    
+
     &:hover {
       background: $uops-primary-color-light;
       color: $uops-primary-color;
     }
-    
+
     &.active {
       background: $uops-primary-color;
       color: white;
-      
+
       .el-icon {
         color: white;
       }
     }
-    
+
     .el-icon {
       font-size: 16px;
     }
@@ -161,11 +161,11 @@
   align-items: center;
   border-bottom: 1px solid $uops-border-color;
   margin-bottom: $uops-spacing-lg;
-  
+
   .custom-tabs {
     display: flex;
     gap: $uops-spacing-xl;
-    
+
     .custom-tab-item {
       position: relative;
       padding: $uops-spacing-md 0;
@@ -173,15 +173,15 @@
       color: $uops-text-secondary;
       cursor: pointer;
       transition: color 0.2s;
-      
+
       &:hover {
         color: $uops-primary-color;
       }
-      
+
       &.active {
         color: $uops-primary-color;
         font-weight: 500;
-        
+
         &::after {
           content: '';
           position: absolute;
@@ -194,12 +194,12 @@
       }
     }
   }
-  
+
   .custom-tab-actions {
     display: flex;
     gap: $uops-spacing-md;
     align-items: center;
-    
+
     .custom-tab-btn {
       display: flex;
       align-items: center;
@@ -210,12 +210,12 @@
       cursor: pointer;
       border-radius: $uops-radius-sm;
       transition: all 0.2s;
-      
+
       &:hover {
         color: $uops-primary-color;
         background: $uops-primary-color-light;
       }
-      
+
       .el-icon {
         font-size: 14px;
       }
@@ -246,12 +246,12 @@
   cursor: pointer;
   transition: all 0.2s;
   height: 32px;
-  
+
   &:hover {
     border-color: $uops-primary-color;
     box-shadow: $uops-shadow-sm;
   }
-  
+
   .subcat-icon {
     width: 20px;
     height: 20px;
@@ -264,18 +264,18 @@
     font-size: $font-size-label;
     flex-shrink: 0;
   }
-  
+
   .subcat-info {
     display: flex;
     align-items: center;
     gap: $uops-spacing-xs;
-    
+
     .subcat-name {
       font-size: $font-size-base;
       font-weight: 500;
       color: $uops-text-primary;
     }
-    
+
     .subcat-count {
       font-size: $font-size-label;
       color: $uops-text-secondary;
@@ -292,7 +292,7 @@
     margin-bottom: $uops-spacing-md;
     padding: $uops-spacing-xs 0;
     font-size: 14px;
-    
+
     .breadcrumb-link {
       display: flex;
       align-items: center;
@@ -300,16 +300,16 @@
       color: $uops-primary-color;
       cursor: pointer;
       transition: color 0.2s;
-      
+
       &:hover {
         color: var(--el-color-primary-light-3);
       }
     }
-    
+
     .breadcrumb-sep {
       color: $uops-text-secondary;
     }
-    
+
     .breadcrumb-current {
       color: $uops-text-primary;
       font-weight: 500;
@@ -319,21 +319,21 @@
 
 .operation-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: $uops-spacing-lg;
 }
 
 .operation-card {
   background: white;
   border: 1px solid $uops-border-color;
-  border-radius: $uops-radius-sm;
-  padding: $uops-spacing-lg;
+  border-radius: $uops-radius-md;
+  padding: $uops-spacing-lg $uops-spacing-xl;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: $uops-spacing-md;
-  min-height: 80px;
+  min-height: 104px;
 
   &:hover {
     border-color: $uops-primary-color;
@@ -362,7 +362,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $uops-spacing-xs;
+    gap: $uops-spacing-sm;
+    margin-bottom: $uops-spacing-sm;
   }
 
   .card-title {
@@ -372,6 +373,28 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  // 「正在编辑」文字链（标题区，选项 A：warning 色纯文字+图标，无背景无边框）
+  .editing-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: $font-size-label;
+    color: $uops-warning-color;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    .ep-icon {
+      font-size: $font-size-label;
+    }
   }
 
   .favorite-icon {
@@ -392,8 +415,8 @@
   .card-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: $uops-spacing-xs;
-    margin-bottom: $uops-spacing-xs;
+    gap: 6px;
+    margin-bottom: $uops-spacing-sm;
 
     .el-tag {
       font-size: $font-size-label;
@@ -423,35 +446,24 @@
       }
     }
   }
-  
+
   // 应用定制卡片特殊样式
   &.custom-card {
     position: relative;
-    
-    // 正在编辑标记
-    .editing-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      background: $uops-warning-color;
-      color: white;
-      border-radius: 4px;
-      font-size: $font-size-label;
-      margin-right: 8px;
+
+    // 版本徽章
+    .version-badge {
       flex-shrink: 0;
-      
-      .el-icon {
-        font-size: $font-size-label;
-      }
+      margin-right: 6px;
+      font-family: 'SFMono-Regular', Consolas, monospace;
     }
-    
+
     .update-time {
       font-size: $font-size-label;
       color: $uops-text-secondary;
     }
   }
-  
+
   // 草稿卡片样式
   &.draft-card {
     .update-time {
@@ -471,19 +483,19 @@
   padding: $uops-spacing-md;
   background: $uops-bg-color;
   border-radius: $uops-radius-sm;
-  
+
   .filter-label {
     font-size: 14px;
     color: $uops-text-primary;
     font-weight: 500;
     white-space: nowrap;
   }
-  
+
   .filter-tags {
     display: flex;
     flex-wrap: wrap;
     gap: $uops-spacing-sm;
-    
+
     .filter-tag {
       padding: $uops-spacing-xs $uops-spacing-md;
       font-size: $font-size-base;
@@ -493,12 +505,12 @@
       border-radius: $uops-radius-sm;
       cursor: pointer;
       transition: all 0.2s;
-      
+
       &:hover {
         border-color: $uops-primary-color;
         color: $uops-primary-color;
       }
-      
+
       &.active {
         background: $uops-primary-color;
         color: white;
@@ -933,18 +945,18 @@
   background: $uops-bg-color;
   border-radius: $uops-radius-sm;
   margin-bottom: $uops-spacing-lg;
-  
+
   .batch-info {
     display: flex;
     align-items: center;
     gap: $uops-spacing-lg;
-    
+
     .selected-count {
       font-size: 14px;
       color: $uops-text-regular;
     }
   }
-  
+
   .batch-actions {
     display: flex;
     gap: $uops-spacing-sm;
@@ -954,7 +966,7 @@
 .draft-card {
   position: relative;
   padding-left: 40px; // 为勾选框预留空间
-  
+
   .card-checkbox {
     position: absolute;
     top: 50%;
@@ -962,12 +974,12 @@
     transform: translateY(-50%);
     z-index: 10;
   }
-  
+
   &.selected {
     border-color: $uops-primary-color;
     background: rgba($uops-primary-color, 0.02);
   }
-  
+
   .card-content {
     width: 100%;
   }
@@ -977,21 +989,21 @@
 .publish-dialog-content {
   .publish-info {
     margin-bottom: $uops-spacing-lg;
-    
+
     h4 {
       font-size: 14px;
       color: $uops-text-primary;
       margin-bottom: $uops-spacing-md;
       font-weight: 500;
     }
-    
+
     .draft-list {
       background: $uops-bg-color;
       border-radius: $uops-radius-sm;
       padding: $uops-spacing-md;
       max-height: 200px;
       overflow-y: auto;
-      
+
       .draft-item {
         display: flex;
         align-items: center;
@@ -999,18 +1011,18 @@
         padding: $uops-spacing-xs 0;
         font-size: $font-size-base;
         color: $uops-text-regular;
-        
+
         .el-icon {
           color: $uops-text-secondary;
         }
       }
     }
   }
-  
+
   .publish-form {
     margin-bottom: $uops-spacing-lg;
   }
-  
+
   .workflow-info {
     h4 {
       font-size: 14px;
@@ -1018,7 +1030,7 @@
       margin-bottom: $uops-spacing-md;
       font-weight: 500;
     }
-    
+
     .workflow-steps {
       display: flex;
       align-items: center;
@@ -1027,13 +1039,13 @@
       padding: $uops-spacing-lg;
       background: $uops-bg-color;
       border-radius: $uops-radius-sm;
-      
+
       .step-item {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: $uops-spacing-xs;
-        
+
         .step-icon {
           width: 32px;
           height: 32px;
@@ -1046,13 +1058,13 @@
           font-size: 14px;
           font-weight: 500;
         }
-        
+
         span {
           font-size: $font-size-label;
           color: $uops-text-regular;
         }
       }
-      
+
       .step-arrow {
         font-size: 20px;
         color: $uops-text-secondary;
@@ -1064,7 +1076,7 @@
 // ============ 执行历史抽屉 ============
 .history-drawer-content {
   padding: 0;
-  
+
   .history-tabs {
     display: flex;
     flex-direction: row;
@@ -1073,7 +1085,7 @@
     padding: 0 20px;
     margin-bottom: 0;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-    
+
     .history-tab {
       padding: 14px 28px;
       cursor: pointer;
@@ -1083,12 +1095,12 @@
       margin-bottom: -2px;
       transition: all 0.3s;
       background: white;
-      
+
       &:hover {
         color: $uops-primary-color;
         background: #f5f7fa;
       }
-      
+
       &.active {
         color: $uops-primary-color;
         border-bottom-color: $uops-primary-color;
@@ -1097,31 +1109,31 @@
       }
     }
   }
-  
+
   .history-filters {
     display: flex;
     gap: 12px;
     padding: 16px 20px;
     background: $uops-bg-color;
     border-bottom: 1px solid $uops-border-color;
-    
+
     .el-select,
     .el-input {
       flex: 1;
       min-width: 120px;
     }
   }
-  
+
   .history-list {
     padding: 16px 20px;
-    
+
     .history-record-card {
       background: white;
       border: 1px solid $uops-border-color;
       border-radius: $uops-radius-sm;
       margin-bottom: 12px;
       overflow: hidden;
-      
+
       .record-header {
         display: flex;
         align-items: center;
@@ -1129,34 +1141,34 @@
         padding: 16px;
         cursor: pointer;
         transition: background-color 0.2s;
-        
+
         &:hover {
           background: $uops-bg-color;
         }
-        
+
         .record-main {
           flex: 1;
-          
+
           .record-title {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-bottom: 8px;
-            
+
             .record-name {
               font-size: 15px;
               font-weight: 500;
               color: $uops-text-primary;
             }
           }
-          
+
           .record-meta {
             display: flex;
             align-items: center;
             gap: 16px;
             font-size: 13px;
             color: $uops-text-secondary;
-            
+
             .meta-time {
               display: flex;
               align-items: center;
@@ -1164,35 +1176,35 @@
             }
           }
         }
-        
+
         .expand-icon {
           font-size: 14px;
           color: $uops-text-secondary;
           transition: transform 0.3s;
-          
+
           &.expanded {
             transform: rotate(180deg);
           }
         }
       }
-      
+
       .record-progress {
         padding: 0 16px 12px;
         display: flex;
         align-items: center;
         gap: 12px;
-        
+
         .el-progress {
           flex: 1;
         }
-        
+
         .progress-text {
           font-size: 13px;
           color: $uops-text-secondary;
           white-space: nowrap;
         }
       }
-      
+
       .record-error {
         padding: 8px 16px;
         background: rgba($uops-danger-color, 0.05);
@@ -1202,24 +1214,24 @@
         gap: 8px;
         font-size: 13px;
         color: $uops-danger-color;
-        
+
         .el-icon {
           font-size: 14px;
         }
       }
-      
+
       .record-details {
         padding: 16px;
         border-top: 1px solid $uops-border-color;
         background: $uops-bg-color;
-        
+
         .details-title {
           font-size: 14px;
           font-weight: 500;
           color: $uops-text-primary;
           margin-bottom: 12px;
         }
-        
+
         .resource-list {
           .resource-item {
             background: white;
@@ -1227,7 +1239,7 @@
             border-radius: $uops-radius-sm;
             margin-bottom: 8px;
             overflow: hidden;
-            
+
             .resource-main {
               display: flex;
               align-items: center;
@@ -1235,77 +1247,77 @@
               padding: 12px;
               cursor: pointer;
               transition: background-color 0.2s;
-              
+
               &:hover {
                 background: $uops-bg-color;
               }
-              
+
               .status-icon {
                 font-size: 16px;
-                
+
                 &.status-success {
                   color: $uops-success-color;
                 }
-                
+
                 &.status-failed {
                   color: $uops-danger-color;
                 }
-                
+
                 &.status-running {
                   color: $uops-primary-color;
                   animation: rotate 1s linear infinite;
                 }
-                
+
                 &.status-waiting {
                   color: $uops-text-secondary;
                 }
               }
-              
+
               .resource-name {
                 flex: 1;
                 font-size: 14px;
                 color: $uops-text-primary;
                 font-family: 'Courier New', monospace;
               }
-              
+
               .resource-duration {
                 font-size: 13px;
                 color: $uops-text-secondary;
                 white-space: nowrap;
               }
             }
-            
+
             .resource-detail-expand {
               padding: 12px;
               border-top: 1px solid $uops-border-color;
               background: $uops-bg-color;
-              
+
               .detail-section {
                 margin-bottom: 12px;
-                
+
                 &:last-child {
                   margin-bottom: 0;
                 }
-                
+
                 .section-title {
                   font-size: 13px;
                   font-weight: 500;
                   color: $uops-text-primary;
                   margin-bottom: 8px;
                 }
-                
+
                 .params-list {
                   .param-item {
                     display: flex;
                     gap: 8px;
                     margin-bottom: 4px;
                     font-size: 13px;
-                    
+
                     .param-key {
                       color: $uops-text-secondary;
                       min-width: 120px;
                     }
-                    
+
                     .param-value {
                       color: $uops-text-primary;
                       font-family: 'Courier New', monospace;
@@ -1313,7 +1325,7 @@
                     }
                   }
                 }
-                
+
                 .resource-info-json {
                   background: white;
                   border: 1px solid $uops-border-color;
@@ -1324,7 +1336,7 @@
                   overflow-x: auto;
                   margin: 0;
                 }
-                
+
                 &.error-section {
                   .error-message {
                     padding: 8px 12px;
@@ -1339,7 +1351,7 @@
             }
           }
         }
-        
+
         .record-actions {
           margin-top: 16px;
           display: flex;
@@ -1356,24 +1368,24 @@
   background: white;
   border-bottom: 1px solid $uops-border-color;
   padding: 8px 24px;
-  
+
   .recent-executions-content {
     display: flex;
     align-items: center;
     gap: 12px;
-    
+
     .recent-label {
       font-size: 13px;
       color: $uops-text-secondary;
       white-space: nowrap;
     }
-    
+
     .recent-list {
       display: flex;
       gap: 12px;
       flex: 1;
       overflow-x: auto;
-      
+
       .recent-item {
         display: flex;
         align-items: center;
@@ -1385,29 +1397,29 @@
         cursor: pointer;
         transition: all 0.2s;
         white-space: nowrap;
-        
+
         &:hover {
           background: white;
           border-color: $uops-primary-color;
         }
-        
+
         .status-icon {
           font-size: 14px;
-          
+
           &.status-success {
             color: $uops-success-color;
           }
-          
+
           &.status-failed {
             color: $uops-danger-color;
           }
-          
+
           &.status-running {
             color: $uops-primary-color;
             animation: rotate 1s linear infinite;
           }
         }
-        
+
         .recent-name {
           font-size: 13px;
           color: $uops-text-primary;
@@ -1415,13 +1427,13 @@
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        
+
         .close-icon {
           font-size: 12px;
           color: $uops-text-secondary;
           cursor: pointer;
           transition: color 0.2s;
-          
+
           &:hover {
             color: $uops-danger-color;
           }
@@ -1460,7 +1472,6 @@
     }
   }
 }
-
 
 // ============================================================================
 // 以下规则合并自 index.vue 内联 scoped 样式（组件提取后统一收口于此）。
@@ -1553,7 +1564,7 @@
   display: flex;
   gap: $uops-spacing-md;
   margin-left: $uops-spacing-xl;
-  
+
   .source-tab {
     display: flex;
     align-items: center;
@@ -1565,21 +1576,21 @@
     font-size: 14px;
     color: $uops-text-secondary;
     background: $uops-bg-color;
-    
+
     &:hover {
       background: $uops-primary-color-light;
       color: $uops-primary-color;
     }
-    
+
     &.active {
       background: $uops-primary-color;
       color: white;
-      
+
       .el-icon {
         color: white;
       }
     }
-    
+
     .el-icon {
       font-size: 16px;
     }
@@ -1628,11 +1639,11 @@
   align-items: center;
   border-bottom: 1px solid $uops-border-color;
   margin-bottom: $uops-spacing-lg;
-  
+
   .custom-tabs {
     display: flex;
     gap: $uops-spacing-xl;
-    
+
     .custom-tab-item {
       position: relative;
       padding: $uops-spacing-md 0;
@@ -1640,15 +1651,15 @@
       color: $uops-text-secondary;
       cursor: pointer;
       transition: color 0.2s;
-      
+
       &:hover {
         color: $uops-primary-color;
       }
-      
+
       &.active {
         color: $uops-primary-color;
         font-weight: 500;
-        
+
         &::after {
           content: '';
           position: absolute;
@@ -1661,12 +1672,12 @@
       }
     }
   }
-  
+
   .custom-tab-actions {
     display: flex;
     gap: $uops-spacing-md;
     align-items: center;
-    
+
     .custom-tab-btn {
       display: flex;
       align-items: center;
@@ -1677,12 +1688,12 @@
       cursor: pointer;
       border-radius: $uops-radius-sm;
       transition: all 0.2s;
-      
+
       &:hover {
         color: $uops-primary-color;
         background: $uops-primary-color-light;
       }
-      
+
       .el-icon {
         font-size: 14px;
       }
@@ -1713,12 +1724,12 @@
   cursor: pointer;
   transition: all 0.2s;
   height: 32px;
-  
+
   &:hover {
     border-color: $uops-primary-color;
     box-shadow: $uops-shadow-sm;
   }
-  
+
   .subcat-icon {
     width: 20px;
     height: 20px;
@@ -1731,18 +1742,18 @@
     font-size: $font-size-label;
     flex-shrink: 0;
   }
-  
+
   .subcat-info {
     display: flex;
     align-items: center;
     gap: $uops-spacing-xs;
-    
+
     .subcat-name {
       font-size: $font-size-base;
       font-weight: 500;
       color: $uops-text-primary;
     }
-    
+
     .subcat-count {
       font-size: $font-size-label;
       color: $uops-text-secondary;
@@ -1759,7 +1770,7 @@
     margin-bottom: $uops-spacing-md;
     padding: $uops-spacing-xs 0;
     font-size: 14px;
-    
+
     .breadcrumb-link {
       display: flex;
       align-items: center;
@@ -1767,16 +1778,16 @@
       color: $uops-primary-color;
       cursor: pointer;
       transition: color 0.2s;
-      
+
       &:hover {
         color: var(--el-color-primary-light-3);
       }
     }
-    
+
     .breadcrumb-sep {
       color: $uops-text-secondary;
     }
-    
+
     .breadcrumb-current {
       color: $uops-text-primary;
       font-weight: 500;
@@ -1786,21 +1797,21 @@
 
 .operation-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: $uops-spacing-lg;
 }
 
 .operation-card {
   background: white;
   border: 1px solid $uops-border-color;
-  border-radius: $uops-radius-sm;
-  padding: $uops-spacing-lg;
+  border-radius: $uops-radius-md;
+  padding: $uops-spacing-lg $uops-spacing-xl;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: $uops-spacing-md;
-  min-height: 80px;
+  min-height: 104px;
 
   &:hover {
     border-color: $uops-primary-color;
@@ -1829,7 +1840,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $uops-spacing-xs;
+    gap: $uops-spacing-sm;
+    margin-bottom: $uops-spacing-sm;
   }
 
   .card-title {
@@ -1839,6 +1851,28 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+
+  // 「正在编辑」文字链（标题区，选项 A：warning 色纯文字+图标，无背景无边框）
+  .editing-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: $font-size-label;
+    color: $uops-warning-color;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    .ep-icon {
+      font-size: $font-size-label;
+    }
   }
 
   .favorite-icon {
@@ -1859,8 +1893,8 @@
   .card-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: $uops-spacing-xs;
-    margin-bottom: $uops-spacing-xs;
+    gap: 6px;
+    margin-bottom: $uops-spacing-sm;
 
     .el-tag {
       font-size: $font-size-label;
@@ -1890,35 +1924,24 @@
       }
     }
   }
-  
+
   // 应用定制卡片特殊样式
   &.custom-card {
     position: relative;
-    
-    // 正在编辑标记
-    .editing-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      background: $uops-warning-color;
-      color: white;
-      border-radius: 4px;
-      font-size: $font-size-label;
-      margin-right: 8px;
+
+    // 版本徽章
+    .version-badge {
       flex-shrink: 0;
-      
-      .el-icon {
-        font-size: $font-size-label;
-      }
+      margin-right: 6px;
+      font-family: 'SFMono-Regular', Consolas, monospace;
     }
-    
+
     .update-time {
       font-size: $font-size-label;
       color: $uops-text-secondary;
     }
   }
-  
+
   // 草稿卡片样式
   &.draft-card {
     .update-time {
@@ -1938,19 +1961,19 @@
   padding: $uops-spacing-md;
   background: $uops-bg-color;
   border-radius: $uops-radius-sm;
-  
+
   .filter-label {
     font-size: 14px;
     color: $uops-text-primary;
     font-weight: 500;
     white-space: nowrap;
   }
-  
+
   .filter-tags {
     display: flex;
     flex-wrap: wrap;
     gap: $uops-spacing-sm;
-    
+
     .filter-tag {
       padding: $uops-spacing-xs $uops-spacing-md;
       font-size: $font-size-base;
@@ -1960,12 +1983,12 @@
       border-radius: $uops-radius-sm;
       cursor: pointer;
       transition: all 0.2s;
-      
+
       &:hover {
         border-color: $uops-primary-color;
         color: $uops-primary-color;
       }
-      
+
       &.active {
         background: $uops-primary-color;
         color: white;
@@ -2196,7 +2219,7 @@
     max-height: 60vh;
     overflow-y: auto;
   }
-  
+
   .el-dialog__footer {
     padding: $uops-spacing-md $uops-spacing-xl;
     border-top: 1px solid $uops-border-color;
@@ -2580,18 +2603,18 @@
   background: $uops-bg-color;
   border-radius: $uops-radius-sm;
   margin-bottom: $uops-spacing-lg;
-  
+
   .batch-info {
     display: flex;
     align-items: center;
     gap: $uops-spacing-lg;
-    
+
     .selected-count {
       font-size: 14px;
       color: $uops-text-regular;
     }
   }
-  
+
   .batch-actions {
     display: flex;
     gap: $uops-spacing-sm;
@@ -2601,7 +2624,7 @@
 .draft-card {
   position: relative;
   padding-left: 40px; // 为勾选框预留空间
-  
+
   .card-checkbox {
     position: absolute;
     top: 50%;
@@ -2609,12 +2632,12 @@
     transform: translateY(-50%);
     z-index: 10;
   }
-  
+
   &.selected {
     border-color: $uops-primary-color;
     background: rgba($uops-primary-color, 0.02);
   }
-  
+
   .card-content {
     width: 100%;
   }
@@ -2624,21 +2647,21 @@
 .publish-dialog-content {
   .publish-info {
     margin-bottom: $uops-spacing-lg;
-    
+
     h4 {
       font-size: 14px;
       color: $uops-text-primary;
       margin-bottom: $uops-spacing-md;
       font-weight: 500;
     }
-    
+
     .draft-list {
       background: $uops-bg-color;
       border-radius: $uops-radius-sm;
       padding: $uops-spacing-md;
       max-height: 200px;
       overflow-y: auto;
-      
+
       .draft-item {
         display: flex;
         align-items: center;
@@ -2646,18 +2669,18 @@
         padding: $uops-spacing-xs 0;
         font-size: $font-size-base;
         color: $uops-text-regular;
-        
+
         .el-icon {
           color: $uops-text-secondary;
         }
       }
     }
   }
-  
+
   .publish-form {
     margin-bottom: $uops-spacing-lg;
   }
-  
+
   .workflow-info {
     h4 {
       font-size: 14px;
@@ -2665,7 +2688,7 @@
       margin-bottom: $uops-spacing-md;
       font-weight: 500;
     }
-    
+
     .workflow-steps {
       display: flex;
       align-items: center;
@@ -2674,13 +2697,13 @@
       padding: $uops-spacing-lg;
       background: $uops-bg-color;
       border-radius: $uops-radius-sm;
-      
+
       .step-item {
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: $uops-spacing-xs;
-        
+
         .step-icon {
           width: 32px;
           height: 32px;
@@ -2693,17 +2716,392 @@
           font-size: 14px;
           font-weight: 500;
         }
-        
+
         span {
           font-size: $font-size-label;
           color: $uops-text-regular;
         }
       }
-      
+
       .step-arrow {
         font-size: 20px;
         color: $uops-text-secondary;
       }
+    }
+  }
+}
+
+// ============ 卡片 ⇄ 表单双视图：表格视图公共样式 ============
+// 设计文档：docs/archive/卡片与表单双视图-交互设计.md §4/§8
+// 注意：运行时 Element Plus 命名空间为 ep（App.vue config-provider），选择器用 .ep- 前缀
+
+.view-table-wrap {
+  background: white;
+  border: 1px solid $uops-border-color;
+  border-radius: $uops-radius-md;
+  padding: $uops-spacing-lg;
+  box-shadow: $uops-shadow-sm;
+}
+
+.view-table {
+  width: 100%;
+
+  // 紧凑行高（约 48px）
+  :deep(.ep-table__cell) {
+    padding: 13px 0;
+  }
+
+  // 表头底色（UI规范：列表表头 #F3F5FA）
+  :deep(.ep-table th.ep-table__cell) {
+    background: #f3f5fa;
+    color: $uops-text-primary;
+    font-weight: 500;
+  }
+
+  // 可点击行（正式操作/正式编排：行点击 = 卡片点击）
+  &--clickable :deep(.ep-table__row) {
+    cursor: pointer;
+  }
+
+  .cell-name {
+    color: $uops-text-primary;
+    font-weight: 500;
+    margin-right: $uops-spacing-sm;
+  }
+
+  .cell-muted {
+    color: $uops-text-placeholder;
+  }
+
+  // ID 列：等宽字体、次级色，便于识别与复制
+  .cell-id {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 12px;
+    color: $uops-text-secondary;
+  }
+
+  .version-link {
+    color: $uops-primary-color;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  .row-actions {
+    display: flex;
+    align-items: center;
+    gap: $uops-spacing-lg; // 按钮与按钮间距 16px（8点网格规范）
+  }
+
+  .action-link {
+    color: $uops-primary-color;
+    font-size: $font-size-base;
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #70b2ff; // 主色悬停态（UI规范）
+    }
+  }
+
+  .more-icon {
+    font-size: 16px;
+    color: $uops-text-secondary;
+    cursor: pointer;
+
+    &:hover {
+      color: $uops-primary-color;
+    }
+  }
+}
+
+// ============ 筛选条（FilterBar，三 tab 共享）============
+// 设计文档：docs/archive/操作组件筛选与自定义标签-交互设计.md §4/§6
+// 视觉语言复用 .favorite-filter/.custom-filter
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $uops-spacing-md;
+  margin-bottom: $uops-spacing-lg;
+  padding: $uops-spacing-md;
+  background: $uops-bg-color;
+  border-radius: $uops-radius-sm;
+
+  .filter-label {
+    font-size: 14px;
+    color: $uops-text-primary;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $uops-spacing-sm;
+
+    .filter-group-label {
+      font-size: $font-size-label;
+      color: $uops-text-secondary;
+      white-space: nowrap;
+    }
+
+    .filter-tag {
+      padding: $uops-spacing-xs $uops-spacing-md;
+      font-size: $font-size-base;
+      color: $uops-text-secondary;
+      background: white;
+      border: 1px solid $uops-border-color;
+      border-radius: $uops-radius-sm;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        border-color: $uops-primary-color;
+        color: $uops-primary-color;
+      }
+
+      &.active {
+        background: $uops-primary-color;
+        color: white;
+        border-color: $uops-primary-color;
+      }
+    }
+
+    .tag-filter-select {
+      width: 220px;
+    }
+  }
+
+  .filter-clear {
+    margin-left: auto;
+    font-size: $font-size-base;
+    color: $uops-primary-color;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      color: #70b2ff;
+    }
+  }
+}
+
+// ============ 批量加标签栏（快速修改标签，设计 §5.2）============
+.tag-batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $uops-spacing-sm $uops-spacing-lg;
+  margin-bottom: $uops-spacing-md;
+  background: rgba($uops-primary-color, 0.08);
+  border: 1px solid rgba($uops-primary-color, 0.2);
+  border-radius: $uops-radius-sm;
+
+  .tag-batch-info {
+    display: flex;
+    align-items: center;
+    gap: $uops-spacing-md;
+    font-size: $font-size-base;
+    color: $uops-text-primary;
+
+    .selected-count {
+      color: $uops-primary-color;
+      font-weight: 500;
+    }
+  }
+
+  .tag-batch-actions {
+    display: flex;
+    align-items: center;
+    gap: $uops-spacing-sm;
+  }
+}
+
+// ============ 编辑标签 popover 面板（TagEditPopover，设计 §5.1）============
+.tag-edit-panel {
+  display: flex;
+  flex-direction: column;
+  gap: $uops-spacing-sm;
+
+  .tag-edit-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: $font-size-base;
+    font-weight: 500;
+    color: $uops-text-primary;
+
+    .tag-edit-count {
+      font-size: $font-size-label;
+      color: $uops-text-secondary;
+      font-weight: normal;
+    }
+  }
+
+  .tag-edit-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $uops-spacing-sm;
+    max-height: 160px;
+    overflow-y: auto;
+
+    .tag-edit-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: $uops-spacing-xs $uops-spacing-md;
+      font-size: $font-size-base;
+      color: $uops-text-secondary;
+      background: $uops-bg-color;
+      border: 1px solid $uops-border-color;
+      border-radius: $uops-radius-sm;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover:not(.disabled) {
+        border-color: $uops-primary-color;
+        color: $uops-primary-color;
+      }
+
+      &.checked {
+        background: rgba($uops-primary-color, 0.1);
+        border-color: $uops-primary-color;
+        color: $uops-primary-color;
+      }
+
+      &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .tag-edit-empty {
+      font-size: $font-size-label;
+      color: $uops-text-placeholder;
+      padding: $uops-spacing-xs 0;
+    }
+  }
+
+  .tag-edit-new {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .tag-edit-error {
+      font-size: $font-size-label;
+      color: $uops-danger-color;
+    }
+  }
+
+  .tag-edit-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: $uops-spacing-sm;
+    margin-top: $uops-spacing-xs;
+  }
+}
+
+// 自定义标签：描边 plain 样式（视觉与实色权限提示区分，设计 §6）
+.custom-tag-plain {
+  background: transparent !important;
+}
+
+// 批量加标签模式下的卡片/表格勾选框
+.tag-batch-checkbox {
+  margin-right: $uops-spacing-sm;
+}
+
+// ============ 筛选入口与 chips（筛选条收纳方案）============
+// 设计文档：docs/archive/筛选条收纳方案-交互设计.md
+.filter-entry {
+  display: flex;
+  align-items: center;
+  gap: $uops-spacing-sm;
+  margin-left: auto; // 在 flex 工具栏中靠右
+  flex-shrink: 0;
+
+  .filter-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: $uops-spacing-xs;
+    padding: $uops-spacing-xs $uops-spacing-md;
+    font-size: $font-size-base;
+    color: $uops-text-secondary;
+    cursor: pointer;
+    border-radius: $uops-radius-sm;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    .ep-icon {
+      font-size: 14px;
+    }
+
+    &:hover {
+      color: $uops-primary-color;
+      background: rgba($uops-primary-color, 0.06);
+    }
+
+    // 有激活筛选：主色高亮
+    &.active {
+      color: $uops-primary-color;
+    }
+
+    // 面板展开态：底色提示
+    &.expanded {
+      color: $uops-primary-color;
+      background: rgba($uops-primary-color, 0.1);
+      border-color: rgba($uops-primary-color, 0.3);
+    }
+  }
+}
+
+// 收起态 chips：内联在筛选按钮旁
+.filter-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $uops-spacing-xs;
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px $uops-spacing-sm;
+    font-size: $font-size-label;
+    color: $uops-primary-color;
+    background: rgba($uops-primary-color, 0.08);
+    border: 1px solid rgba($uops-primary-color, 0.25);
+    border-radius: $uops-radius-sm;
+    white-space: nowrap;
+
+    .chip-prefix {
+      color: $uops-text-secondary;
+    }
+
+    .chip-close {
+      font-size: 12px;
+      cursor: pointer;
+      color: $uops-text-secondary;
+      transition: color 0.2s;
+
+      &:hover {
+        color: $uops-danger-color;
+      }
+    }
+  }
+
+  .filter-chips-clear {
+    font-size: $font-size-label;
+    color: $uops-primary-color;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      color: #70b2ff;
     }
   }
 }

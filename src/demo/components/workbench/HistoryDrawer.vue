@@ -1,3 +1,70 @@
+<script setup lang="ts">
+import {
+  ArrowDown,
+  CircleCheck,
+  CircleClose,
+  Clock,
+  Download,
+  Loading,
+  MagicStick,
+  Refresh,
+  RefreshRight,
+  WarningFilled,
+} from '@element-plus/icons-vue'
+import DiagnosticPanel from '~/demo/components/DiagnosticPanel.vue'
+import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
+
+const {
+  showHistoryDrawer,
+  historyDrawerActiveTab,
+  historyDrawerFilter,
+  orchestrationHistoryDrawerFilter,
+  filteredHistoryDrawerList,
+  filteredOrchestrationHistoryDrawerList,
+  expandedHistoryIds,
+  expandedOrchestrationHistoryIds,
+  handleBatchRetryFailed,
+  handleBatchRetryOrchestrationFailed,
+  handleExportHistory,
+  handleExportOrchestrationHistory,
+  handleRefreshHistory,
+  toggleHistoryExpand,
+  toggleOrchestrationHistoryExpand,
+  getHistoryStatusType,
+  getHistoryStatusText,
+  formatHistoryTime,
+  getFirstError,
+  getDetailStatusClass,
+  getDetailStatusType,
+  getDetailStatusText,
+  handleViewResourceDetail,
+  handleRetryFromHistory,
+  getOrchestrationStatusType,
+  getOrchestrationStatusText,
+  formatOrchestrationHistoryTime,
+  getOrchestrationFirstError,
+  handleOrchestrationRetry,
+  handleOrchestrationViewDetail,
+  openDiagnostic,
+  showDiagnosticPanel,
+  diagnosticRecordId,
+  diagnosticOperationName,
+  diagnosticOperationCategory,
+  diagnosticFailedResources,
+} = useWorkbenchContext()
+
+// 明细状态 → 图标组件映射（原 composable 返回字符串名，这里映射为实际组件以保证渲染）
+function detailStatusIcon(status: string) {
+  const map: Record<string, any> = {
+    S: CircleCheck,
+    F: CircleClose,
+    P: Clock,
+    R: Loading,
+  }
+  return map[status] || Clock
+}
+</script>
+
 <template>
   <el-drawer
     v-model="showHistoryDrawer"
@@ -306,73 +373,6 @@
     @retry="() => {}"
   />
 </template>
-
-<script setup lang="ts">
-import {
-  Refresh,
-  Download,
-  ArrowDown,
-  WarningFilled,
-  MagicStick,
-  RefreshRight,
-  CircleCheck,
-  CircleClose,
-  Clock,
-  Loading
-} from '@element-plus/icons-vue'
-import DiagnosticPanel from '~/demo/components/DiagnosticPanel.vue'
-import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
-
-const {
-  showHistoryDrawer,
-  historyDrawerActiveTab,
-  historyDrawerFilter,
-  orchestrationHistoryDrawerFilter,
-  filteredHistoryDrawerList,
-  filteredOrchestrationHistoryDrawerList,
-  expandedHistoryIds,
-  expandedOrchestrationHistoryIds,
-  handleBatchRetryFailed,
-  handleBatchRetryOrchestrationFailed,
-  handleExportHistory,
-  handleExportOrchestrationHistory,
-  handleRefreshHistory,
-  toggleHistoryExpand,
-  toggleOrchestrationHistoryExpand,
-  getHistoryStatusType,
-  getHistoryStatusText,
-  formatHistoryTime,
-  getFirstError,
-  getDetailStatusClass,
-  getDetailStatusType,
-  getDetailStatusText,
-  handleViewResourceDetail,
-  handleRetryFromHistory,
-  getOrchestrationStatusType,
-  getOrchestrationStatusText,
-  formatOrchestrationHistoryTime,
-  getOrchestrationFirstError,
-  handleOrchestrationRetry,
-  handleOrchestrationViewDetail,
-  openDiagnostic,
-  showDiagnosticPanel,
-  diagnosticRecordId,
-  diagnosticOperationName,
-  diagnosticOperationCategory,
-  diagnosticFailedResources
-} = useWorkbenchContext()
-
-// 明细状态 → 图标组件映射（原 composable 返回字符串名，这里映射为实际组件以保证渲染）
-const detailStatusIcon = (status: string) => {
-  const map: Record<string, any> = {
-    S: CircleCheck,
-    F: CircleClose,
-    P: Clock,
-    R: Loading
-  }
-  return map[status] || Clock
-}
-</script>
 
 <style lang="scss" scoped>
 @use '@/styles/uops-theme.scss' as *;

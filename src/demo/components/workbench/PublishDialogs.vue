@@ -1,3 +1,21 @@
+<script setup lang="ts">
+import { Document } from '@element-plus/icons-vue'
+import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
+
+const {
+  showPublishDialog,
+  selectedDraftIds,
+  getDraftNameById,
+  publishForm,
+  submitPublish,
+  showScenarioPublishDialog,
+  selectedScenarioDraftIds,
+  getScenarioDraftNameById,
+  scenarioPublishForm,
+  submitScenarioPublish,
+} = useWorkbenchContext()
+</script>
+
 <template>
   <!-- 批量发布弹窗（操作组件草稿） -->
   <el-dialog
@@ -39,17 +57,27 @@
         <h4>审核流程：</h4>
         <div class="workflow-steps">
           <div class="step-item">
-            <div class="step-icon">1</div>
+            <div class="step-icon">
+              1
+            </div>
             <span>一线主管</span>
           </div>
-          <div class="step-arrow">→</div>
+          <div class="step-arrow">
+            →
+          </div>
           <div class="step-item">
-            <div class="step-icon">2</div>
+            <div class="step-icon">
+              2
+            </div>
             <span>二线主管</span>
           </div>
-          <div class="step-arrow">→</div>
+          <div class="step-arrow">
+            →
+          </div>
           <div class="step-item">
-            <div class="step-icon">3</div>
+            <div class="step-icon">
+              3
+            </div>
             <span>运维经理</span>
           </div>
         </div>
@@ -57,8 +85,12 @@
     </div>
 
     <template #footer>
-      <el-button @click="showPublishDialog = false">取消</el-button>
-      <el-button type="primary" @click="submitPublish">提交审核</el-button>
+      <el-button @click="showPublishDialog = false">
+        取消
+      </el-button>
+      <el-button type="primary" @click="submitPublish">
+        提交审核
+      </el-button>
     </template>
   </el-dialog>
 
@@ -102,17 +134,27 @@
         <h4>审核流程：</h4>
         <div class="workflow-steps">
           <div class="step-item">
-            <div class="step-icon">1</div>
+            <div class="step-icon">
+              1
+            </div>
             <span>一线主管</span>
           </div>
-          <div class="step-arrow">→</div>
+          <div class="step-arrow">
+            →
+          </div>
           <div class="step-item">
-            <div class="step-icon">2</div>
+            <div class="step-icon">
+              2
+            </div>
             <span>二线主管</span>
           </div>
-          <div class="step-arrow">→</div>
+          <div class="step-arrow">
+            →
+          </div>
           <div class="step-item">
-            <div class="step-icon">3</div>
+            <div class="step-icon">
+              3
+            </div>
             <span>运维经理</span>
           </div>
         </div>
@@ -120,29 +162,15 @@
     </div>
 
     <template #footer>
-      <el-button @click="showScenarioPublishDialog = false">取消</el-button>
-      <el-button type="primary" @click="submitScenarioPublish">提交审核</el-button>
+      <el-button @click="showScenarioPublishDialog = false">
+        取消
+      </el-button>
+      <el-button type="primary" @click="submitScenarioPublish">
+        提交审核
+      </el-button>
     </template>
   </el-dialog>
 </template>
-
-<script setup lang="ts">
-import { Document } from '@element-plus/icons-vue'
-import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
-
-const {
-  showPublishDialog,
-  selectedDraftIds,
-  getDraftNameById,
-  publishForm,
-  submitPublish,
-  showScenarioPublishDialog,
-  selectedScenarioDraftIds,
-  getScenarioDraftNameById,
-  scenarioPublishForm,
-  submitScenarioPublish
-} = useWorkbenchContext()
-</script>
 
 <style lang="scss" scoped>
 @use '@/styles/uops-theme.scss' as *;

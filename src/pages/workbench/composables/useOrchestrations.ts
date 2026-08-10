@@ -1,3 +1,9 @@
+import type {
+  PublishBatch,
+  Scenario,
+  ScenarioDraft,
+} from '~/demo/types/workbench'
+import { ElMessage, ElMessageBox } from 'element-plus'
 /**
  * 操作工作台 - 操作编排域 composable
  *
@@ -5,21 +11,18 @@
  *
  * 场景和草稿初始数据来自 mock 层（~/demo/mock/workbench-extra）。
  */
-import { ref, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type {
-  Scenario,
-  ScenarioDraft,
-  PublishBatch
-} from '~/demo/types/workbench'
-import { mockScenarios, mockScenarioDrafts } from '~/demo/mock/workbench-extra'
-import { createStatusMapper } from './utils'
+import { computed, ref } from 'vue'
+import { mockScenarioDrafts, mockScenarios } from '~/demo/mock/workbench-extra'
+import { createPersistedViewMode, createStatusMapper } from './utils'
 
 export function useOrchestrations() {
   // ============ 应急场景（来自 mock 层）============
   const scenarios = ref<Scenario[]>([...mockScenarios])
   const activeScenarioTab = ref<string>('formal')
   const scenarioSearch = ref<string>('')
+
+  // ============ 视图形态：卡片 / 表单（按分区持久化，设计文档 §3）============
+  const orchestrationViewMode = createPersistedViewMode('workbench_view_orchestration')
 
   // ============ 编排草稿（来自 mock 层）============
   const scenarioDrafts = ref<ScenarioDraft[]>([...mockScenarioDrafts])
@@ -35,7 +38,7 @@ export function useOrchestrations() {
   const showScenarioPublishDialog = ref(false)
   const scenarioPublishForm = ref({
     name: '',
-    description: ''
+    description: '',
   })
   const scenarioPublishBatches = ref<PublishBatch[]>([])
 
@@ -45,8 +48,8 @@ export function useOrchestrations() {
 
     if (scenarioSearch.value) {
       filtered = filtered.filter(scenario =>
-        scenario.name.toLowerCase().includes(scenarioSearch.value.toLowerCase()) ||
-        scenario.id.includes(scenarioSearch.value)
+        scenario.name.toLowerCase().includes(scenarioSearch.value.toLowerCase())
+        || scenario.id.includes(scenarioSearch.value),
       )
     }
 
@@ -70,24 +73,26 @@ export function useOrchestrations() {
     ElMessage.info(`点击场景: ${scenario.name}`)
   }
 
-  const handleScenarioCommand = (command: { id: string; action: string }, scenario?: Scenario) => {
+  const handleScenarioCommand = (command: { id: string, action: string }, scenario?: Scenario) => {
     if (command.action === 'edit' && scenario) {
       const newDraft: ScenarioDraft = {
         id: `sd_${Date.now()}`,
-        name: scenario.name + '（编辑中）',
+        name: `${scenario.name}（编辑中）`,
         saveTime: new Date().toLocaleString(),
         sourceScenarioId: scenario.id,
-        status: 'draft'
+        status: 'draft',
       }
       scenarioDrafts.value.push(newDraft)
       ElMessage.success('已创建草稿，可在"我的草稿"中查看')
-    } else if (command.action === 'viewDraft' && scenario) {
+    }
+    else if (command.action === 'viewDraft' && scenario) {
       const draft = getScenarioEditingDraft(scenario.id)
       if (draft) {
         activeScenarioTab.value = 'draft'
         ElMessage.info('已切换到草稿视图')
       }
-    } else {
+    }
+    else {
       ElMessage.info(`场景操作: ${command.action}`)
     }
   }
@@ -101,8 +106,8 @@ export function useOrchestrations() {
           {
             confirmButtonText: '发布',
             cancelButtonText: '取消',
-            type: 'info'
-          }
+            type: 'info',
+          },
         ).then(() => {
           scenarioDrafts.value = scenarioDrafts.value.filter(d => d.id !== draft.id)
           ElMessage.success('发布成功')
@@ -117,8 +122,8 @@ export function useOrchestrations() {
           {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
-            type: 'warning'
-          }
+            type: 'warning',
+          },
         ).then(() => {
           const draftIndex = scenarioDrafts.value.findIndex(d => d.id === draft.id)
           if (draftIndex !== -1) {
@@ -139,8 +144,8 @@ export function useOrchestrations() {
           {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
-            type: 'warning'
-          }
+            type: 'warning',
+          },
         ).then(() => {
           scenarioDrafts.value = scenarioDrafts.value.filter(d => d.id !== draft.id)
           ElMessage.success('删除成功')
@@ -159,7 +164,8 @@ export function useOrchestrations() {
     const draftDrafts = scenarioDrafts.value.filter(d => d.status === 'draft')
     if (value) {
       selectedScenarioDraftIds.value = draftDrafts.map(d => d.id)
-    } else {
+    }
+    else {
       selectedScenarioDraftIds.value = []
     }
   }
@@ -194,8 +200,8 @@ export function useOrchestrations() {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
-      }
+        type: 'warning',
+      },
     ).then(() => {
       scenarioDrafts.value = scenarioDrafts.value.filter(d => !selectedScenarioDraftIds.value.includes(d.id))
       selectedScenarioDraftIds.value = []
@@ -218,17 +224,17 @@ export function useOrchestrations() {
       draftIds: [...selectedScenarioDraftIds.value],
       status: 'reviewing',
       createTime: new Date().toLocaleString(),
-      submitTime: new Date().toLocaleString()
+      submitTime: new Date().toLocaleString(),
     }
 
     scenarioPublishBatches.value.push(batch)
 
-    scenarioDrafts.value = scenarioDrafts.value.map(d => {
+    scenarioDrafts.value = scenarioDrafts.value.map((d) => {
       if (selectedScenarioDraftIds.value.includes(d.id)) {
         return {
           ...d,
           status: 'submitted' as const,
-          batchId: batch.id
+          batchId: batch.id,
         }
       }
       return d
@@ -244,15 +250,17 @@ export function useOrchestrations() {
     return scenarioDrafts.value.some(draft => draft.sourceScenarioId === scenarioId)
   }
 
-  const getScenarioEditingDraft = (scenarioId: string): ScenarioDraft | undefined => {
+  function getScenarioEditingDraft(scenarioId: string): ScenarioDraft | undefined {
     return scenarioDrafts.value.find(draft => draft.sourceScenarioId === scenarioId)
   }
 
   const getScenarioDraftStatusType = createStatusMapper(
-    { draft: 'info', submitted: 'warning', published: 'success', rejected: 'danger' }, 'info'
+    { draft: 'info', submitted: 'warning', published: 'success', rejected: 'danger' },
+    'info',
   )
   const getScenarioDraftStatusText = createStatusMapper(
-    { draft: '草稿', submitted: '审核中', published: '已发布', rejected: '已驳回' }, '未知'
+    { draft: '草稿', submitted: '审核中', published: '已发布', rejected: '已驳回' },
+    '未知',
   )
 
   const getScenarioDraftNameById = (id: string): string => {
@@ -265,6 +273,7 @@ export function useOrchestrations() {
     scenarios,
     activeScenarioTab,
     scenarioSearch,
+    orchestrationViewMode,
     scenarioDrafts,
     selectedScenarioDraftIds,
     isAllScenarioDraftsSelected,
@@ -291,6 +300,6 @@ export function useOrchestrations() {
     getScenarioEditingDraft,
     getScenarioDraftStatusType,
     getScenarioDraftStatusText,
-    getScenarioDraftNameById
+    getScenarioDraftNameById,
   }
 }

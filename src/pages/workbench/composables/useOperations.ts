@@ -1,3 +1,10 @@
+import type {
+  AppModule,
+  CustomDraft,
+  OperationComponent,
+  PublishBatch,
+} from '~/demo/types/workbench'
+import { ElMessage, ElMessageBox } from 'element-plus'
 /**
  * 操作工作台 - 操作组件域 composable
  *
@@ -6,17 +13,11 @@
  *
  * 草稿初始数据来自 mock 层（~/demo/mock/workbench-extra）。
  */
-import { ref, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type {
-  AppModule,
-  OperationComponent,
-  CustomDraft,
-  PublishBatch
-} from '~/demo/types/workbench'
+import { computed, ref } from 'vue'
 import { getModules, getOperations, toggleFavorite } from '~/demo/api/workbench'
 import { mockCustomDrafts } from '~/demo/mock/workbench-extra'
-import { createStatusMapper } from './utils'
+import { useOperationFilter } from './useOperationFilter'
+import { createPersistedViewMode, createStatusMapper } from './utils'
 
 export function useOperations() {
   // ============ 应用模块 ============
@@ -29,11 +30,17 @@ export function useOperations() {
   const selectedSubcategory = ref<string>('')
   const operationSearch = ref<string>('')
 
+  // ============ 筛选状态（三 tab 共享，逻辑收敛于 useOperationFilter）============
+  const opFilter = useOperationFilter(() => operations.value)
+
   // ============ 三大分区 ============
   const activeSource = ref<'favorite' | 'public' | 'custom'>('public')
   const favoriteFilter = ref<string>('')
   const customFilter = ref<string>('')
   const customActiveTab = ref<string>('formal')
+
+  // ============ 视图形态：卡片 / 表单（按分区持久化，设计文档 §3）============
+  const customViewMode = createPersistedViewMode('workbench_view_custom')
 
   // ============ 草稿数据（来自 mock 层）============
   const customDrafts = ref<CustomDraft[]>([...mockCustomDrafts])
@@ -49,7 +56,7 @@ export function useOperations() {
   const showPublishDialog = ref(false)
   const publishForm = ref({
     name: '',
-    description: ''
+    description: '',
   })
   const publishBatches = ref<PublishBatch[]>([])
 
@@ -84,11 +91,11 @@ export function useOperations() {
 
     if (operationSearch.value) {
       filtered = filtered.filter(op =>
-        op.name.toLowerCase().includes(operationSearch.value.toLowerCase())
+        op.name.toLowerCase().includes(operationSearch.value.toLowerCase()),
       )
     }
 
-    return filtered
+    return filtered.filter(op => opFilter.applyOpFilter(op))
   })
 
   const favoriteCategories = computed(() => {
@@ -106,11 +113,11 @@ export function useOperations() {
 
     if (operationSearch.value) {
       filtered = filtered.filter(op =>
-        op.name.toLowerCase().includes(operationSearch.value.toLowerCase())
+        op.name.toLowerCase().includes(operationSearch.value.toLowerCase()),
       )
     }
 
-    return filtered
+    return filtered.filter(op => opFilter.applyOpFilter(op))
   })
 
   const customOperations = computed(() => {
@@ -122,11 +129,11 @@ export function useOperations() {
 
     if (operationSearch.value) {
       filtered = filtered.filter(op =>
-        op.name.toLowerCase().includes(operationSearch.value.toLowerCase())
+        op.name.toLowerCase().includes(operationSearch.value.toLowerCase()),
       )
     }
 
-    return filtered
+    return filtered.filter(op => opFilter.applyOpFilter(op))
   })
 
   // ============ 数据加载 ============
@@ -163,42 +170,103 @@ export function useOperations() {
     favoriteFilter.value = ''
     customFilter.value = ''
     selectedSubcategory.value = ''
+    opFilter.resetOperationFilters() // 筛选不持久化，切换分区清空（设计 §7-3）
+    exitTagBatchMode() // 退出批量加标签模式
   }
 
   const handleAddCustomOp = () => {
     ElMessage.info('新增定制操作功能开发中')
   }
 
+  // ============ 自定义标签：批量模式与写操作（设计 §5）============
+  const tagBatchMode = ref(false)
+  const selectedOpIdsForTag = ref<string[]>([])
+
   const handleQuickModifyCustom = () => {
-    ElMessage.info('快速修改标签功能开发中')
-  }
-
-  const handleFilterCustom = () => {
-    ElMessage.info('筛选功能开发中')
-  }
-
-  const handleEditCustomOp = (operation: OperationComponent) => {
-    const newDraft: CustomDraft = {
-      id: `draft_${Date.now()}`,
-      name: operation.name,
-      saveTime: new Date().toLocaleString(),
-      sourceOperationId: operation.id,
-      status: 'draft'
+    if (tagBatchMode.value) {
+      exitTagBatchMode()
+      return
     }
-    customDrafts.value.push(newDraft)
-    ElMessage.success(`已创建草稿，可在"我的草稿"中查看`)
+    tagBatchMode.value = true
+    selectedOpIdsForTag.value = []
   }
 
-  const handleViewDraft = (operation: OperationComponent) => {
-    const draft = getEditingDraft(operation.id)
-    if (draft) {
+  function exitTagBatchMode() {
+    tagBatchMode.value = false
+    selectedOpIdsForTag.value = []
+  }
+
+  /** 单个操作整体覆盖自定义标签（编辑标签 popover，设计 §5.1） */
+  const updateCustomTags = (operationId: string, tags: string[]) => {
+    operations.value = operations.value.map(op =>
+      op.id === operationId ? { ...op, customTags: [...new Set(tags)] } : op,
+    )
+    ElMessage.success('标签已更新')
+  }
+
+  /** 批量增量合并标签：只加不减（防误删，设计 §5.2） */
+  const batchAppendTags = (operationIds: string[], tags: string[]) => {
+    if (tags.length === 0) {
+      ElMessage.warning('请先选择要添加的标签')
+      return
+    }
+    operations.value = operations.value.map((op) => {
+      if (!operationIds.includes(op.id))
+        return op
+      return { ...op, customTags: [...new Set([...(op.customTags || []), ...tags])] }
+    })
+    ElMessage.success(`已为 ${operationIds.length} 个操作添加标签`)
+    exitTagBatchMode()
+  }
+
+  /**
+   * 委托容器：useWorkbench 在组合时覆盖这些实现。
+   * handleCustomCommand / handleDraftCommand 通过 delegates 调用，
+   * 确保覆盖后的实现生效（直接覆盖返回对象属性无法影响闭包引用）。
+   */
+  const delegates = {
+    /** 编辑已发布操作 → 打开编辑弹窗（从版本快照预填） */
+    editCustomOp: (_operation: OperationComponent) => {
+      ElMessage.info('编辑操作功能开发中')
+    },
+    /** 查看草稿 → 打开只读预览弹窗 */
+    viewDraft: (_operation: OperationComponent) => {
       customActiveTab.value = 'draft'
-      ElMessage.info(`已切换到草稿视图`)
-    }
+      ElMessage.info('已切换到草稿视图')
+    },
+    /** 编辑草稿 → 打开可编辑弹窗 */
+    editDraft: (_draft: CustomDraft) => {
+      ElMessage.info('编辑草稿功能开发中')
+    },
+    /** 查看版本历史 → 打开版本抽屉 */
+    versionHistory: (_operation: OperationComponent) => {
+      ElMessage.info('版本历史功能开发中')
+    },
   }
+
+  const handleEditCustomOp = (operation: OperationComponent) => delegates.editCustomOp(operation)
+  const handleViewDraft = (operation: OperationComponent) => delegates.viewDraft(operation)
+  const handleEditDraft = (draft: CustomDraft) => delegates.editDraft(draft)
+  const handleVersionHistory = (operation: OperationComponent) => delegates.versionHistory(operation)
 
   const handleCopyCustomOp = (operation: OperationComponent) => {
     ElMessage.info(`复制操作: ${operation.name}`)
+  }
+
+  const handleDeleteCustomOp = (operation: OperationComponent) => {
+    ElMessageBox.confirm(
+      `确定要删除操作"${operation.name}"吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      },
+    ).then(() => {
+      ElMessage.success('删除成功')
+    }).catch(() => {
+      ElMessage.info('已取消删除')
+    })
   }
 
   const handleCustomCommand = (command: { action: string }, operation: OperationComponent) => {
@@ -215,23 +283,10 @@ export function useOperations() {
       case 'viewDraft':
         handleViewDraft(operation)
         break
+      case 'versionHistory':
+        handleVersionHistory(operation)
+        break
     }
-  }
-
-  const handleDeleteCustomOp = (operation: OperationComponent) => {
-    ElMessageBox.confirm(
-      `确定要删除操作"${operation.name}"吗？`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    ).then(() => {
-      ElMessage.success('删除成功')
-    }).catch(() => {
-      ElMessage.info('已取消删除')
-    })
   }
 
   const handlePublishDraft = (draft: CustomDraft) => {
@@ -241,8 +296,8 @@ export function useOperations() {
       {
         confirmButtonText: '发布',
         cancelButtonText: '取消',
-        type: 'info'
-      }
+        type: 'info',
+      },
     ).then(() => {
       customDrafts.value = customDrafts.value.filter(d => d.id !== draft.id)
       ElMessage.success('发布成功')
@@ -258,8 +313,8 @@ export function useOperations() {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
-      }
+        type: 'warning',
+      },
     ).then(() => {
       customDrafts.value = customDrafts.value.filter(d => d.id !== draft.id)
       ElMessage.success('删除成功')
@@ -272,7 +327,8 @@ export function useOperations() {
     const draftDrafts = customDrafts.value.filter(d => d.status === 'draft')
     if (value) {
       selectedDraftIds.value = draftDrafts.map(d => d.id)
-    } else {
+    }
+    else {
       selectedDraftIds.value = []
     }
   }
@@ -307,8 +363,8 @@ export function useOperations() {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
-      }
+        type: 'warning',
+      },
     ).then(() => {
       customDrafts.value = customDrafts.value.filter(d => !selectedDraftIds.value.includes(d.id))
       selectedDraftIds.value = []
@@ -331,17 +387,17 @@ export function useOperations() {
       draftIds: [...selectedDraftIds.value],
       status: 'reviewing',
       createTime: new Date().toLocaleString(),
-      submitTime: new Date().toLocaleString()
+      submitTime: new Date().toLocaleString(),
     }
 
     publishBatches.value.push(batch)
 
-    customDrafts.value = customDrafts.value.map(d => {
+    customDrafts.value = customDrafts.value.map((d) => {
       if (selectedDraftIds.value.includes(d.id)) {
         return {
           ...d,
           status: 'submitted' as const,
-          batchId: batch.id
+          batchId: batch.id,
         }
       }
       return d
@@ -359,7 +415,7 @@ export function useOperations() {
   const handleToggleFavorite = async (operation: OperationComponent) => {
     const newStatus = await toggleFavorite(operation.id)
     operations.value = operations.value.map(op =>
-      op.id === operation.id ? { ...op, isFavorite: newStatus } : op
+      op.id === operation.id ? { ...op, isFavorite: newStatus } : op,
     )
     ElMessage.success(newStatus ? '已收藏' : '已取消收藏')
   }
@@ -376,8 +432,8 @@ export function useOperations() {
           {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
-            type: 'warning'
-          }
+            type: 'warning',
+          },
         ).then(() => {
           ElMessage.success('追回成功')
         }).catch(() => {
@@ -385,7 +441,7 @@ export function useOperations() {
         })
         break
       case 'edit':
-        ElMessage.info(`编辑草稿: ${draft.name}`)
+        handleEditDraft(draft)
         break
       case 'delete':
         handleDeleteDraft(draft)
@@ -403,31 +459,40 @@ export function useOperations() {
   }
 
   const getTagType = (tag: string) => {
-    if (tag.includes('仅生产')) return 'success'
-    if (tag.includes('应急')) return 'warning'
-    if (tag.includes('运维请求')) return 'primary'
-    if (tag.includes('生产办公')) return 'success'
-    if (tag.includes('一二线')) return 'danger'
+    if (tag.includes('仅生产'))
+      return 'success'
+    if (tag.includes('应急'))
+      return 'warning'
+    if (tag.includes('运维请求'))
+      return 'primary'
+    if (tag.includes('生产办公'))
+      return 'success'
+    if (tag.includes('一二线'))
+      return 'danger'
     return 'info'
   }
 
   const getExecutionStatusType = createStatusMapper(
-    { success: 'success', failed: 'danger', running: 'warning', cancelled: 'info' }, 'info'
+    { success: 'success', failed: 'danger', running: 'warning', cancelled: 'info' },
+    'info',
   )
   const getExecutionStatusText = createStatusMapper(
-    { success: '成功', failed: '失败', running: '执行中', cancelled: '已取消' }, '未知'
+    { success: '成功', failed: '失败', running: '执行中', cancelled: '已取消' },
+    '未知',
   )
   const getDraftStatusType = createStatusMapper(
-    { draft: 'info', submitted: 'warning', published: 'success', rejected: 'danger' }, 'info'
+    { draft: 'info', submitted: 'warning', published: 'success', rejected: 'danger' },
+    'info',
   )
   const getDraftStatusText = createStatusMapper(
-    { draft: '草稿', submitted: '审核中', published: '已发布', rejected: '已驳回' }, '草稿'
+    { draft: '草稿', submitted: '审核中', published: '已发布', rejected: '已驳回' },
+    '草稿',
   )
 
   const getOperationCount = (subcat: string): number => {
     return operations.value.filter(op =>
-      op.category === activeCategory.value &&
-      op.subCategory === subcat
+      op.category === activeCategory.value
+      && op.subCategory === subcat,
     ).length
   }
 
@@ -448,6 +513,7 @@ export function useOperations() {
     favoriteFilter,
     customFilter,
     customActiveTab,
+    customViewMode,
     customDrafts,
     selectedDraftIds,
     isAllSelected,
@@ -456,6 +522,22 @@ export function useOperations() {
     publishBatches,
     publicCategories,
     customApps,
+    // 筛选与标签（逻辑收敛于 useOperationFilter + 本 composable 写操作）
+    operationCategoryFilter: opFilter.operationCategoryFilter,
+    customTagFilter: opFilter.customTagFilter,
+    categoryOptions: opFilter.categoryOptions,
+    customTagOptions: opFilter.customTagOptions,
+    resetOperationFilters: opFilter.resetOperationFilters,
+    filterExpanded: opFilter.filterExpanded,
+    activeFilterChips: opFilter.activeFilterChips,
+    hasActiveFilter: opFilter.hasActiveFilter,
+    toggleFilterExpanded: opFilter.toggleFilterExpanded,
+    removeFilterChip: opFilter.removeFilterChip,
+    tagBatchMode,
+    selectedOpIdsForTag,
+    updateCustomTags,
+    batchAppendTags,
+    exitTagBatchMode,
     // 计算属性
     categories,
     subcategories,
@@ -473,9 +555,11 @@ export function useOperations() {
     handleSourceChange,
     handleAddCustomOp,
     handleQuickModifyCustom,
-    handleFilterCustom,
     handleEditCustomOp,
     handleViewDraft,
+    handleEditDraft,
+    handleVersionHistory,
+    delegates,
     handleCopyCustomOp,
     handleCustomCommand,
     handleDeleteCustomOp,
@@ -498,6 +582,6 @@ export function useOperations() {
     getDraftStatusType,
     getDraftStatusText,
     getOperationCount,
-    getDraftNameById
+    getDraftNameById,
   }
 }

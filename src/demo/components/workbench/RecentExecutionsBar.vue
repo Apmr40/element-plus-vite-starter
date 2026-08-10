@@ -1,3 +1,31 @@
+<script setup lang="ts">
+import { CircleCheckFilled, CircleCloseFilled, Clock, Close, Loading } from '@element-plus/icons-vue'
+import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
+
+const {
+  recentExecutions,
+  recentOrchestrationExecutions,
+  getRecentStatusType,
+  getRecentStatusText,
+  getOrchestrationStatusType,
+  getOrchestrationStatusText,
+  handleRecentExecutionClick,
+  handleOpenOrchestrationHistoryDrawer,
+  dismissRecentExecution,
+  dismissRecentOrchestrationExecution,
+} = useWorkbenchContext()
+
+// 状态 → 图标组件映射（原 composable 返回字符串名，这里映射为实际组件以保证渲染）
+function recentStatusIcon(status: string) {
+  const map: Record<string, any> = {
+    success: CircleCheckFilled,
+    failed: CircleCloseFilled,
+    running: Loading,
+  }
+  return map[status] || Clock
+}
+</script>
+
 <template>
   <div
     v-if="recentExecutions.length > 0 || recentOrchestrationExecutions.length > 0"
@@ -50,34 +78,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { Close, CircleCheckFilled, CircleCloseFilled, Loading, Clock } from '@element-plus/icons-vue'
-import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
-
-const {
-  recentExecutions,
-  recentOrchestrationExecutions,
-  getRecentStatusType,
-  getRecentStatusText,
-  getOrchestrationStatusType,
-  getOrchestrationStatusText,
-  handleRecentExecutionClick,
-  handleOpenOrchestrationHistoryDrawer,
-  dismissRecentExecution,
-  dismissRecentOrchestrationExecution
-} = useWorkbenchContext()
-
-// 状态 → 图标组件映射（原 composable 返回字符串名，这里映射为实际组件以保证渲染）
-const recentStatusIcon = (status: string) => {
-  const map: Record<string, any> = {
-    success: CircleCheckFilled,
-    failed: CircleCloseFilled,
-    running: Loading
-  }
-  return map[status] || Clock
-}
-</script>
 
 <style lang="scss" scoped>
 @use '@/styles/uops-theme.scss' as *;

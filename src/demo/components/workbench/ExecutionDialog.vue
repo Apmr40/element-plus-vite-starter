@@ -1,3 +1,43 @@
+<script setup lang="ts">
+import { Check, CircleCheck, CircleClose, Loading } from '@element-plus/icons-vue'
+import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
+
+const {
+  showParamDialog,
+  currentOperation,
+  executionStep,
+  currentParamConfig,
+  paramForm,
+  paramFormRules,
+  paramFormRef,
+  resourceForm,
+  resourceSearchKeyword,
+  datacenterOptions,
+  clusterOptions,
+  namespaceOptions,
+  deploymentOptions,
+  filteredResources,
+  currentExecution,
+  executing,
+  handleDatacenterChange,
+  handleClusterChange,
+  handleNamespaceChange,
+  handleDeploymentChange,
+  handleSubmitExecution,
+  handleRetryExecution,
+  handleCloseExecutionDialog,
+  handleBackToParamConfig,
+  handleViewHistory,
+  getExecutionResultStatusType,
+  getExecutionResultStatusText,
+  getDetailStatusType,
+  getDetailStatusText,
+  calcExecutionDuration,
+  handleViewDetail,
+  handleRetrySingleResource,
+} = useWorkbenchContext()
+</script>
+
 <template>
   <el-dialog
     v-model="showParamDialog"
@@ -11,12 +51,14 @@
     <div class="step-indicator">
       <div class="step-item" :class="{ active: executionStep === 1, completed: executionStep === 2 }">
         <div class="step-circle">
-          <el-icon v-if="executionStep === 2"><Check /></el-icon>
+          <el-icon v-if="executionStep === 2">
+            <Check />
+          </el-icon>
           <span v-else>1</span>
         </div>
         <span class="step-label">参数配置</span>
       </div>
-      <div class="step-line" :class="{ active: executionStep === 2 }"></div>
+      <div class="step-line" :class="{ active: executionStep === 2 }" />
       <div class="step-item" :class="{ active: executionStep === 2 }">
         <div class="step-circle">
           <span>2</span>
@@ -30,7 +72,7 @@
       <!-- 区域1: 操作介绍 -->
       <div class="execute-section">
         <div class="section-title-bar">
-          <div class="title-indicator"></div>
+          <div class="title-indicator" />
           <span class="title-text">操作介绍</span>
         </div>
         <div class="operation-intro">
@@ -50,7 +92,9 @@
           </div>
           <div class="intro-row">
             <span class="intro-label">标签：</span>
-            <el-tag v-for="tag in currentOperation?.tags" :key="tag" size="small" class="intro-tag">{{ tag }}</el-tag>
+            <el-tag v-for="tag in currentOperation?.tags" :key="tag" size="small" class="intro-tag">
+              {{ tag }}
+            </el-tag>
           </div>
         </div>
       </div>
@@ -58,7 +102,7 @@
       <!-- 区域2: 参数填写 -->
       <div class="execute-section">
         <div class="section-title-bar">
-          <div class="title-indicator"></div>
+          <div class="title-indicator" />
           <span class="title-text">参数填写</span>
         </div>
         <el-form
@@ -69,7 +113,7 @@
           class="param-form"
         >
           <el-row :gutter="20">
-            <el-col :span="12" v-for="field in currentParamConfig" :key="field.field">
+            <el-col v-for="field in currentParamConfig" :key="field.field" :span="12">
               <el-form-item :label="field.label" :prop="field.field">
                 <el-input
                   v-if="field.type === 'input'"
@@ -105,7 +149,7 @@
       <!-- 区域3: 资源选择 -->
       <div class="execute-section">
         <div class="section-title-bar">
-          <div class="title-indicator"></div>
+          <div class="title-indicator" />
           <span class="title-text">资源选择</span>
         </div>
         <div class="resource-selection">
@@ -174,7 +218,7 @@
       <!-- 执行概要 -->
       <div class="execute-section">
         <div class="section-title-bar">
-          <div class="title-indicator"></div>
+          <div class="title-indicator" />
           <span class="title-text">执行概要</span>
         </div>
         <div class="execution-summary">
@@ -193,7 +237,7 @@
               ({{ currentExecution.successCount }}/{{ currentExecution.totalCount }})
             </el-tag>
           </div>
-          <div class="summary-row" v-if="currentExecution.endTime">
+          <div v-if="currentExecution.endTime" class="summary-row">
             <span class="summary-label">总耗时：</span>
             <span class="summary-value">{{ calcExecutionDuration(currentExecution.startTime, currentExecution.endTime) }}</span>
           </div>
@@ -203,7 +247,7 @@
       <!-- 进度条 -->
       <div class="execute-section">
         <div class="section-title-bar">
-          <div class="title-indicator"></div>
+          <div class="title-indicator" />
           <span class="title-text">执行进度</span>
         </div>
         <div class="execution-progress">
@@ -218,7 +262,7 @@
       <!-- 资源明细 -->
       <div class="execute-section">
         <div class="section-title-bar">
-          <div class="title-indicator"></div>
+          <div class="title-indicator" />
           <span class="title-text">资源明细</span>
         </div>
         <el-table :data="currentExecution.details" border style="width: 100%">
@@ -226,9 +270,15 @@
           <el-table-column label="状态" width="120" align="center">
             <template #default="{ row }">
               <el-tag :type="getDetailStatusType(row.execStatus)" size="small">
-                <el-icon v-if="row.execStatus === 'P'" class="is-loading"><Loading /></el-icon>
-                <el-icon v-else-if="row.execStatus === 'S'"><CircleCheck /></el-icon>
-                <el-icon v-else-if="row.execStatus === 'F'"><CircleClose /></el-icon>
+                <el-icon v-if="row.execStatus === 'P'" class="is-loading">
+                  <Loading />
+                </el-icon>
+                <el-icon v-else-if="row.execStatus === 'S'">
+                  <CircleCheck />
+                </el-icon>
+                <el-icon v-else-if="row.execStatus === 'F'">
+                  <CircleClose />
+                </el-icon>
                 <span>{{ getDetailStatusText(row.execStatus) }}</span>
               </el-tag>
             </template>
@@ -244,7 +294,9 @@
           </el-table-column>
           <el-table-column label="操作" width="150" align="center">
             <template #default="{ row }">
-              <el-button type="primary" link size="small" @click="handleViewDetail(row)">详情</el-button>
+              <el-button type="primary" link size="small" @click="handleViewDetail(row)">
+                详情
+              </el-button>
               <el-button
                 v-if="row.execStatus === 'F'"
                 type="warning"
@@ -260,14 +312,16 @@
       </div>
 
       <!-- 错误信息 -->
-      <div class="execute-section" v-if="currentExecution.details.some(d => d.execStatus === 'F' && d.errorMsg)">
+      <div v-if="currentExecution.details.some(d => d.execStatus === 'F' && d.errorMsg)" class="execute-section">
         <div class="section-title-bar">
-          <div class="title-indicator"></div>
+          <div class="title-indicator" />
           <span class="title-text">错误信息</span>
         </div>
         <div class="error-info">
           <div v-for="detail in currentExecution.details.filter(d => d.execStatus === 'F' && d.errorMsg)" :key="detail.serviceSeqId" class="error-item">
-            <el-icon class="error-icon"><CircleClose /></el-icon>
+            <el-icon class="error-icon">
+              <CircleClose />
+            </el-icon>
             <span class="error-resource">{{ detail.pkDisplay }}：</span>
             <span class="error-msg">{{ detail.errorMsg }}</span>
           </div>
@@ -278,61 +332,31 @@
     <template #footer>
       <div class="dialog-footer">
         <template v-if="executionStep === 1">
-          <el-button @click="handleCloseExecutionDialog">取消</el-button>
-          <el-button type="primary" @click="handleSubmitExecution" :loading="executing">
+          <el-button @click="handleCloseExecutionDialog">
+            取消
+          </el-button>
+          <el-button type="primary" :loading="executing" @click="handleSubmitExecution">
             提交执行
           </el-button>
         </template>
         <template v-else>
-          <el-button @click="handleBackToParamConfig">返回</el-button>
-          <el-button @click="handleRetryExecution">重新执行</el-button>
-          <el-button @click="handleViewHistory">查看历史</el-button>
-          <el-button @click="handleCloseExecutionDialog">关闭</el-button>
+          <el-button @click="handleBackToParamConfig">
+            返回
+          </el-button>
+          <el-button @click="handleRetryExecution">
+            重新执行
+          </el-button>
+          <el-button @click="handleViewHistory">
+            查看历史
+          </el-button>
+          <el-button @click="handleCloseExecutionDialog">
+            关闭
+          </el-button>
         </template>
       </div>
     </template>
   </el-dialog>
 </template>
-
-<script setup lang="ts">
-import { Check, Loading, CircleCheck, CircleClose } from '@element-plus/icons-vue'
-import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
-
-const {
-  showParamDialog,
-  currentOperation,
-  executionStep,
-  currentParamConfig,
-  paramForm,
-  paramFormRules,
-  paramFormRef,
-  resourceForm,
-  resourceSearchKeyword,
-  datacenterOptions,
-  clusterOptions,
-  namespaceOptions,
-  deploymentOptions,
-  filteredResources,
-  currentExecution,
-  executing,
-  handleDatacenterChange,
-  handleClusterChange,
-  handleNamespaceChange,
-  handleDeploymentChange,
-  handleSubmitExecution,
-  handleRetryExecution,
-  handleCloseExecutionDialog,
-  handleBackToParamConfig,
-  handleViewHistory,
-  getExecutionResultStatusType,
-  getExecutionResultStatusText,
-  getDetailStatusType,
-  getDetailStatusText,
-  calcExecutionDuration,
-  handleViewDetail,
-  handleRetrySingleResource
-} = useWorkbenchContext()
-</script>
 
 <style lang="scss" scoped>
 @use '@/styles/uops-theme.scss' as *;

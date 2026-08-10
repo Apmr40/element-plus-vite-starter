@@ -24,6 +24,8 @@ import 'element-plus/theme-chalk/src/overlay.scss' // the modal class for messag
 import '~/demo/styles/inspection.scss'
 import '~/demo/styles/inspection-system.scss'
 import '~/demo/styles/config-inspect.scss'
+// 操作工作台 - 应用定制组件入库弹窗（跨子组件共享结构样式）
+import '~/demo/styles/workbench-component.scss'
 
 // if you do not need ssg:
 // import { createApp } from "vue";

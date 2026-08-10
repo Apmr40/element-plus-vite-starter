@@ -1,0 +1,83 @@
+/**
+ * 应用定制组件入库弹窗 - 全局共享样式
+ *
+ * 背景：弹窗内容按步骤拆分为多个子组件（StepBasicInfo / ScriptTemplatePanel /
+ * ApiTemplatePanel / InstanceFixPanel / StepPreview / ParmSection），而 Vue scoped
+ * 样式无法穿透到子组件内部元素。因此将跨子组件共享的结构类统一收口于此，
+ * 并挂在 `.component-dialog` 命名空间下，避免污染弹窗外的其他区域。
+ *
+ * 引入方式：main.ts 全局 import（非 scoped）。
+ */
+@use '@/styles/uops-theme.scss' as *;
+
+.component-dialog {
+  // ---- 弹窗外壳（append-to-body 后 scoped 无法命中） ----
+  .ep-dialog__body {
+    padding: $uops-spacing-lg $uops-spacing-xl;
+    max-height: 68vh;
+    overflow-y: auto;
+  }
+
+  // ---- 内容分区（与 workbench.scss 的 execute-section 保持一致） ----
+  .execute-section {
+    margin-bottom: $uops-spacing-lg;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  // ---- 分区标题栏（蓝色竖条 + 标题） ----
+  .section-title-bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: $uops-spacing-md;
+
+    .title-indicator {
+      width: 4px;
+      height: 16px;
+      background: $uops-primary-color;
+      border-radius: 2px;
+      margin-right: $uops-spacing-sm;
+    }
+
+    .title-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: $uops-text-primary;
+    }
+  }
+
+  .section-badge {
+    margin-left: $uops-spacing-sm;
+  }
+
+  // ---- 必填星号 ----
+  .req {
+    color: $uops-danger-color;
+    margin-right: 2px;
+  }
+
+  // ---- 添加行按钮 ----
+  .add-row-btn {
+    margin-top: $uops-spacing-sm;
+  }
+
+  // ---- 图例说明 ----
+  .legend {
+    display: flex;
+    gap: $uops-spacing-lg;
+    align-items: center;
+    margin-top: $uops-spacing-sm;
+    font-size: $font-size-label;
+    color: $uops-text-placeholder;
+  }
+
+  // ---- 参数表：模板提取行只读样式 ----
+  .parm-table {
+    .parm-readonly .ep-input__inner {
+      color: $uops-text-secondary;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+    }
+  }
+}

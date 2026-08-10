@@ -1,3 +1,15 @@
+import type { FormInstance, FormRules } from 'element-plus'
+import type {
+  ExecutionDetail,
+  ExecutionDetailStatus,
+  ExecutionRecord,
+  OperationComponent,
+  OrchestrationExecutionRecord,
+  OrchestrationExecutionStatus,
+  OrchestrationJob,
+  ParamField,
+} from '~/demo/types/workbench'
+import { ElMessage, ElMessageBox } from 'element-plus'
 /**
  * 操作工作台 - 执行域 composable
  *
@@ -6,24 +18,12 @@
  *
  * 执行历史初始数据来自 mock 层（~/demo/mock/workbench-extra）。
  */
-import { ref, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
-import type {
-  OperationComponent,
-  ExecutionRecord,
-  ExecutionDetail,
-  ExecutionDetailStatus,
-  ParamField,
-  OrchestrationExecutionRecord,
-  OrchestrationExecutionStatus,
-  OrchestrationJob
-} from '~/demo/types/workbench'
+import { computed, ref } from 'vue'
 import { getExecutionHistory } from '~/demo/api/workbench'
 import {
-  createMockRecentExecutions,
+  createMockHistoryData,
   createMockOrchestrationHistory,
-  createMockHistoryData
+  createMockRecentExecutions,
 } from '~/demo/mock/workbench-extra'
 import { createStatusMapper } from './utils'
 
@@ -34,7 +34,7 @@ export function useExecution() {
   const historyFilter = ref({
     status: '',
     type: '',
-    keyword: ''
+    keyword: '',
   })
 
   // ============ 编排执行历史 ============
@@ -46,7 +46,7 @@ export function useExecution() {
   const historyDrawerFilter = ref({
     timeRange: 'today',
     status: '',
-    keyword: ''
+    keyword: '',
   })
   const expandedHistoryIds = ref<string[]>([])
   const expandedDetailIds = ref<string[]>([])
@@ -57,7 +57,7 @@ export function useExecution() {
   const orchestrationHistoryDrawerFilter = ref({
     timeRange: 'today',
     status: '',
-    keyword: ''
+    keyword: '',
   })
   const expandedOrchestrationHistoryIds = ref<string[]>([])
 
@@ -109,7 +109,7 @@ export function useExecution() {
     datacenter: '',
     cluster: '',
     namespace: '',
-    deployment: ''
+    deployment: '',
   })
   const resourceSearchKeyword = ref<string>('')
 
@@ -117,28 +117,28 @@ export function useExecution() {
   const datacenterOptions = ref([
     { value: 'bj-test', label: '测试环境北京' },
     { value: 'sh-test', label: '测试环境上海' },
-    { value: 'bj-prod', label: '生产环境北京' }
+    { value: 'bj-prod', label: '生产环境北京' },
   ])
   const clusterOptions = ref([
     { value: 'hqxt-ccedt-pfmt-a-arm', label: 'hqxt-ccedt-pfmt-a-arm' },
-    { value: 'hqxt-ccedt-pfmt-b-arm', label: 'hqxt-ccedt-pfmt-b-arm' }
+    { value: 'hqxt-ccedt-pfmt-b-arm', label: 'hqxt-ccedt-pfmt-b-arm' },
   ])
   const namespaceOptions = ref([
     { value: 'apida', label: 'apida' },
     { value: 'apida-test', label: 'apida-test' },
-    { value: 'default', label: 'default' }
+    { value: 'default', label: 'default' },
   ])
   const deploymentOptions = ref([
     { value: 'apism-batch-dev', label: 'apism-batch-dev' },
     { value: 'apism-api-dev', label: 'apism-api-dev' },
-    { value: 'apism-web-dev', label: 'apism-web-dev' }
+    { value: 'apism-web-dev', label: 'apism-web-dev' },
   ])
 
   // ============ 资源列表（POD）============
   const resourceList = ref([
     { name: 'apism-batch-dev-684f65df5c-zrph8', ip: '172.16.197.247', status: 'Running' },
     { name: 'apism-batch-dev-684f65df5c-xk9p2', ip: '172.16.197.248', status: 'Running' },
-    { name: 'apism-batch-dev-684f65df5c-m3n7q', ip: '172.16.197.249', status: 'Pending' }
+    { name: 'apism-batch-dev-684f65df5c-m3n7q', ip: '172.16.197.249', status: 'Pending' },
   ])
 
   // ============ 计算属性 ============
@@ -155,7 +155,7 @@ export function useExecution() {
 
     if (historyFilter.value.keyword) {
       filtered = filtered.filter(record =>
-        record.name.toLowerCase().includes(historyFilter.value.keyword.toLowerCase())
+        record.name.toLowerCase().includes(historyFilter.value.keyword.toLowerCase()),
       )
     }
 
@@ -163,11 +163,12 @@ export function useExecution() {
   })
 
   const filteredResources = computed(() => {
-    if (!resourceSearchKeyword.value) return resourceList.value
+    if (!resourceSearchKeyword.value)
+      return resourceList.value
     const keyword = resourceSearchKeyword.value.toLowerCase()
     return resourceList.value.filter(r =>
-      r.name.toLowerCase().includes(keyword) ||
-      r.ip.includes(keyword)
+      r.name.toLowerCase().includes(keyword)
+      || r.ip.includes(keyword),
     )
   })
 
@@ -180,19 +181,21 @@ export function useExecution() {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
       if (historyDrawerFilter.value.timeRange === 'today') {
-        filtered = filtered.filter(record => {
+        filtered = filtered.filter((record) => {
           const recordDate = new Date(record.executeTime)
           return recordDate >= today
         })
-      } else if (historyDrawerFilter.value.timeRange === '7days') {
+      }
+      else if (historyDrawerFilter.value.timeRange === '7days') {
         const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-        filtered = filtered.filter(record => {
+        filtered = filtered.filter((record) => {
           const recordDate = new Date(record.executeTime)
           return recordDate >= sevenDaysAgo
         })
-      } else if (historyDrawerFilter.value.timeRange === '30days') {
+      }
+      else if (historyDrawerFilter.value.timeRange === '30days') {
         const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-        filtered = filtered.filter(record => {
+        filtered = filtered.filter((record) => {
           const recordDate = new Date(record.executeTime)
           return recordDate >= thirtyDaysAgo
         })
@@ -206,7 +209,7 @@ export function useExecution() {
     if (historyDrawerFilter.value.keyword) {
       const keyword = historyDrawerFilter.value.keyword.toLowerCase()
       filtered = filtered.filter(record =>
-        record.name.toLowerCase().includes(keyword)
+        record.name.toLowerCase().includes(keyword),
       )
     }
 
@@ -222,19 +225,21 @@ export function useExecution() {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
       if (orchestrationHistoryDrawerFilter.value.timeRange === 'today') {
-        filtered = filtered.filter(record => {
+        filtered = filtered.filter((record) => {
           const recordDate = new Date(record.executeTime)
           return recordDate >= today
         })
-      } else if (orchestrationHistoryDrawerFilter.value.timeRange === '7days') {
+      }
+      else if (orchestrationHistoryDrawerFilter.value.timeRange === '7days') {
         const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-        filtered = filtered.filter(record => {
+        filtered = filtered.filter((record) => {
           const recordDate = new Date(record.executeTime)
           return recordDate >= sevenDaysAgo
         })
-      } else if (orchestrationHistoryDrawerFilter.value.timeRange === '30days') {
+      }
+      else if (orchestrationHistoryDrawerFilter.value.timeRange === '30days') {
         const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-        filtered = filtered.filter(record => {
+        filtered = filtered.filter((record) => {
           const recordDate = new Date(record.executeTime)
           return recordDate >= thirtyDaysAgo
         })
@@ -248,7 +253,7 @@ export function useExecution() {
     if (orchestrationHistoryDrawerFilter.value.keyword) {
       const keyword = orchestrationHistoryDrawerFilter.value.keyword.toLowerCase()
       filtered = filtered.filter(record =>
-        record.name.toLowerCase().includes(keyword)
+        record.name.toLowerCase().includes(keyword),
       )
     }
 
@@ -296,10 +301,11 @@ export function useExecution() {
     paramForm.value = {}
     paramFormRules.value = {}
 
-    config.forEach(field => {
+    config.forEach((field) => {
       if (field.type === 'checkbox') {
         paramForm.value[field.field] = field.defaultValue || []
-      } else {
+      }
+      else {
         paramForm.value[field.field] = field.defaultValue || ''
       }
 
@@ -307,7 +313,7 @@ export function useExecution() {
         paramFormRules.value[field.field] = {
           required: true,
           message: `请输入${field.label}`,
-          trigger: field.type === 'select' || field.type === 'checkbox' ? 'change' : 'blur'
+          trigger: field.type === 'select' || field.type === 'checkbox' ? 'change' : 'blur',
         }
       }
     })
@@ -329,7 +335,8 @@ export function useExecution() {
 
   // ============ 提交执行 ============
   const handleSubmitExecution = async () => {
-    if (!currentOperation.value) return
+    if (!currentOperation.value)
+      return
 
     executing.value = true
     try {
@@ -345,7 +352,7 @@ export function useExecution() {
         pkValue: res.name,
         pkDisplay: res.name,
         execStatus: 'P' as const,
-        startTime: startTime
+        startTime,
       }))
 
       currentExecution.value = {
@@ -357,7 +364,7 @@ export function useExecution() {
         totalCount: details.length,
         successCount: 0,
         startTime,
-        details
+        details,
       }
 
       const historyRecord: ExecutionRecord = {
@@ -370,7 +377,7 @@ export function useExecution() {
         executeTime: now.toISOString(),
         totalCount: details.length,
         successCount: 0,
-        details: details.map(d => ({ ...d }))
+        details: details.map(d => ({ ...d })),
       }
       executionHistory.value.unshift(historyRecord)
       recentExecutions.value.unshift(historyRecord)
@@ -382,21 +389,24 @@ export function useExecution() {
       startExecutionPolling()
 
       ElMessage.success('执行已提交')
-    } catch (error) {
+    }
+    catch {
       ElMessage.error('提交执行失败')
-    } finally {
+    }
+    finally {
       executing.value = false
     }
   }
 
   // ============ 轮询 ============
-  const startExecutionPolling = () => {
+  function startExecutionPolling() {
     if (executionPolling.value) {
       clearInterval(executionPolling.value)
     }
 
     executionPolling.value = setInterval(() => {
-      if (!currentExecution.value) return
+      if (!currentExecution.value)
+        return
 
       const details = currentExecution.value.details
       let allCompleted = true
@@ -408,14 +418,16 @@ export function useExecution() {
               detail.execStatus = 'F'
               detail.endTime = new Date().toISOString()
               detail.errorMsg = '执行失败: 连接超时'
-            } else {
+            }
+            else {
               detail.execStatus = Math.random() > 0.2 ? 'S' : 'F'
               detail.endTime = new Date().toISOString()
               if (detail.execStatus === 'F') {
                 detail.errorMsg = '执行失败: 连接超时'
               }
             }
-          } else {
+          }
+          else {
             allCompleted = false
           }
         }
@@ -493,7 +505,8 @@ export function useExecution() {
     const index = expandedHistoryIds.value.indexOf(recordId)
     if (index > -1) {
       expandedHistoryIds.value.splice(index, 1)
-    } else {
+    }
+    else {
       expandedHistoryIds.value.push(recordId)
     }
   }
@@ -502,7 +515,8 @@ export function useExecution() {
     const index = expandedDetailIds.value.indexOf(detailId)
     if (index > -1) {
       expandedDetailIds.value.splice(index, 1)
-    } else {
+    }
+    else {
       expandedDetailIds.value.push(detailId)
     }
   }
@@ -542,7 +556,8 @@ export function useExecution() {
     const index = expandedOrchestrationHistoryIds.value.indexOf(recordId)
     if (index > -1) {
       expandedOrchestrationHistoryIds.value.splice(index, 1)
-    } else {
+    }
+    else {
       expandedOrchestrationHistoryIds.value.push(recordId)
     }
   }
@@ -569,7 +584,7 @@ export function useExecution() {
         totalCount: execution.totalCount,
         successCount: execution.successCount,
         duration: execution.duration,
-        details: execution.details || []
+        details: execution.details || [],
       })
     }
     handleOpenHistoryDrawer()
@@ -591,16 +606,16 @@ export function useExecution() {
       '状态': record.status === 'success' ? '成功' : record.status === 'failed' ? '失败' : '执行中',
       '资源总数': record.totalCount,
       '成功数': record.successCount,
-      '耗时(秒)': record.duration?.toFixed(1) || '-'
+      '耗时(秒)': record.duration?.toFixed(1) || '-',
     }))
 
     const headers = Object.keys(data[0] || {})
     const csv = [
       headers.join(','),
-      ...data.map(row => headers.map(h => `"${(row as any)[h]}"`).join(','))
+      ...data.map(row => headers.map(h => `"${(row as any)[h]}"`).join(',')),
     ].join('\n')
 
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = `执行历史_${new Date().toLocaleDateString()}.csv`
@@ -622,10 +637,10 @@ export function useExecution() {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
-      }
+        type: 'warning',
+      },
     ).then(() => {
-      failedRecords.forEach(record => {
+      failedRecords.forEach((record) => {
         record.status = 'running'
         record.successCount = 0
 
@@ -650,8 +665,8 @@ export function useExecution() {
         record.submitter,
         record.totalJobCount,
         getOrchestrationStatusText(record),
-        record.executeTime
-      ].join(','))
+        record.executeTime,
+      ].join(',')),
     ].join('\n')
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
@@ -672,7 +687,7 @@ export function useExecution() {
     ElMessageBox.confirm(
       `确定要重试 ${failedRecords.length} 条失败记录吗？`,
       '批量重试',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' },
     ).then(() => {
       ElMessage.success(`已开始重试 ${failedRecords.length} 条记录`)
     }).catch(() => {})
@@ -680,14 +695,17 @@ export function useExecution() {
 
   // ============ 执行结果辅助函数 ============
   const getExecutionResultStatusType = createStatusMapper(
-    { S: 'success', F: 'danger', P: 'warning', R: 'info' }, 'info'
+    { S: 'success', F: 'danger', P: 'warning', R: 'info' },
+    'info',
   )
   const getExecutionResultStatusText = createStatusMapper(
-    { S: '全部成功', F: '全部失败', P: '部分成功', R: '执行中' }, '未知'
+    { S: '全部成功', F: '全部失败', P: '部分成功', R: '执行中' },
+    '未知',
   )
   const getDetailStatusType = getExecutionResultStatusType
   const getDetailStatusText = createStatusMapper(
-    { S: '成功', F: '失败', P: '执行中', R: '等待中' }, '未知'
+    { S: '成功', F: '失败', P: '执行中', R: '等待中' },
+    '未知',
   )
 
   const calcExecutionDuration = (startTime: string, endTime: string) => {
@@ -696,9 +714,11 @@ export function useExecution() {
     const duration = Math.floor((end - start) / 1000)
     if (duration < 60) {
       return `${duration}秒`
-    } else if (duration < 3600) {
+    }
+    else if (duration < 3600) {
       return `${Math.floor(duration / 60)}分${duration % 60}秒`
-    } else {
+    }
+    else {
       return `${Math.floor(duration / 3600)}时${Math.floor((duration % 3600) / 60)}分`
     }
   }
@@ -715,8 +735,8 @@ export function useExecution() {
         {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
-          type: 'warning'
-        }
+          type: 'warning',
+        },
       )
 
       row.execStatus = 'P'
@@ -734,7 +754,8 @@ export function useExecution() {
         row.execStatus = 'S'
         row.endTime = new Date().toISOString()
         ElMessage.success(`资源 ${row.pkDisplay} 重试成功`)
-      } else {
+      }
+      else {
         row.execStatus = 'F'
         row.endTime = new Date().toISOString()
         row.errorMsg = '重试失败: 连接超时'
@@ -747,13 +768,16 @@ export function useExecution() {
 
         if (failedCount === 0) {
           currentExecution.value.execStatus = 'S'
-        } else if (currentExecution.value.successCount === 0) {
+        }
+        else if (currentExecution.value.successCount === 0) {
           currentExecution.value.execStatus = 'F'
-        } else {
+        }
+        else {
           currentExecution.value.execStatus = 'P'
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       if (error !== 'cancel') {
         ElMessage.error('重试操作失败')
       }
@@ -766,7 +790,7 @@ export function useExecution() {
       success: 'success',
       failed: 'danger',
       running: 'warning',
-      cancelled: 'info'
+      cancelled: 'info',
     }
     return map[status] || 'info'
   }
@@ -774,9 +798,11 @@ export function useExecution() {
   const getHistoryStatusText = (record: ExecutionRecord) => {
     if (record.status === 'running') {
       return `执行中 (${record.successCount}/${record.totalCount})`
-    } else if (record.status === 'success') {
+    }
+    else if (record.status === 'success') {
       return `全部成功 (${record.successCount}/${record.totalCount})`
-    } else if (record.status === 'failed') {
+    }
+    else if (record.status === 'failed') {
       const failedCount = record.totalCount - record.successCount
       return `失败 (${failedCount}/${record.totalCount})`
     }
@@ -793,9 +819,11 @@ export function useExecution() {
 
     if (recordDate.getTime() === today.getTime()) {
       return `今天 ${timeStr}`
-    } else if (recordDate.getTime() === today.getTime() - 24 * 60 * 60 * 1000) {
+    }
+    else if (recordDate.getTime() === today.getTime() - 24 * 60 * 60 * 1000) {
       return `昨天 ${timeStr}`
-    } else {
+    }
+    else {
       return `${date.toLocaleDateString()} ${timeStr}`
     }
   }
@@ -810,7 +838,7 @@ export function useExecution() {
       S: 'status-success',
       F: 'status-failed',
       P: 'status-pending',
-      R: 'status-running'
+      R: 'status-running',
     }
     return map[status] || 'status-pending'
   }
@@ -820,7 +848,7 @@ export function useExecution() {
       S: 'CircleCheck',
       F: 'CircleClose',
       P: 'Clock',
-      R: 'Loading'
+      R: 'Loading',
     }
     return map[status] || 'Clock'
   }
@@ -832,18 +860,18 @@ export function useExecution() {
       failed: 'danger',
       running: 'warning',
       pending: 'info',
-      terminated: 'info'
+      terminated: 'info',
     }
     return map[status] || 'info'
   }
 
-  const getOrchestrationStatusText = (record: OrchestrationExecutionRecord) => {
+  function getOrchestrationStatusText(record: OrchestrationExecutionRecord) {
     const statusMap: Record<OrchestrationExecutionStatus, string> = {
       success: '成功',
       failed: '失败',
       running: '执行中',
       pending: '初始化',
-      terminated: '执行终止'
+      terminated: '执行终止',
     }
     return statusMap[record.status] || '未知'
   }
@@ -856,10 +884,14 @@ export function useExecution() {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
 
-    if (minutes < 1) return '刚刚'
-    if (minutes < 60) return `${minutes}分钟前`
-    if (hours < 24) return `${hours}小时前`
-    if (days < 7) return `${days}天前`
+    if (minutes < 1)
+      return '刚刚'
+    if (minutes < 60)
+      return `${minutes}分钟前`
+    if (hours < 24)
+      return `${hours}小时前`
+    if (days < 7)
+      return `${days}天前`
     return time.toLocaleDateString('zh-CN')
   }
 
@@ -873,7 +905,7 @@ export function useExecution() {
     const map: Record<string, string> = {
       success: 'CircleCheckFilled',
       failed: 'CircleCloseFilled',
-      running: 'Loading'
+      running: 'Loading',
     }
     return map[status] || 'Clock'
   }
@@ -882,7 +914,7 @@ export function useExecution() {
     const map: Record<string, string> = {
       success: 'success',
       failed: 'danger',
-      running: 'warning'
+      running: 'warning',
     }
     return map[status] || 'info'
   }
@@ -890,9 +922,11 @@ export function useExecution() {
   const getRecentStatusText = (execution: any) => {
     if (execution.status === 'running') {
       return `执行中 (${execution.successCount}/${execution.totalCount})`
-    } else if (execution.status === 'success') {
+    }
+    else if (execution.status === 'success') {
       return `全部成功 (${execution.successCount}/${execution.totalCount})`
-    } else if (execution.status === 'failed') {
+    }
+    else if (execution.status === 'failed') {
       const failedCount = execution.totalCount - execution.successCount
       return `失败 (${failedCount}/${execution.totalCount})`
     }
@@ -921,7 +955,7 @@ export function useExecution() {
     diagnosticFailedResources.value = failed.map((d: any) => ({
       pk: d.pkValue || d.pk || d.pkDisplay || '',
       pkDisplay: d.pkDisplay || d.pkValue || '',
-      errorMsg: d.errorMsg || '执行失败'
+      errorMsg: d.errorMsg || '执行失败',
     }))
 
     showDiagnosticPanel.value = true
@@ -1037,6 +1071,6 @@ export function useExecution() {
     diagnosticOperationName,
     diagnosticOperationCategory,
     diagnosticFailedResources,
-    openDiagnostic
+    openDiagnostic,
   }
 }

@@ -1,14 +1,17 @@
+import type {
+  AppModule,
+  ExecutionRecord,
+  OperationComponent,
+  OperationSnapshot,
+  OperationVersion,
+  Orchestration,
+  ParamTemplate,
+} from '../types/workbench'
 /**
  * 操作工作台 - API 接口
  */
 import { mockWorkbenchData } from '../mock/workbench'
-import type {
-  AppModule,
-  OperationComponent,
-  Orchestration,
-  ExecutionRecord,
-  ParamTemplate
-} from '../types/workbench'
+import { mockOperationVersions, SNAP_V4 } from '../mock/workbench-version'
 
 // 模拟延迟
 const delay = (ms: number = 300) => new Promise(resolve => setTimeout(resolve, ms))
@@ -24,7 +27,7 @@ export async function getModules(): Promise<AppModule[]> {
 /**
  * 获取操作组件列表
  */
-export async function getOperations(moduleId?: string): Promise<OperationComponent[]> {
+export async function getOperations(_moduleId?: string): Promise<OperationComponent[]> {
   await delay()
   return mockWorkbenchData.operations
 }
@@ -32,7 +35,7 @@ export async function getOperations(moduleId?: string): Promise<OperationCompone
 /**
  * 获取编排列表
  */
-export async function getOrchestrations(moduleId?: string): Promise<Orchestration[]> {
+export async function getOrchestrations(_moduleId?: string): Promise<Orchestration[]> {
   await delay()
   return mockWorkbenchData.orchestrations
 }
@@ -62,7 +65,7 @@ export async function getParamTemplates(componentId?: string): Promise<ParamTemp
 export async function saveParamTemplate(
   componentId: string,
   name: string,
-  params: Record<string, any>
+  params: Record<string, any>,
 ): Promise<ParamTemplate> {
   await delay()
   const newTemplate: ParamTemplate = {
@@ -70,7 +73,7 @@ export async function saveParamTemplate(
     name,
     componentId,
     params,
-    createTime: new Date().toLocaleString('zh-CN')
+    createTime: new Date().toLocaleString('zh-CN'),
   }
   mockWorkbenchData.paramTemplates.push(newTemplate)
   return newTemplate
@@ -81,7 +84,7 @@ export async function saveParamTemplate(
  */
 export async function executeOperation(
   operationId: string,
-  params: Record<string, any>
+  params: Record<string, any>,
 ): Promise<ExecutionRecord> {
   await delay(500)
   const operation = mockWorkbenchData.operations.find(o => o.id === operationId)
@@ -99,7 +102,7 @@ export async function executeOperation(
     status: 'running',
     operator: '当前用户',
     executeTime: new Date().toLocaleString('zh-CN'),
-    params
+    params,
   }
 
   // 添加到历史记录
@@ -119,7 +122,7 @@ export async function executeOperation(
  */
 export async function executeOrchestration(
   orchestrationId: string,
-  params: Record<string, any>
+  params: Record<string, any>,
 ): Promise<ExecutionRecord> {
   await delay(500)
   const orchestration = mockWorkbenchData.orchestrations.find(o => o.id === orchestrationId)
@@ -134,7 +137,7 @@ export async function executeOrchestration(
     status: 'running',
     operator: '当前用户',
     executeTime: new Date().toLocaleString('zh-CN'),
-    params
+    params,
   }
 
   mockWorkbenchData.executionHistory.unshift(record)
@@ -161,4 +164,76 @@ export async function toggleFavorite(operationId: string): Promise<boolean> {
   operation.isFavorite = !operation.isFavorite
 
   return operation.isFavorite
+}
+
+// ============ 版本历史 API ============
+
+/**
+ * 获取操作的版本历史（倒序）
+ */
+export async function getOperationVersions(operationId: string): Promise<OperationVersion[]> {
+  await delay(200)
+  return mockOperationVersions
+    .filter(v => v.operationId === operationId)
+    .sort((a, b) => b.versionNo - a.versionNo)
+}
+
+/**
+ * 发布新版本（编辑草稿提交入库 → 审批通过后调用）
+ * 自动递增版本号，写入 mockOperationVersions
+ */
+export async function publishNewVersion(
+  operationId: string,
+  snapshot: OperationSnapshot,
+  changeSummary: string[],
+  publisher = '贺诗辉',
+): Promise<OperationVersion> {
+  await delay(400)
+  const existing = mockOperationVersions.filter(v => v.operationId === operationId)
+  const maxNo = existing.reduce((max, v) => Math.max(max, v.versionNo), 0)
+  const newVersion: OperationVersion = {
+    id: `ver-${operationId}-${maxNo + 1}`,
+    operationId,
+    versionNo: maxNo + 1,
+    publishTime: new Date().toLocaleString('zh-CN', { hour12: false }),
+    publisher,
+    changeType: 'update',
+    changeSummary,
+    snapshot,
+  }
+  mockOperationVersions.push(newVersion)
+  // 同步更新操作卡片的 versionNo
+  const op = mockWorkbenchData.operations.find(o => o.id === operationId)
+  if (op)
+    op.versionNo = newVersion.versionNo
+  return newVersion
+}
+
+/**
+ * 模拟同事发布（演示基线冲突用）
+ * 将 V4 数据追加到版本链，更新操作卡片 versionNo
+ */
+export async function simulateExternalPublish(operationId: string): Promise<OperationVersion> {
+  await delay(300)
+  const existing = mockOperationVersions.filter(v => v.operationId === operationId)
+  const maxNo = existing.reduce((max, v) => Math.max(max, v.versionNo), 0)
+  // 幂等：已存在外部发布记录（超时时间 60s → 120s）时直接返回，避免重复点击生成 V5/V6
+  const already = existing.find(v => v.changeSummary.includes('超时时间 60s → 120s'))
+  if (already)
+    return already
+  const newVersion: OperationVersion = {
+    id: `ver-${operationId}-${maxNo + 1}`,
+    operationId,
+    versionNo: maxNo + 1,
+    publishTime: new Date().toLocaleString('zh-CN', { hour12: false }),
+    publisher: '王运维',
+    changeType: 'update',
+    changeSummary: ['超时时间 60s → 120s', '新增缓存清理逻辑'],
+    snapshot: SNAP_V4,
+  }
+  mockOperationVersions.push(newVersion)
+  const op = mockWorkbenchData.operations.find(o => o.id === operationId)
+  if (op)
+    op.versionNo = newVersion.versionNo
+  return newVersion
 }
