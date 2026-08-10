@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>编辑操作 · 版本历史 - 交互原型 v1.0</title>
+<style>
+  :root {
+    --primary: #3290FF; --primary-hover: #70B2FF; --primary-active: #0069E6; --primary-disabled: #84BCFF;
+    --danger: #F13039; --warning: #FFB100; --success: #00C771; --link: #1677FF;
+    --text-title: #25303C; --text-body: #2F2E4B; --text-secondary: #3B5369; --text-special: #7C9CB4;
+    --text-assist: #91969D; --text-disabled: #A4B4BC;
+    --bg-divider: #E8E9EB; --bg-border: #D2DDE5; --bg-large-card: #F0F7FF; --bg-small-card: #F3F6F9;
+    --bg-table-header: #F3F5FA; --bg-nested: #F8F9FC; --bg-input: #F2F4FB;
+    --shadow-dialog: 0px 6px 16px rgba(37,48,60,0.18); --shadow-dropdown: 0px 2px 8px rgba(37,48,60,0.18);
+    --shadow-card: 0px 4px 24px rgba(154,172,193,0.23);
+    --r-dialog: 24px; --r-card: 16px; --r-small: 8px; --r-input: 4px;
+    --font: "方正兰亭黑简体","PingFang SC","Microsoft YaHei",sans-serif;
+    --display: "DIN Alternate","Bahnschrift","Avenir Next Condensed","Arial Narrow",sans-serif;
+    --diff-old-bg: rgba(241,48,57,.07); --diff-new-bg: rgba(0,199,113,.09);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: var(--font); color:var(--text-body); font-size:14px; min-height:100vh;
+    background:
+      radial-gradient(900px 400px at 85% -80px, rgba(50,144,255,.10), transparent 60%),
+      radial-gradient(700px 380px at -60px 100%, rgba(0,199,113,.06), transparent 55%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(37,48,60,.028) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(37,48,60,.028) 40px),
+      #E9EEF5;
+  }
+
+  /* ========== 工作台背景页 ========== */
+  .page { padding:36px 44px 96px; max-width:1180px; margin:0 auto; }
+  .page-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; }
+  .page-title { font-size:24px; font-weight:700; color:var(--text-title); letter-spacing:.5px; }
+  .page-title .page-sub { font-size:14px; font-weight:400; color:var(--text-assist); margin-left:10px; }
+  .demo-trigger {
+    height:36px; padding:0 18px; border-radius:18px; border:1px dashed var(--primary);
+    background:#fff; color:var(--primary); font-size:13px; font-weight:700; cursor:pointer;
+    font-family:var(--font); transition:.25s; box-shadow:0 2px 10px rgba(50,144,255,.12);
+  }
+  .demo-trigger:hover { background:var(--bg-large-card); transform:translateY(-1px); box-shadow:0 4px 14px rgba(50,144,255,.22); }
+  .demo-trigger:disabled { border-color:var(--bg-border); color:var(--text-disabled); background:var(--bg-small-card); cursor:not-allowed; box-shadow:none; transform:none; }
+
+  .tab-line { display:flex; gap:32px; border-bottom:1px solid var(--bg-divider); margin-bottom:24px; }
+  .tab-item { padding:10px 2px; font-size:15px; color:var(--text-assist); cursor:pointer; position:relative; transition:.2s; }
+  .tab-item.active { color:var(--text-title); font-weight:700; }
+  .tab-item.active::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:3px; border-radius:2px; background:var(--primary); }
+
+  .cards-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+  .op-card {
+    background:#fff; border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px;
+    cursor:pointer; transition:.28s cubic-bezier(.22,1,.36,1); position:relative; border:1px solid transparent;
+    animation:cardIn .5s cubic-bezier(.22,1,.36,1) backwards;
+  }
+  .op-card:nth-child(2) { animation-delay:.08s; } .op-card:nth-child(3) { animation-delay:.16s; }
+  @keyframes cardIn { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+  .op-card:hover { transform:translateY(-4px); box-shadow:0 10px 32px rgba(154,172,193,.35); border-color:var(--primary-disabled); }
+  .oc-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; position:relative; }
+  .oc-editing { display:inline-flex; align-items:center; gap:3px; font-size:11px; color:var(--warning); background:#FFF7E6; border-radius:10px; padding:2px 8px; white-space:nowrap; }
+  .oc-title { font-size:16px; font-weight:700; color:var(--text-title); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .oc-more { border:none; background:transparent; width:26px; height:26px; border-radius:var(--r-input); color:var(--text-assist); font-size:16px; cursor:pointer; transition:.2s; line-height:1; }
+  .oc-more:hover { background:var(--bg-small-card); color:var(--text-title); }
+  .card-menu { position:absolute; top:30px; right:0; background:#fff; border-radius:var(--r-small); box-shadow:var(--shadow-dropdown); padding:6px 0; min-width:132px; z-index:60; display:none; animation:menuIn .18s ease; }
+  .card-menu.open { display:block; }
+  @keyframes menuIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .cm-item { padding:8px 16px; font-size:13px; color:var(--text-body); cursor:pointer; transition:.15s; }
+  .cm-item:hover { background:var(--bg-large-card); color:var(--primary); }
+  .cm-item.danger:hover { background:#FFF1F0; color:var(--danger); }
+  .oc-tags { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .tag { font-size:12px; padding:2px 10px; border-radius:10px; background:var(--bg-small-card); color:var(--text-secondary); }
+  .tag.warn { background:#FFF7E6; color:var(--warning); }
+  .tag.blue { background:var(--bg-large-card); color:var(--primary); }
+  .oc-foot { display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--bg-nested); padding-top:12px; }
+  .oc-meta { font-size:12px; color:var(--text-assist); }
+  .oc-ver {
+    font-family:var(--display); font-size:14px; font-weight:700; letter-spacing:1px;
+    color:var(--primary); background:var(--bg-large-card); border:1px solid var(--primary-disabled);
+    border-radius:12px; padding:2px 12px; transition:.25s;
+  }
+  .op-card:hover .oc-ver { box-shadow:0 0 0 3px rgba(50,144,255,.14); }
+  .oc-ver.bump { animation:bump .5s cubic-bezier(.22,1,.36,1); }
+  @keyframes bump { 0%{transform:scale(1)} 40%{transform:scale(1.25)} 100%{transform:scale(1)} }
+
+  /* ========== 通用弹层 ========== */
+  .overlay { position:fixed; inset:0; background:rgba(37,48,60,.45); display:none; align-items:center; justify-content:center; z-index:100; }
+  .overlay.show { display:flex; animation:fadeIn .25s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .dialog { width:880px; max-height:92vh; background:#fff; border-radius:var(--r-dialog); box-shadow:var(--shadow-dialog); display:flex; flex-direction:column; animation:slideUp .3s cubic-bezier(.22,1,.36,1); overflow:hidden; }
+  @keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .dialog-header { padding:24px 32px 0; display:flex; justify-content:space-between; align-items:center; }
+  .dialog-title { font-size:18px; font-weight:700; color:var(--text-title); }
+  .dialog-close { width:32px; height:32px; border:none; background:transparent; font-size:18px; color:var(--text-assist); cursor:pointer; border-radius:var(--r-input); transition:.2s; }
+  .dialog-close:hover { background:var(--bg-small-card); color:var(--text-title); }
+
+  /* ========== 编辑弹窗：版本横幅 ========== */
+  .ver-banner {
+    margin:16px 32px 0; padding:12px 16px; border-radius:var(--r-small);
+    display:flex; align-items:center; gap:12px; transition:background .4s, border-color .4s;
+    background:var(--bg-large-card); border:1px solid rgba(50,144,255,.25);
+  }
+  .ver-banner.stale { background:#FFF7E6; border-color:rgba(255,177,0,.45); animation:bannerFlash .8s ease; }
+  @keyframes bannerFlash { 0%{box-shadow:0 0 0 0 rgba(255,177,0,.5)} 100%{box-shadow:0 0 0 12px rgba(255,177,0,0)} }
+  .vb-icon { font-size:16px; flex-shrink:0; }
+  .vb-text { flex:1; font-size:13px; color:var(--text-secondary); line-height:1.6; }
+  .vb-text b { color:var(--text-title); font-family:var(--display); letter-spacing:.5px; }
+  .vb-text .warn { color:var(--warning); font-weight:700; }
+  .vb-badge {
+    font-family:var(--display); font-size:12px; font-weight:700; letter-spacing:1px; white-space:nowrap;
+    color:var(--primary); background:#fff; border:1px solid var(--primary-disabled); border-radius:12px; padding:3px 12px;
+  }
+  .ver-banner.stale .vb-badge { color:var(--warning); border-color:rgba(255,177,0,.5); }
+  .vb-btn {
+    height:28px; padding:0 14px; border-radius:14px; border:1px solid var(--primary); background:#fff;
+    color:var(--primary); font-size:12px; font-weight:700; cursor:pointer; font-family:var(--font);
+    transition:.2s; white-space:nowrap; display:inline-flex; align-items:center; gap:5px;
+  }
+  .vb-btn:hover { background:var(--primary); color:#fff; box-shadow:0 3px 10px rgba(50,144,255,.3); }
+
+  /* 步骤条 */
+  .steps { display:flex; align-items:center; justify-content:center; padding:22px 32px 6px; }
+  .step-item { display:flex; align-items:center; gap:8px; cursor:pointer; }
+  .step-num { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--display); font-size:14px; font-weight:700; background:var(--bg-small-card); color:var(--text-assist); transition:.25s; }
+  .step-text { font-size:14px; color:var(--text-assist); transition:.25s; }
+  .step-item.active .step-num { background:var(--primary); color:#fff; box-shadow:0 2px 8px rgba(50,144,255,.35); }
+  .step-item.active .step-text { color:var(--text-title); font-weight:700; }
+  .step-line { width:64px; height:2px; background:var(--bg-divider); margin:0 12px; }
+
+  .dialog-body { flex:1; overflow-y:auto; padding:14px 32px 24px; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px 24px; }
+  .form-item { display:flex; flex-direction:column; gap:6px; }
+  .form-item.full { grid-column:1 / -1; }
+  .form-label { font-size:14px; color:var(--text-secondary); display:flex; align-items:center; gap:6px; }
+  .form-label .req { color:var(--danger); }
+  .form-label .hint { font-size:12px; color:var(--text-assist); font-weight:400; }
+  .lock-ico { font-size:12px; color:var(--text-assist); }
+  .fi { height:32px; border:1px solid var(--bg-border); border-radius:var(--r-input); background:var(--bg-input); padding:0 12px; font-size:14px; color:var(--text-body); font-family:var(--font); transition:.2s; width:100%; }
+  .fi:focus { outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 2px rgba(50,144,255,.15); }
+  .fi.mono { font-family:"SFMono-Regular",Consolas,monospace; font-size:13px; }
+  textarea.fi { height:auto; min-height:60px; padding:8px 12px; resize:vertical; }
+  select.fi { appearance:none; cursor:pointer; }
+  .fi-readonly {
+    height:32px; border:1px dashed var(--bg-border); border-radius:var(--r-input); background:var(--bg-small-card);
+    padding:0 12px; display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-secondary);
+  }
+  .fi-readonly .ro-val { font-family:"SFMono-Regular",Consolas,monospace; font-weight:700; color:var(--text-title); }
+  .risk-display { display:flex; align-items:center; gap:8px; height:32px; }
+  .risk-badge { display:inline-flex; align-items:center; padding:4px 14px; border-radius:12px; font-size:13px; font-weight:700; background:#E8F8F0; color:var(--success); }
+  .risk-arrow { font-size:12px; color:var(--text-assist); }
+  .suffix-wrap { position:relative; }
+  .suffix-wrap .suffix { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:13px; color:var(--text-assist); pointer-events:none; }
+
+  .dialog-footer { padding:16px 32px 24px; display:flex; justify-content:flex-end; gap:16px; border-top:1px solid var(--bg-divider); background:#fff; }
+  .btn { height:32px; padding:0 20px; border-radius:var(--r-input); font-size:14px; cursor:pointer; border:1px solid var(--bg-border); background:#fff; color:var(--text-body); transition:.2s; font-family:var(--font); display:inline-flex; align-items:center; gap:6px; }
+  .btn:hover { border-color:var(--primary-hover); color:var(--primary); }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.primary:hover { background:var(--primary-hover); border-color:var(--primary-hover); color:#fff; box-shadow:0 3px 10px rgba(50,144,255,.3); }
+  .btn.warn { background:var(--warning); border-color:var(--warning); color:#fff; }
+  .btn.warn:hover { filter:brightness(1.06); box-shadow:0 3px 10px rgba(255,177,0,.35); color:#fff; }
+
+  /* ========== 版本历史抽屉 ========== */
+  .drawer-overlay { position:fixed; inset:0; background:rgba(37,48,60,.32); z-index:150; display:none; }
+  .drawer-overlay.show { display:block; animation:fadeIn .2s ease; }
+  .drawer {
+    position:absolute; top:0; right:0; bottom:0; width:520px; background:#fff;
+    box-shadow:-8px 0 32px rgba(37,48,60,.18); display:flex; flex-direction:column;
+    animation:drawerIn .38s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes drawerIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
+  .drawer-head { padding:24px 28px 18px; border-bottom:1px solid var(--bg-divider); display:flex; align-items:center; gap:14px; background:linear-gradient(180deg, var(--bg-large-card), #fff); }
+  .drawer-title { font-size:18px; font-weight:700; color:var(--text-title); }
+  .drawer-sub { font-size:12px; color:var(--text-assist); margin-top:3px; font-family:"SFMono-Regular",Consolas,monospace; }
+  .drawer-cur { margin-left:auto; text-align:right; font-size:12px; color:var(--text-assist); }
+  .drawer-cur b { display:block; font-family:var(--display); font-size:26px; font-weight:700; color:var(--primary); letter-spacing:1px; line-height:1.1; }
+  .drawer-body { flex:1; overflow-y:auto; padding:20px 28px 28px; }
+
+  .draft-float {
+    display:flex; align-items:center; gap:10px; padding:12px 14px; margin-bottom:22px;
+    background:#FFFBEA; border:1px solid rgba(255,177,0,.4); border-radius:var(--r-small);
+    animation:floatIn .4s .15s cubic-bezier(.22,1,.36,1) backwards;
+  }
+  @keyframes floatIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+  .draft-float .df-ico { font-size:15px; }
+  .draft-float .df-text { flex:1; font-size:12px; color:var(--text-secondary); line-height:1.6; }
+  .draft-float .df-text b { font-family:var(--display); color:var(--warning); letter-spacing:.5px; }
+  .df-btn { height:26px; padding:0 12px; border-radius:13px; border:1px solid var(--warning); background:#fff; color:var(--warning); font-size:12px; font-weight:700; cursor:pointer; transition:.2s; font-family:var(--font); white-space:nowrap; }
+  .df-btn:hover { background:var(--warning); color:#fff; }
+
+  .timeline { position:relative; padding-left:6px; }
+  .tl-item { position:relative; padding:0 0 26px 44px; animation:tlIn .45s cubic-bezier(.22,1,.36,1) backwards; }
+  @keyframes tlIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+  .tl-item::before { content:''; position:absolute; left:15px; top:34px; bottom:0; width:2px; background:var(--bg-divider); }
+  .tl-item:last-child::before { display:none; }
+  .tl-node {
+    position:absolute; left:0; top:2px; width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--display); font-size:12px; font-weight:700; letter-spacing:.5px;
+    background:#fff; border:2px solid var(--bg-border); color:var(--text-assist); transition:.25s; z-index:1;
+  }
+  .tl-item:hover .tl-node { border-color:var(--primary-hover); color:var(--primary); transform:scale(1.08); }
+  .tl-item.current .tl-node { background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 3px 10px rgba(50,144,255,.4); }
+  .tl-card { background:var(--bg-nested); border:1px solid transparent; border-radius:var(--r-small); padding:12px 16px; transition:.25s; }
+  .tl-item:hover .tl-card { background:#fff; border-color:var(--bg-border); box-shadow:var(--shadow-dropdown); }
+  .tl-item.current .tl-card { background:var(--bg-large-card); border-color:rgba(50,144,255,.3); }
+  .tl-head { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .tl-v { font-family:var(--display); font-size:17px; font-weight:700; color:var(--text-title); letter-spacing:1px; }
+  .tl-tag { font-size:11px; padding:1px 8px; border-radius:8px; }
+  .tl-tag.cur { background:var(--primary); color:#fff; }
+  .tl-tag.init { background:var(--bg-small-card); color:var(--text-assist); border:1px solid var(--bg-border); }
+  .tl-meta { font-size:12px; color:var(--text-assist); font-family:var(--display); letter-spacing:.3px; margin-bottom:6px; }
+  .tl-meta .pub { font-family:var(--font); color:var(--text-secondary); }
+  .tl-summary { font-size:13px; color:var(--text-secondary); line-height:1.6; }
+  .tl-actions { display:flex; gap:8px; margin-top:10px; }
+  .tl-btn {
+    height:26px; padding:0 12px; border-radius:13px; border:1px solid var(--bg-border); background:#fff;
+    font-size:12px; color:var(--text-secondary); cursor:pointer; transition:.2s; font-family:var(--font);
+  }
+  .tl-btn:hover { border-color:var(--primary); color:var(--primary); background:var(--bg-large-card); }
+  .drawer-note { margin-top:6px; padding-top:14px; border-top:1px dashed var(--bg-divider); font-size:12px; color:var(--text-assist); line-height:1.7; }
+
+  /* ========== 版本对比弹窗 ========== */
+  .diff-overlay { position:fixed; inset:0; background:rgba(37,48,60,.5); z-index:200; display:none; align-items:center; justify-content:center; }
+  .diff-overlay.show { display:flex; animation:fadeIn .2s ease; }
+  .diff-dialog { width:900px; max-height:90vh; background:#fff; border-radius:var(--r-dialog); box-shadow:var(--shadow-dialog); display:flex; flex-direction:column; overflow:hidden; animation:slideUp .3s cubic-bezier(.22,1,.36,1); }
+  .diff-head { padding:22px 28px 0; display:flex; justify-content:space-between; align-items:center; }
+  .diff-title { font-size:18px; font-weight:700; color:var(--text-title); }
+  .diff-title .vt { font-family:var(--display); letter-spacing:1px; color:var(--primary); }
+  .diff-meta { display:flex; align-items:center; gap:14px; margin:14px 28px 0; padding:12px 18px; background:var(--bg-nested); border-radius:var(--r-small); }
+  .dm-side { display:flex; align-items:center; gap:10px; }
+  .dm-v { font-family:var(--display); font-size:20px; font-weight:700; letter-spacing:1px; color:var(--text-title); }
+  .dm-info { font-size:12px; color:var(--text-assist); line-height:1.5; }
+  .dm-info b { color:var(--text-secondary); font-weight:700; }
+  .dm-arrow { margin:0 auto; font-size:18px; color:var(--primary); animation:arrowPulse 1.6s ease infinite; }
+  @keyframes arrowPulse { 0%,100%{transform:translateX(0);opacity:.6} 50%{transform:translateX(5px);opacity:1} }
+  .diff-toolbar { display:flex; align-items:center; gap:16px; padding:14px 28px 10px; }
+  .diff-count { font-size:13px; color:var(--text-secondary); }
+  .diff-count b { font-family:var(--display); font-size:16px; color:var(--warning); margin:0 2px; }
+  .filter-toggle { margin-left:auto; display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); cursor:pointer; user-select:none; }
+  .filter-toggle input { accent-color:var(--primary); width:14px; height:14px; cursor:pointer; }
+  .diff-body { flex:1; overflow-y:auto; padding:0 28px 26px; }
+  .diff-table-head, .diff-row { display:grid; grid-template-columns:150px 1fr 1fr; gap:0; align-items:stretch; }
+  .diff-table-head { background:var(--bg-table-header); border-radius:var(--r-small) var(--r-small) 0 0; }
+  .diff-table-head > div { padding:9px 14px; font-size:12px; color:var(--text-assist); }
+  .diff-table-head .dh-v { font-family:var(--display); font-weight:700; letter-spacing:.5px; color:var(--text-secondary); }
+  .diff-row { border-bottom:1px solid var(--bg-nested); animation:rowIn .35s ease backwards; }
+  @keyframes rowIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .diff-row > div { padding:10px 14px; font-size:13px; display:flex; align-items:center; }
+  .dr-label { color:var(--text-secondary); gap:6px !important; }
+  .chg-tag { font-size:10px; color:var(--warning); background:#FFF7E6; border-radius:8px; padding:1px 7px; white-space:nowrap; }
+  .dr-old, .dr-new { color:var(--text-body); word-break:break-all; }
+  .diff-row.changed { background:#FFFBE6; box-shadow:inset 3px 0 0 var(--warning); }
+  .diff-row.changed .dr-old { color:var(--text-assist); text-decoration:line-through; text-decoration-color:rgba(241,48,57,.5); }
+  .diff-row.changed .dr-new { color:var(--text-title); font-weight:700; }
+  .diff-row.unchanged .dr-old, .diff-row.unchanged .dr-new { color:var(--text-assist); }
+  /* 脚本字段：整行全宽双栏 */
+  .diff-row.code-row { display:block; padding:0; }
+  .code-head { display:flex; align-items:center; gap:8px; padding:10px 14px 8px; }
+  .code-head .dr-label { padding:0; }
+  .expand-btn { margin-left:auto; border:none; background:transparent; color:var(--primary); font-size:12px; cursor:pointer; font-family:var(--font); transition:.2s; }
+  .expand-btn:hover { text-decoration:underline; }
+  .code-cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 14px 14px; }
+  .code-pane { border:1px solid var(--bg-divider); border-radius:var(--r-small); overflow:hidden; }
+  .code-pane-head { padding:6px 12px; font-family:var(--display); font-size:12px; font-weight:700; letter-spacing:1px; background:var(--bg-table-header); color:var(--text-secondary); display:flex; justify-content:space-between; }
+  .code-pane.old .code-pane-head { color:var(--danger); }
+  .code-pane.new .code-pane-head { color:var(--success); }
+  .code-lines { background:#1E2733; padding:8px 0; max-height:220px; overflow-y:auto; }
+  .code-lines.collapsed { max-height:76px; overflow:hidden; position:relative; }
+  .code-lines.collapsed::after { content:''; position:absolute; left:0; right:0; bottom:0; height:34px; background:linear-gradient(transparent, #1E2733); }
+  .cl-row { display:grid; grid-template-columns:30px 1fr; font-family:"SFMono-Regular",Consolas,monospace; font-size:12px; line-height:1.75; }
+  .cl-no { color:#5A7089; text-align:right; padding-right:8px; user-select:none; }
+  .cl-code { color:#D7E2EE; white-space:pre-wrap; word-break:break-all; padding-right:10px; }
+  .cl-row.diff .cl-code { background:rgba(241,48,57,.16); box-shadow:inset 2px 0 0 var(--danger); }
+  .code-pane.new .cl-row.diff .cl-code { background:rgba(0,199,113,.16); box-shadow:inset 2px 0 0 var(--success); }
+  .cl-row.diff .cl-no { color:var(--warning); }
+
+  /* ========== 基线冲突弹窗 ========== */
+  .conflict-overlay { position:fixed; inset:0; background:rgba(37,48,60,.5); z-index:250; display:none; align-items:center; justify-content:center; }
+  .conflict-overlay.show { display:flex; animation:fadeIn .2s ease; }
+  .conflict-box { background:#fff; border-radius:var(--r-card); box-shadow:var(--shadow-dialog); padding:28px; width:460px; animation:conflictIn .35s cubic-bezier(.22,1,.36,1); }
+  @keyframes conflictIn { from{transform:scale(.92) translateY(12px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+  .conflict-icon { width:48px; height:48px; border-radius:50%; background:#FFF7E6; color:var(--warning); font-size:24px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; animation:warnPulse 1.8s ease infinite; }
+  @keyframes warnPulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,177,0,.35)} 50%{box-shadow:0 0 0 10px rgba(255,177,0,0)} }
+  .conflict-box h4 { font-size:17px; color:var(--text-title); margin-bottom:10px; }
+  .conflict-box p { font-size:14px; color:var(--text-secondary); line-height:1.8; margin-bottom:14px; }
+  .conflict-box p b { font-family:var(--display); letter-spacing:.5px; color:var(--text-title); }
+  .conflict-box p .warn { color:var(--danger); font-weight:700; font-family:var(--font); }
+  .link-btn { border:none; background:transparent; color:var(--link); font-size:13px; cursor:pointer; font-family:var(--font); padding:0; margin-bottom:20px; display:inline-flex; align-items:center; gap:4px; transition:.2s; }
+  .link-btn:hover { text-decoration:underline; }
+  .cb-btns { display:flex; justify-content:flex-end; gap:16px; }
+
+  /* ========== toast / proto-bar ========== */
+  .toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-70px); background:#fff; border-radius:var(--r-small); box-shadow:var(--shadow-dialog); padding:11px 22px; font-size:14px; display:flex; align-items:center; gap:9px; z-index:300; transition:.35s cubic-bezier(.22,1,.36,1); opacity:0; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  .toast .t-icon { font-size:16px; }
+  .toast.success .t-icon { color:var(--success); }
+  .toast.error .t-icon { color:var(--danger); }
+  .toast.info .t-icon { color:var(--primary); }
+  .toast.warn .t-icon { color:var(--warning); }
+
+  .proto-bar { position:fixed; bottom:0; left:0; right:0; background:var(--text-title); color:#fff; font-size:12px; padding:9px 24px; display:flex; gap:20px; align-items:center; z-index:50; }
+  .proto-bar .pb-dot { width:8px; height:8px; border-radius:50%; background:var(--success); display:inline-block; margin-right:6px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .proto-bar b { font-weight:700; }
+  .proto-bar span { opacity:.72; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ 工作台背景页 ═══════════ -->
+<div class="page">
+  <div class="page-head">
+    <div class="page-title">操作工作台<span class="page-sub">/ 应用定制 · 正式操作</span></div>
+    <button class="demo-trigger" id="demoTrigger" onclick="simulateV4()">🎬 演示：同事发布 V4</button>
+  </div>
+  <div class="tab-line">
+    <div class="tab-item active">正式操作</div>
+    <div class="tab-item" onclick="toast('info','草稿列表见新建原型（本原型聚焦版本历史）')">我的草稿</div>
+  </div>
+  <div class="cards-grid">
+    <div class="op-card">
+      <div class="oc-head">
+        <span class="oc-editing" id="card1Editing">✏️ 正在编辑</span>
+        <span class="oc-title">集群状态检查</span>
+        <button class="oc-more" onclick="toggleMenu(event,'menu1')">⋯</button>
+        <div class="card-menu" id="menu1">
+          <div class="cm-item" onclick="closeMenus();openEdit()">编辑</div>
+          <div class="cm-item" onclick="closeMenus();openDrawer()">版本历史</div>
+          <div class="cm-item" onclick="closeMenus();toast('info','复制：基于当前版本生成新草稿（演示）')">复制</div>
+          <div class="cm-item danger" onclick="closeMenus();toast('info','删除需二次确认（演示）')">删除</div>
+        </div>
+      </div>
+      <div class="oc-tags"><span class="tag warn">定制</span><span class="tag blue">查询</span><span class="tag">脚本 · Shell</span></div>
+      <div class="oc-foot">
+        <span class="oc-meta">执行次数: 128 · 更新: 2026-07-28</span>
+        <span class="oc-ver" id="card1Badge">V3</span>
+      </div>
+    </div>
+    <div class="op-card" onclick="toast('info','演示聚焦「集群状态检查」的版本链路')">
+      <div class="oc-head">
+        <span class="oc-title">Redis主从切换</span>
+      </div>
+      <div class="oc-tags"><span class="tag warn">定制</span><span class="tag blue">启停</span><span class="tag">脚本 · Shell</span></div>
+      <div class="oc-foot"><span class="oc-meta">执行次数: 42 · 更新: 2026-06-30</span><span class="oc-ver">V2</span></div>
+    </div>
+    <div class="op-card" onclick="toast('info','演示聚焦「集群状态检查」的版本链路')">
+      <div class="oc-head">
+        <span class="oc-title">日志清理</span>
+      </div>
+      <div class="oc-tags"><span class="tag warn">定制</span><span class="tag blue">清理回收</span><span class="tag">脚本 · Python3</span></div>
+      <div class="oc-foot"><span class="oc-meta">执行次数: 356 · 更新: 2026-05-20</span><span class="oc-ver">V1</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 编辑弹窗 ═══════════ -->
+<div class="overlay" id="editOverlay">
+  <div class="dialog">
+    <div class="dialog-header">
+      <div class="dialog-title">编辑操作组件</div>
+      <button class="dialog-close" onclick="closeEdit()">✕</button>
+    </div>
+
+    <div class="ver-banner" id="verBanner">
+      <span class="vb-icon" id="vbIcon">ℹ️</span>
+      <span class="vb-text" id="vbText">正在基于正式版本 <b>V3</b> 编辑草稿，发布前<b>不影响</b>线上执行</span>
+      <span class="vb-badge" id="vbBadge">基于 V3</span>
+      <button class="vb-btn" onclick="openDrawer()">📜 历史版本</button>
+    </div>
+
+    <div class="steps">
+      <div class="step-item active"><span class="step-num">1</span><span class="step-text">基本信息</span></div>
+      <span class="step-line"></span>
+      <div class="step-item" onclick="toast('info','表单复用新建的三步向导，本原型聚焦版本历史交互')"><span class="step-num">2</span><span class="step-text">参数配置</span></div>
+      <span class="step-line"></span>
+      <div class="step-item" onclick="toast('info','Step3 预览含「与线上版本对比」，见设计文档 §7')"><span class="step-num">3</span><span class="step-text">确认预览</span></div>
+    </div>
+
+    <div class="dialog-body">
+      <div class="form-grid">
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>操作名称(英文) <span class="lock-ico">🔒</span><span class="hint">唯一标识，创建后不可修改</span></span>
+          <div class="fi-readonly"><span class="ro-val">cluster_check</span></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>操作名称(中文)</span>
+          <input class="fi" value="集群状态检查">
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>操作分类 <span class="hint">决定风险等级</span></span>
+          <select class="fi"><option>查询</option><option>启停</option><option>验证</option><option>配置变更</option><option>部署发布</option><option>清理回收</option></select>
+        </div>
+        <div class="form-item">
+          <span class="form-label">风险等级 <span class="hint">由操作分类自动推算</span></span>
+          <div class="risk-display"><span class="risk-badge">低</span><span class="risk-arrow">← 查询类自动判定</span></div>
+        </div>
+        <div class="form-item full">
+          <span class="form-label">模板大类 <span class="lock-ico">🔒</span><span class="hint">执行机制不可变更，如需更换请「复制」后新建</span></span>
+          <div class="fi-readonly"><span class="ro-val">脚本 · Shell</span></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>超时时间</span>
+          <div class="suffix-wrap"><input class="fi" value="60" style="padding-right:32px"><span class="suffix">秒</span></div>
+        </div>
+        <div class="form-item">
+          <span class="form-label"><span class="req">*</span>成功判定</span>
+          <input class="fi mono" value="退出码 = 0 且输出包含 SUCCESS">
+        </div>
+        <div class="form-item full">
+          <span class="form-label">操作描述</span>
+          <textarea class="fi">检查集群节点状态并输出报告（含主从延迟）</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button class="btn" onclick="closeEdit()">取消</button>
+      <button class="btn" onclick="toast('success','草稿已保存（演示）')">保存草稿</button>
+      <button class="btn primary" onclick="submitDraft()">提交入库</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 版本历史抽屉 ═══════════ -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()">
+  <div class="drawer" onclick="event.stopPropagation()">
+    <div class="drawer-head">
+      <div>
+        <div class="drawer-title">版本历史</div>
+        <div class="drawer-sub">集群状态检查 · cluster_check</div>
+      </div>
+      <div class="drawer-cur">当前线上<b id="drawerCurV">V3</b></div>
+      <button class="dialog-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div class="draft-float">
+        <span class="df-ico">✏️</span>
+        <span class="df-text">你的编辑草稿 · 基于 <b id="dfBase">V3</b> · 保存于 2026-07-30 10:20<br>草稿未发布，不占用版本号</span>
+        <button class="df-btn" onclick="closeDrawer();openEdit()">继续编辑</button>
+      </div>
+      <div class="timeline" id="timeline"></div>
+      <div class="drawer-note">💡 版本号仅在<b>发布成功</b>时 +1；草稿、驳回、追回均不消耗版本号。历史版本不支持一键回滚，可「复制」某版后重新编辑发布。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 版本对比弹窗 ═══════════ -->
+<div class="diff-overlay" id="diffOverlay">
+  <div class="diff-dialog">
+    <div class="diff-head">
+      <div class="diff-title">版本对比 · <span class="vt" id="diffTitle">V2 → V3</span></div>
+      <button class="dialog-close" onclick="closeDiff()">✕</button>
+    </div>
+    <div class="diff-meta" id="diffMeta"></div>
+    <div class="diff-toolbar">
+      <span class="diff-count" id="diffCount"></span>
+      <label class="filter-toggle"><input type="checkbox" id="onlyChanged" checked onchange="applyFilter()">只看变更项</label>
+    </div>
+    <div class="diff-body" id="diffBody"></div>
+  </div>
+</div>
+
+<!-- ═══════════ 基线冲突弹窗 ═══════════ -->
+<div class="conflict-overlay" id="conflictOverlay">
+  <div class="conflict-box">
+    <div class="conflict-icon">⚠</div>
+    <h4>基线版本已过期</h4>
+    <p>你的草稿基于 <b>V3</b>，但线上已更新至 <b>V4</b>（王运维 发布于 2026-07-29 09:15）。<br>继续发布将<span class="warn">覆盖 V4 的变更</span>，新版本号为 <b>V5</b>。</p>
+    <button class="link-btn" onclick="closeConflict();openDiff(3,4)">→ 先查看 V3 → V4 的变更</button>
+    <div class="cb-btns">
+      <button class="btn" onclick="closeConflict()">取消</button>
+      <button class="btn warn" onclick="forcePublish()">仍要继续发布</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toastEl"><span class="t-icon" id="toastIcon"></span><span id="toastText"></span></div>
+
+<div class="proto-bar">
+  <div><span class="pb-dot"></span><b>编辑操作 · 版本历史交互原型 v1.0</b></div>
+  <span>推荐体验链路：卡片 ⋯ → 编辑 → 横幅「📜 历史版本」→ 时间线对比 → 点右上角「🎬 演示：同事发布 V4」→ 提交入库触发基线冲突 → 「先查看变更」</span>
+</div>
+
+<script>
+/* ═══════════ 版本数据（每版完整快照） ═══════════ */
+const VERSIONS = {
+  1: { no:1, time:'2026-05-20 09:00', publisher:'李平台', type:'create', summary:['创建操作'],
+    snap:{ nameEn:'cluster_check', nameCn:'集群状态检查', category:'查询', risk:'低', tplType:'脚本 · Shell', timeout:'30 秒', successFlag:'退出码 = 0', description:'检查集群节点状态并输出报告',
+      script:'#!/bin/bash\n# 集群状态检查 v1\nSTATUS=$(curl -s http://localhost:8080/health)\necho "STATUS: $STATUS"\nexit 0' } },
+  2: { no:2, time:'2026-06-15 10:12', publisher:'王运维', type:'update', summary:['新增参数 ${env}','修改成功判定规则'],
+    snap:{ nameEn:'cluster_check', nameCn:'集群状态检查', category:'查询', risk:'低', tplType:'脚本 · Shell', timeout:'30 秒', successFlag:'退出码 = 0 且输出包含 SUCCESS', description:'检查集群节点状态并输出报告',
+      script:'#!/bin/bash\n# 集群状态检查 v2\nENV=${env}\nSTATUS=$(curl -s http://$ENV-api:8080/health)\necho "STATUS: $STATUS"\n[ "$STATUS" = "UP" ] && echo SUCCESS' } },
+  3: { no:3, time:'2026-07-28 14:30', publisher:'贺诗辉', type:'update', summary:['修改脚本内容','超时时间 30s → 60s'],
+    snap:{ nameEn:'cluster_check', nameCn:'集群状态检查', category:'查询', risk:'低', tplType:'脚本 · Shell', timeout:'60 秒', successFlag:'退出码 = 0 且输出包含 SUCCESS', description:'检查集群节点状态并输出报告（含主从延迟）',
+      script:'#!/bin/bash\n# 集群状态检查 v3\nENV=${env}\nSTATUS=$(curl -s --max-time 50 http://$ENV-api:8080/health)\nLAG=$(redis-cli info replication | grep lag)\necho "STATUS: $STATUS | LAG: $LAG"\n[ "$STATUS" = "UP" ] && echo SUCCESS' } },
+  4: { no:4, time:'2026-07-29 09:15', publisher:'王运维', type:'update', summary:['超时时间 60s → 120s','新增缓存清理逻辑'],
+    snap:{ nameEn:'cluster_check', nameCn:'集群状态检查', category:'查询', risk:'低', tplType:'脚本 · Shell', timeout:'120 秒', successFlag:'退出码 = 0 且输出包含 SUCCESS', description:'检查集群节点状态并输出报告（含主从延迟）',
+      script:'#!/bin/bash\n# 集群状态检查 v4\nENV=${env}\nSTATUS=$(curl -s --max-time 110 http://$ENV-api:8080/health)\nLAG=$(redis-cli info replication | grep lag)\nredis-cli -n 0 flushdb  # 检查前清理缓存\necho "STATUS: $STATUS | LAG: $LAG"\n[ "$STATUS" = "UP" ] && echo SUCCESS' } },
+};
+
+const FIELDS = [
+  ['nameEn','操作名称(英文)'], ['nameCn','操作名称(中文)'], ['category','操作分类'],
+  ['risk','风险等级'], ['tplType','模板大类'], ['timeout','超时时间'],
+  ['successFlag','成功判定'], ['script','脚本内容','code'], ['description','操作描述'],
+];
+
+let onlineVersion = 3;   // 线上当前版本
+const baseVersion = 3;   // 草稿基线版本（固定，演示冲突用）
+let toastTimer = null;
+
+/* ═══════════ 通用 ═══════════ */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(type, text){
+  const el = document.getElementById('toastEl');
+  document.getElementById('toastIcon').textContent = {success:'✔', error:'✖', info:'ℹ', warn:'⚠'}[type] || 'ℹ';
+  document.getElementById('toastText').textContent = text;
+  el.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+function toggleMenu(e, id){
+  e.stopPropagation();
+  const menu = document.getElementById(id);
+  const wasOpen = menu.classList.contains('open');
+  closeMenus();
+  if (!wasOpen) menu.classList.add('open');
+}
+function closeMenus(){ document.querySelectorAll('.card-menu').forEach(m => m.classList.remove('open')); }
+document.addEventListener('click', closeMenus);
+
+/* ═══════════ 编辑弹窗 ═══════════ */
+function openEdit(){ document.getElementById('editOverlay').classList.add('show'); }
+function closeEdit(){ document.getElementById('editOverlay').classList.remove('show'); }
+
+function updateBanner(){
+  const banner = document.getElementById('verBanner');
+  const stale = onlineVersion > baseVersion;
+  if (stale) {
+    banner.classList.add('stale');
+    document.getElementById('vbIcon').textContent = '⚠️';
+    document.getElementById('vbText').innerHTML =
+      '基线已过期：草稿基于 <b>V' + baseVersion + '</b>，线上已更新至 <b>V' + onlineVersion + '</b>（王运维 · 2026-07-29 09:15），提交时需二次确认';
+    document.getElementById('vbBadge').textContent = '基于 V' + baseVersion + ' · 线上 V' + onlineVersion;
+  } else {
+    banner.classList.remove('stale');
+    document.getElementById('vbIcon').textContent = 'ℹ️';
+    document.getElementById('vbText').innerHTML = '正在基于正式版本 <b>V' + baseVersion + '</b> 编辑草稿，发布前<b>不影响</b>线上执行';
+    document.getElementById('vbBadge').textContent = '基于 V' + baseVersion;
+  }
+}
+
+function submitDraft(){
+  if (onlineVersion > baseVersion) { openConflict(); }
+  else { toast('success','提交入库成功，进入审批流程（演示）'); closeEdit(); }
+}
+function openConflict(){ document.getElementById('conflictOverlay').classList.add('show'); }
+function closeConflict(){ document.getElementById('conflictOverlay').classList.remove('show'); }
+function forcePublish(){
+  closeConflict(); closeEdit();
+  onlineVersion = 5;
+  const badge = document.getElementById('card1Badge');
+  badge.textContent = 'V5';
+  badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump');
+  document.getElementById('card1Editing').style.display = 'none';
+  document.getElementById('drawerCurV').textContent = 'V5';
+  toast('success','发布成功：已覆盖 V4，版本更新至 V5（演示）');
+}
+
+/* ═══════════ 演示：同事发布 V4 ═══════════ */
+function simulateV4(){
+  if (onlineVersion >= 4) { toast('info','V4 已发布，无需重复演示'); return; }
+  onlineVersion = 4;
+  const btn = document.getElementById('demoTrigger');
+  btn.disabled = true; btn.textContent = '✔ V4 已发布（线上领先草稿基线）';
+  const badge = document.getElementById('card1Badge');
+  badge.textContent = 'V4';
+  badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump');
+  updateBanner();
+  renderTimeline();
+  document.getElementById('drawerCurV').textContent = 'V4';
+  toast('warn','王运维 发布了 V4：超时 120s、新增缓存清理');
+}
+
+/* ═══════════ 版本历史抽屉 ═══════════ */
+function openDrawer(){ renderTimeline(); document.getElementById('drawerOverlay').classList.add('show'); }
+function closeDrawer(){ document.getElementById('drawerOverlay').classList.remove('show'); }
+
+function renderTimeline(){
+  document.getElementById('drawerCurV').textContent = 'V' + onlineVersion;
+  const wrap = document.getElementById('timeline');
+  let html = '', delay = 0;
+  for (let v = onlineVersion; v >= 1; v--) {
+    const ver = VERSIONS[v];
+    const isCurrent = v === onlineVersion;
+    const actions = isCurrent ? '' :
+      '<div class="tl-actions">' +
+      (v > 1 ? '<button class="tl-btn" onclick="openDiff(' + (v-1) + ',' + v + ')">与上一版对比</button>' : '') +
+      (v < onlineVersion ? '<button class="tl-btn" onclick="openDiff(' + v + ',' + onlineVersion + ')">与当前对比</button>' : '') +
+      '</div>';
+    html += '<div class="tl-item' + (isCurrent ? ' current' : '') + '" style="animation-delay:' + (delay += 70) + 'ms">' +
+      '<div class="tl-node">V' + v + '</div>' +
+      '<div class="tl-card">' +
+        '<div class="tl-head"><span class="tl-v">V' + v + '</span>' +
+          (isCurrent ? '<span class="tl-tag cur">当前版本</span>' : (v === 1 ? '<span class="tl-tag init">初始版本</span>' : '')) +
+        '</div>' +
+        '<div class="tl-meta">' + ver.time + ' · <span class="pub">' + ver.publisher + '</span></div>' +
+        '<div class="tl-summary">' + (ver.type === 'create' ? '🆕 ' : '') + ver.summary.join('、') + '</div>' +
+        actions +
+      '</div></div>';
+  }
+  wrap.innerHTML = html;
+}
+
+/* ═══════════ 版本对比 ═══════════ */
+function openDiff(fromNo, toNo){
+  const A = VERSIONS[fromNo], B = VERSIONS[toNo];
+  document.getElementById('diffTitle').textContent = 'V' + fromNo + ' → V' + toNo;
+  document.getElementById('diffMeta').innerHTML =
+    '<div class="dm-side"><span class="dm-v">V' + fromNo + '</span><span class="dm-info"><b>' + A.publisher + '</b><br>' + A.time + '</span></div>' +
+    '<span class="dm-arrow">➜</span>' +
+    '<div class="dm-side"><span class="dm-v">V' + toNo + '</span><span class="dm-info"><b>' + B.publisher + '</b><br>' + B.time + '</span></div>';
+
+  let changed = 0, rows = '', delay = 0;
+  const head = '<div class="diff-table-head"><div>字段</div><div class="dh-v">V' + fromNo + '（' + A.publisher + '）</div><div class="dh-v">V' + toNo + '（' + B.publisher + '）</div></div>';
+
+  FIELDS.forEach(([key, label, isCode]) => {
+    const a = A.snap[key], b = B.snap[key];
+    const diff = a !== b;
+    if (diff) changed++;
+    if (isCode) {
+      rows += '<div class="diff-row code-row' + (diff ? ' changed' : ' unchanged') + '" data-changed="' + (diff?1:0) + '" style="animation-delay:' + (delay += 50) + 'ms">' +
+        '<div class="code-head"><span class="dr-label">' + label + (diff ? ' <span class="chg-tag">已修改</span>' : '') + '</span>' +
+        '<button class="expand-btn" onclick="toggleCode(this)">' + (diff ? '展开逐行对照 ▾' : '展开查看 ▾') + '</button></div>' +
+        '<div class="code-cols">' + codePane('old', 'V' + fromNo, a, b) + codePane('new', 'V' + toNo, a, b) + '</div></div>';
+    } else {
+      rows += '<div class="diff-row' + (diff ? ' changed' : ' unchanged') + '" data-changed="' + (diff?1:0) + '" style="animation-delay:' + (delay += 50) + 'ms">' +
+        '<div class="dr-label">' + label + (diff ? ' <span class="chg-tag">已修改</span>' : '') + '</div>' +
+        '<div class="dr-old">' + esc(a) + '</div><div class="dr-new">' + esc(b) + '</div></div>';
+    }
+  });
+
+  document.getElementById('diffCount').innerHTML = '共 <b>' + changed + '</b> 处变更 · ' + (FIELDS.length - changed) + ' 项未变';
+  document.getElementById('diffBody').innerHTML = head + rows;
+  document.getElementById('onlyChanged').checked = true;
+  document.getElementById('diffOverlay').classList.add('show');
+  applyFilter();
+}
+function closeDiff(){ document.getElementById('diffOverlay').classList.remove('show'); }
+
+function codePane(side, vLabel, a, b){
+  const linesA = a.split('\n'), linesB = b.split('\n');
+  const n = Math.max(linesA.length, linesB.length);
+  let rows = '';
+  for (let i = 0; i < n; i++) {
+    const la = linesA[i] ?? '', lb = linesB[i] ?? '';
+    const diff = la !== lb;
+    const text = side === 'old' ? la : lb;
+    rows += '<div class="cl-row' + (diff ? ' diff' : '') + '"><span class="cl-no">' + (i+1) + '</span><span class="cl-code">' + (esc(text) || '&nbsp;') + '</span></div>';
+  }
+  return '<div class="code-pane ' + side + '"><div class="code-pane-head"><span>' + vLabel + '</span><span>' + (side === 'old' ? '旧版' : '新版') + '</span></div>' +
+    '<div class="code-lines collapsed">' + rows + '</div></div>';
+}
+
+function toggleCode(btn){
+  const panes = btn.closest('.code-row').querySelectorAll('.code-lines');
+  const collapsed = panes[0].classList.contains('collapsed');
+  panes.forEach(p => p.classList.toggle('collapsed', !collapsed));
+  btn.textContent = collapsed ? '收起 ▴' : btn.textContent.replace('▴','▾').replace('收起','展开逐行对照').replace('展开查看','展开查看');
+  if (!collapsed) btn.textContent = btn.textContent.includes('逐行') ? '展开逐行对照 ▾' : '展开查看 ▾';
+}
+
+function applyFilter(){
+  const only = document.getElementById('onlyChanged').checked;
+  document.querySelectorAll('#diffBody .diff-row').forEach(row => {
+    row.style.display = (only && row.dataset.changed === '0') ? 'none' : '';
+  });
+}
+
+/* ═══════════ 初始化 ═══════════ */
+updateBanner();
+renderTimeline();
+</script>
+</body>
+</html>

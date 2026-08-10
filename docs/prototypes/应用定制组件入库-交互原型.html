@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>应用定制组件入库 - 交互原型 v1.5</title>
+<style>
+  :root {
+    --primary: #3290FF; --primary-hover: #70B2FF; --primary-active: #0069E6; --primary-disabled: #84BCFF;
+    --danger: #F13039; --warning: #FFB100; --success: #00C771; --link: #1677FF;
+    --text-title: #25303C; --text-body: #2F2E4B; --text-secondary: #3B5369; --text-special: #7C9CB4;
+    --text-assist: #91969D; --text-disabled: #A4B4BC;
+    --bg-divider: #E8E9EB; --bg-border: #D2DDE5; --bg-large-card: #F0F7FF; --bg-small-card: #F3F6F9;
+    --bg-table-header: #F3F5FA; --bg-nested: #F8F9FC; --bg-input: #F2F4FB;
+    --shadow-dialog: 0px 6px 16px rgba(37,48,60,0.18); --shadow-dropdown: 0px 2px 8px rgba(37,48,60,0.18);
+    --shadow-card: 0px 4px 24px rgba(154,172,193,0.23);
+    --r-dialog: 24px; --r-card: 16px; --r-small: 8px; --r-input: 4px;
+    --font: "方正兰亭黑简体","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: var(--font); background:#E9EEF5; color:var(--text-body); font-size:14px; min-height:100vh; }
+
+  .workbench-bg { padding:32px 40px; opacity:.45; pointer-events:none; user-select:none; }
+  .wb-title { font-size:20px; font-weight:700; color:var(--text-title); margin-bottom:16px; }
+  .wb-cards { display:flex; gap:24px; }
+  .wb-card { background:#fff; border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 24px; width:280px; }
+  .wb-card h4 { font-size:16px; color:var(--text-title); margin-bottom:12px; }
+  .wb-chip { display:inline-block; background:var(--bg-small-card); border-radius:var(--r-small); padding:6px 12px; margin:0 8px 8px 0; font-size:12px; color:var(--text-secondary); }
+
+  .overlay { position:fixed; inset:0; background:rgba(37,48,60,.45); display:flex; align-items:center; justify-content:center; z-index:100; animation:fadeIn .25s ease; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .dialog { width:880px; max-height:92vh; background:#fff; border-radius:var(--r-dialog); box-shadow:var(--shadow-dialog); display:flex; flex-direction:column; animation:slideUp .3s cubic-bezier(.22,1,.36,1); overflow:hidden; }
+  @keyframes slideUp { from{transform:translateY(24px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .dialog-header { padding:24px 32px 0; display:flex; justify-content:space-between; align-items:center; }
+  .dialog-title { font-size:18px; font-weight:700; color:var(--text-title); }
+  .dialog-close { width:32px; height:32px; border:none; background:transparent; font-size:18px; color:var(--text-assist); cursor:pointer; border-radius:var(--r-input); transition:.2s; }
+  .dialog-close:hover { background:var(--bg-small-card); color:var(--text-title); }
+
+  .mode-bar { padding:16px 32px 0; display:flex; align-items:center; gap:16px; }
+  .mode-label { font-size:14px; color:var(--text-secondary); }
+  .mode-radio { display:flex; gap:24px; }
+  .mode-radio label { display:flex; align-items:center; gap:8px; cursor:pointer; font-size:14px; color:var(--text-body); transition:.2s; }
+  .mode-radio input { display:none; }
+  .radio-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--bg-border); transition:.2s; position:relative; flex-shrink:0; }
+  .mode-radio input:checked + .radio-dot { border-color:var(--primary); }
+  .mode-radio input:checked + .radio-dot::after { content:''; position:absolute; inset:3px; border-radius:50%; background:var(--primary); }
+  .mode-radio label:hover .radio-dot { border-color:var(--primary-hover); }
+  .mode-tag { font-size:12px; padding:2px 8px; border-radius:10px; background:var(--bg-large-card); color:var(--primary); }
+
+  .steps { display:flex; align-items:center; justify-content:center; padding:24px 32px 8px; gap:0; }
+  .step-item { display:flex; align-items:center; gap:8px; cursor:default; }
+  .step-item.clickable { cursor:pointer; }
+  .step-num { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; background:var(--bg-small-card); color:var(--text-assist); transition:.25s; flex-shrink:0; }
+  .step-text { font-size:14px; color:var(--text-assist); transition:.25s; }
+  .step-item.active .step-num { background:var(--primary); color:#fff; box-shadow:0 2px 8px rgba(50,144,255,.35); }
+  .step-item.active .step-text { color:var(--text-title); font-weight:700; }
+  .step-item.done .step-num { background:var(--success); color:#fff; }
+  .step-item.done .step-text { color:var(--text-secondary); }
+  .step-item.clickable:hover .step-text { color:var(--primary); }
+  .step-line { width:64px; height:2px; background:var(--bg-divider); margin:0 12px; transition:.3s; }
+  .step-line.done { background:var(--success); }
+
+  .dialog-body { flex:1; overflow-y:auto; padding:16px 32px 24px; }
+  .step-panel { display:none; animation:panelIn .28s ease; }
+  .step-panel.visible { display:block; }
+  @keyframes panelIn { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px 24px; }
+  .form-item { display:flex; flex-direction:column; gap:6px; }
+  .form-item.full { grid-column:1 / -1; }
+  .form-label { font-size:14px; color:var(--text-secondary); }
+  .form-label .req { color:var(--danger); margin-right:2px; }
+  .form-label .hint { font-size:12px; color:var(--text-assist); margin-left:8px; }
+  .fi { height:32px; border:1px solid var(--bg-border); border-radius:var(--r-input); background:var(--bg-input); padding:0 12px; font-size:14px; color:var(--text-body); font-family:var(--font); transition:.2s; width:100%; }
+  .fi:focus { outline:none; border-color:var(--primary); background:#fff; box-shadow:0 0 0 2px rgba(50,144,255,.15); }
+  .fi::placeholder { color:var(--text-disabled); }
+  textarea.fi { height:auto; min-height:64px; padding:8px 12px; resize:vertical; }
+  select.fi { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%2391969D' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+  .radio-inline { display:flex; gap:24px; align-items:center; height:32px; }
+  .radio-inline label { display:flex; align-items:center; gap:6px; cursor:pointer; font-size:14px; }
+  .radio-inline input { display:none; }
+  .radio-inline .radio-dot { width:14px; height:14px; }
+  .radio-inline input:checked + .radio-dot { border-color:var(--primary); }
+  .radio-inline input:checked + .radio-dot::after { inset:2.5px; }
+
+  /* 风险等级反显 */
+  .risk-display { display:flex; align-items:center; gap:8px; height:32px; }
+  .risk-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 14px; border-radius:12px; font-size:13px; font-weight:700; transition:.3s; }
+  .risk-badge.low { background:#E8F8F0; color:var(--success); }
+  .risk-badge.mid { background:#FFF7E6; color:var(--warning); }
+  .risk-badge.high { background:#FFF1F0; color:var(--danger); }
+  .risk-badge.none { background:var(--bg-small-card); color:var(--text-disabled); }
+  .risk-arrow { font-size:12px; color:var(--text-assist); }
+
+  /* 模板大类卡片选择 */
+  .tpl-cards { display:flex; gap:16px; }
+  .tpl-card { flex:1; border:2px solid var(--bg-border); border-radius:var(--r-card); padding:16px 20px; cursor:pointer; transition:.25s; position:relative; }
+  .tpl-card:hover { border-color:var(--primary-hover); }
+  .tpl-card.selected { border-color:var(--primary); background:var(--bg-large-card); }
+  .tpl-card .tc-icon { font-size:24px; margin-bottom:8px; }
+  .tpl-card .tc-name { font-size:15px; font-weight:700; color:var(--text-title); margin-bottom:4px; }
+  .tpl-card .tc-desc { font-size:12px; color:var(--text-assist); line-height:1.5; }
+  .tpl-card .tc-check { position:absolute; top:12px; right:12px; width:20px; height:20px; border-radius:50%; background:var(--primary); color:#fff; font-size:12px; display:none; align-items:center; justify-content:center; }
+  .tpl-card.selected .tc-check { display:flex; }
+
+  /* Step2 子类型选择器 */
+  .subtype-bar { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:12px 16px; background:var(--bg-nested); border-radius:var(--r-small); }
+  .subtype-bar .st-label { font-size:13px; color:var(--text-secondary); white-space:nowrap; }
+  .subtype-pills { display:flex; gap:8px; flex-wrap:wrap; }
+  .subtype-pill { padding:5px 16px; border-radius:16px; border:1px solid var(--bg-border); background:#fff; font-size:13px; color:var(--text-secondary); cursor:pointer; transition:.2s; }
+  .subtype-pill:hover { border-color:var(--primary-hover); color:var(--primary); }
+  .subtype-pill.active { background:var(--primary); border-color:var(--primary); color:#fff; font-weight:700; }
+
+  .section-title { font-size:16px; font-weight:700; color:var(--text-title); margin:20px 0 12px; display:flex; align-items:center; gap:8px; }
+  .section-title::before { content:''; width:4px; height:16px; border-radius:2px; background:var(--primary); }
+  .section-title .badge { font-size:12px; font-weight:400; color:var(--text-assist); background:var(--bg-small-card); padding:2px 8px; border-radius:10px; }
+
+  .tpl-source { display:flex; align-items:center; gap:16px; margin-bottom:12px; padding:10px 16px; background:var(--bg-nested); border-radius:var(--r-small); }
+  .tpl-source .note { font-size:12px; color:var(--text-special); margin-left:auto; }
+
+  .editor-wrap { border:1px solid var(--bg-border); border-radius:var(--r-small); overflow:hidden; transition:.2s; }
+  .editor-wrap:focus-within { border-color:var(--primary); box-shadow:0 0 0 2px rgba(50,144,255,.12); }
+  .editor-toolbar { display:flex; align-items:center; gap:12px; padding:8px 12px; background:var(--bg-table-header); border-bottom:1px solid var(--bg-divider); }
+  .editor-toolbar .lang-tag { font-size:12px; font-weight:700; color:var(--primary); background:var(--bg-large-card); padding:2px 10px; border-radius:10px; }
+  .editor-toolbar .var-hint { font-size:12px; color:var(--text-assist); margin-left:auto; }
+  .editor-box { position:relative; background:#1E2733; }
+  .editor-hl, .editor { font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace; font-size:13px; line-height:1.7; padding:12px 16px; margin:0; border:none; white-space:pre-wrap; word-wrap:break-word; }
+  .editor-hl { position:absolute; inset:0; overflow:hidden; pointer-events:none; color:#D7E2EE; }
+  .editor { position:relative; display:block; width:100%; min-height:180px; background:transparent; color:transparent; caret-color:#fff; resize:vertical; }
+  .editor:focus { outline:none; }
+  .editor::selection { background:rgba(50,144,255,.35); color:transparent; }
+  .tk-c { color:#7C9CB4; font-style:italic; }
+  .tk-s { color:#8BD697; }
+  .tk-p { color:#FFCE3F; font-weight:700; }
+  .tk-k { color:#55CFFF; }
+  .tk-n { color:#FF9F41; }
+  .extract-bar { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--bg-large-card); border-top:1px solid var(--bg-divider); font-size:12px; color:var(--text-secondary); min-height:34px; flex-wrap:wrap; }
+  .var-chip { display:inline-flex; align-items:center; gap:4px; background:#fff; border:1px solid var(--primary-disabled); color:var(--primary); border-radius:10px; padding:2px 10px; font-family:monospace; animation:chipIn .25s ease; }
+  @keyframes chipIn { from{transform:scale(.7);opacity:0} to{transform:scale(1);opacity:1} }
+  .var-chip .src { font-size:10px; color:var(--text-assist); }
+
+  .api-protocol { width:104px; flex-shrink:0; font-weight:700; color:var(--primary); }
+  .api-row { display:flex; gap:12px; margin-bottom:12px; }
+  .api-method { width:110px; flex-shrink:0; }
+  .kv-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .kv-table th { background:var(--bg-table-header); color:var(--text-secondary); font-weight:400; text-align:left; padding:8px 12px; border-bottom:1px solid var(--bg-divider); }
+  .kv-table td { padding:6px 8px; border-bottom:1px solid var(--bg-nested); }
+  .kv-table .fi { height:28px; background:#fff; }
+  .kv-del { border:none; background:transparent; color:var(--text-assist); cursor:pointer; font-size:14px; transition:.2s; }
+  .kv-del:hover { color:var(--danger); }
+  .add-row-btn { border:1px dashed var(--bg-border); background:transparent; color:var(--primary); font-size:13px; padding:6px 16px; border-radius:var(--r-input); cursor:pointer; margin-top:8px; transition:.2s; font-family:var(--font); }
+  .add-row-btn:hover { border-color:var(--primary); background:var(--bg-large-card); }
+
+  .body-format-bar { display:flex; align-items:center; gap:12px; margin-bottom:12px; padding:10px 16px; background:var(--bg-nested); border-radius:var(--r-small); }
+  .body-format-bar .st-label { font-size:13px; color:var(--text-secondary); white-space:nowrap; }
+  .bf-note { font-size:12px; color:var(--text-special); margin-left:auto; font-family:monospace; }
+  .success-rule { margin-top:16px; padding:12px 16px; background:var(--bg-nested); border-radius:var(--r-small); border-left:3px solid var(--success); }
+  .success-rule .sr-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .success-rule .sr-title { font-size:14px; font-weight:700; color:var(--text-title); }
+  .success-rule .sr-req { font-size:12px; color:var(--danger); }
+  .success-rule .sr-opt { font-size:12px; color:var(--text-assist); }
+  .success-rule .fi { background:#fff; font-family:monospace; font-size:13px; }
+
+  .parm-table-wrap { border:1px solid var(--bg-border); border-radius:var(--r-small); overflow:hidden; margin-top:12px; }
+  .parm-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .parm-table th { background:var(--bg-table-header); color:var(--text-secondary); font-weight:400; text-align:left; padding:10px 12px; border-bottom:1px solid var(--bg-divider); white-space:nowrap; }
+  .parm-table td { padding:8px; border-bottom:1px solid var(--bg-nested); vertical-align:middle; }
+  .parm-table tr:last-child td { border-bottom:none; }
+  .parm-table tr:hover td { background:var(--bg-nested); }
+  .parm-table .fi { height:28px; background:#fff; font-size:13px; }
+  .parm-table select.fi { height:28px; }
+  .parm-idx { font-family:monospace; color:var(--text-assist); text-align:center; }
+  .src-tag { font-size:11px; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+  .src-tag.tpl { background:var(--bg-large-card); color:var(--primary); }
+  .src-tag.manual { background:var(--bg-small-card); color:var(--text-assist); }
+  .src-tag.stale { background:#FFF1F0; color:var(--danger); }
+  .switch { position:relative; width:36px; height:20px; background:var(--bg-border); border-radius:10px; cursor:pointer; transition:.2s; flex-shrink:0; }
+  .switch.on { background:var(--primary); }
+  .switch::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .switch.on::after { left:18px; }
+  .legend { display:flex; gap:16px; align-items:center; margin-top:8px; font-size:12px; color:var(--text-assist); }
+
+  .inherit-banner { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--bg-large-card); border-radius:var(--r-small); margin-bottom:16px; }
+  .inherit-banner .ib-icon { width:36px; height:36px; border-radius:var(--r-small); background:var(--primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .inherit-banner .ib-name { font-size:14px; font-weight:700; color:var(--text-title); }
+  .inherit-banner .ib-meta { font-size:12px; color:var(--text-assist); }
+  .fix-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .fix-table th { background:var(--bg-table-header); color:var(--text-secondary); font-weight:400; text-align:left; padding:10px 12px; border-bottom:1px solid var(--bg-divider); }
+  .fix-table td { padding:8px 12px; border-bottom:1px solid var(--bg-nested); }
+  .fix-table .readonly { color:var(--text-secondary); }
+  .ctrl-tag { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--bg-small-card); color:var(--text-secondary); white-space:nowrap; }
+
+  .preview-card { background:var(--bg-nested); border-radius:var(--r-small); padding:16px 20px; margin-bottom:16px; }
+  .preview-card h5 { font-size:14px; font-weight:700; color:var(--text-title); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .preview-card h5 .pc-tag { font-size:11px; font-weight:400; color:var(--text-assist); background:#fff; padding:2px 8px; border-radius:10px; }
+  .pv-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 24px; }
+  .pv-item { display:flex; flex-direction:column; gap:2px; }
+  .pv-item .k { font-size:12px; color:var(--text-assist); }
+  .pv-item .v { font-size:14px; color:var(--text-body); font-weight:500; }
+  .pv-code { background:#1E2733; color:#D7E2EE; border-radius:var(--r-input); padding:12px 16px; font-family:monospace; font-size:12px; line-height:1.7; white-space:pre-wrap; max-height:160px; overflow-y:auto; }
+  .pv-parm { width:100%; border-collapse:collapse; font-size:13px; }
+  .pv-parm th { text-align:left; color:var(--text-assist); font-weight:400; padding:6px 12px; border-bottom:1px solid var(--bg-divider); }
+  .pv-parm td { padding:6px 12px; border-bottom:1px solid var(--bg-nested); color:var(--text-body); }
+
+  .dialog-footer { padding:16px 32px 24px; display:flex; justify-content:flex-end; gap:16px; border-top:1px solid var(--bg-divider); background:#fff; }
+  .btn { height:32px; padding:0 20px; border-radius:var(--r-input); font-size:14px; cursor:pointer; border:1px solid var(--bg-border); background:#fff; color:var(--text-body); transition:.2s; font-family:var(--font); display:inline-flex; align-items:center; gap:6px; }
+  .btn:hover { border-color:var(--primary-hover); color:var(--primary); }
+  .btn:active { border-color:var(--primary-active); color:var(--primary-active); }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.primary:hover { background:var(--primary-hover); border-color:var(--primary-hover); color:#fff; }
+  .btn.primary:active { background:var(--primary-active); border-color:var(--primary-active); }
+  .btn.ghost { border-color:transparent; background:transparent; color:var(--text-secondary); }
+  .btn.ghost:hover { color:var(--primary); background:var(--bg-large-card); }
+
+  .toast { position:fixed; top:24px; left:50%; transform:translateX(-50%) translateY(-60px); background:#fff; border-radius:var(--r-small); box-shadow:var(--shadow-dialog); padding:10px 20px; font-size:14px; display:flex; align-items:center; gap:8px; z-index:300; transition:.3s cubic-bezier(.22,1,.36,1); opacity:0; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  .toast .t-icon { font-size:16px; }
+  .toast.success .t-icon { color:var(--success); }
+  .toast.error .t-icon { color:var(--danger); }
+  .toast.info .t-icon { color:var(--primary); }
+  .confirm-overlay { position:fixed; inset:0; background:rgba(37,48,60,.45); display:none; align-items:center; justify-content:center; z-index:200; }
+  .confirm-overlay.show { display:flex; }
+  .confirm-box { background:#fff; border-radius:var(--r-card); box-shadow:var(--shadow-dialog); padding:24px; width:380px; animation:slideUp .25s ease; }
+  .confirm-box h4 { font-size:16px; color:var(--text-title); margin-bottom:8px; }
+  .confirm-box p { font-size:14px; color:var(--text-secondary); margin-bottom:20px; }
+  .confirm-box .cb-btns { display:flex; justify-content:flex-end; gap:16px; }
+
+  .proto-bar { position:fixed; bottom:0; left:0; right:0; background:var(--text-title); color:#fff; font-size:12px; padding:8px 24px; display:flex; gap:24px; align-items:center; z-index:50; }
+  .proto-bar .pb-dot { width:8px; height:8px; border-radius:50%; background:var(--success); display:inline-block; margin-right:6px; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .proto-bar span { opacity:.7; }
+</style>
+</head>
+<body>
+
+<div class="workbench-bg">
+  <div class="wb-title">操作工作台</div>
+  <div class="wb-cards">
+    <div class="wb-card"><h4>应用定制 · 正式操作</h4><span class="wb-chip">集群状态检查</span><span class="wb-chip">Redis主从切换</span><span class="wb-chip">日志清理</span></div>
+    <div class="wb-card"><h4>应用定制 · 我的草稿</h4><span class="wb-chip">K8s扩容-草稿</span><span class="wb-chip">备份校验-草稿</span></div>
+    <div class="wb-card"><h4>公共组件</h4><span class="wb-chip">服务重启</span><span class="wb-chip">健康检查</span><span class="wb-chip">配置下发</span></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="dialog">
+    <div class="dialog-header">
+      <div class="dialog-title">新增操作组件</div>
+      <button class="dialog-close" onclick="toast('info','弹窗关闭（原型演示）')">✕</button>
+    </div>
+
+    <div class="mode-bar">
+      <span class="mode-label">入库模式</span>
+      <div class="mode-radio">
+        <label><input type="radio" name="mode" value="custom" checked onchange="switchMode('custom')"><span class="radio-dot"></span>定制模式 <span class="mode-tag">手工录入</span></label>
+        <label><input type="radio" name="mode" value="instance" onchange="switchMode('instance')"><span class="radio-dot"></span>实例固化模式 <span class="mode-tag">继承公共组件</span></label>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step-item active" id="step-ind-1" onclick="gotoStep(1)"><span class="step-num">1</span><span class="step-text">基本信息</span></div>
+      <div class="step-line" id="line-1"></div>
+      <div class="step-item" id="step-ind-2" onclick="gotoStep(2)"><span class="step-num">2</span><span class="step-text">参数配置</span></div>
+      <div class="step-line" id="line-2"></div>
+      <div class="step-item" id="step-ind-3"><span class="step-num">3</span><span class="step-text">确认预览</span></div>
+    </div>
+
+    <div class="dialog-body">
+
+      <!-- ========== Step1 定制模式 ========== -->
+      <div class="step-panel visible" id="panel-custom-1">
+        <div class="form-grid">
+          <div class="form-item"><span class="form-label"><span class="req">*</span>操作名称(英文)</span><input class="fi" id="c-servicename" placeholder="字母/数字/下划线，≤200字符"></div>
+          <div class="form-item"><span class="form-label"><span class="req">*</span>操作名称(中文)</span><input class="fi" id="c-servicecnname" placeholder="≤800字符"></div>
+
+          <!-- 合并后的操作分类 + 风险等级反显 -->
+          <div class="form-item"><span class="form-label"><span class="req">*</span>操作分类 <span class="hint">选择后自动推算风险等级</span></span><select class="fi" id="c-category" onchange="onCategoryChange()"><option value="">请选择</option><option value="query">查询</option><option value="verify">验证</option><option value="startstop">启停</option><option value="config">配置变更</option><option value="deploy">部署发布</option><option value="cleanup">清理回收</option></select></div>
+          <div class="form-item"><span class="form-label">风险等级 <span class="hint">由操作分类自动推算</span></span>
+            <div class="risk-display"><span class="risk-arrow">←</span><span class="risk-badge none" id="risk-badge">待选择操作分类</span></div>
+          </div>
+
+          <div class="form-item"><span class="form-label">超时时间(秒)</span><input class="fi" id="c-timeout" type="number" value="300" min="1" max="9999"></div>
+          <div class="form-item"><span class="form-label">平台类型 <span class="hint">由模板大类自动赋值，无需手选</span></span>
+            <div class="risk-display"><span class="risk-arrow">←</span><span class="risk-badge none" id="platform-badge">待选择模板大类</span></div>
+          </div>
+
+          <!-- 模板大类：脚本类 / API类 -->
+          <div class="form-item full"><span class="form-label"><span class="req">*</span>模板大类 <span class="hint">具体类型在 Step2 选择</span></span>
+            <div class="tpl-cards">
+              <div class="tpl-card" id="tpl-card-script" onclick="selectTplCategory('script')">
+                <div class="tc-check">✓</div>
+                <div class="tc-icon">📜</div>
+                <div class="tc-name">脚本类</div>
+                <div class="tc-desc">Shell / Python2 / Python3 / SQL / Groovy<br>代码编辑器 + 语法高亮 + ${var} 埋点</div>
+              </div>
+              <div class="tpl-card" id="tpl-card-api" onclick="selectTplCategory('api')">
+                <div class="tc-check">✓</div>
+                <div class="tc-icon">🔗</div>
+                <div class="tc-name">API 类</div>
+                <div class="tc-desc">HTTP(S) / TCP 报文调用<br>JSON / form-urlencoded 键值对 + {{var}} 埋点</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-item full"><span class="form-label">操作描述</span><textarea class="fi" id="c-description" rows="2" placeholder="≤2000字符，选填"></textarea></div>
+        </div>
+      </div>
+
+      <!-- ========== Step1 实例固化模式 ========== -->
+      <div class="step-panel" id="panel-instance-1">
+        <div class="form-grid">
+          <div class="form-item full"><span class="form-label"><span class="req">*</span>来源公共组件 <span class="hint">仅显示已启用(confstatus=1)的公共组件，实例将继承其全部参数定义</span></span><select class="fi" id="i-source" onchange="onSourceChange()"><option value="">请搜索/选择公共组件</option><option value="SRV20260101000001">Redis主从切换（Shell脚本）</option><option value="SRV20260101000002">集群状态检查（Shell脚本）</option><option value="SRV20260101000003">服务重启（Agent通用命令）</option><option value="SRV20260101000004">数据库备份（API调用）</option></select></div>
+          <div class="form-item"><span class="form-label"><span class="req">*</span>实例名称 <span class="hint">自动生成，可修改</span></span><input class="fi" id="i-instancename" placeholder="{组件名}-{应用系统}-{序号}"></div>
+
+          <!-- 操作分类：脚本类→下拉选择 / 其他→继承只读 -->
+          <div class="form-item" id="i-category-select-area" style="display:none"><span class="form-label"><span class="req">*</span>操作分类 <span class="hint">复用定制模式分类，选择后推算风险</span></span>
+            <select class="fi" id="i-category" onchange="onInstanceCategoryChange()"><option value="">请选择</option><option value="query">查询</option><option value="verify">验证</option><option value="startstop">启停</option><option value="config">配置变更</option><option value="deploy">部署发布</option><option value="cleanup">清理回收</option></select>
+          </div>
+          <div class="form-item" id="i-category-inherit-area" style="display:none"><span class="form-label">操作分类 <span class="hint">继承来源公共组件，不可修改</span></span>
+            <div class="risk-display"><span class="risk-arrow">←</span><span class="risk-badge none" id="i-inherit-cat-badge">待选择来源</span></div>
+          </div>
+
+          <!-- 风险等级：仅脚本类显示 -->
+          <div class="form-item" id="i-risk-area" style="display:none"><span class="form-label">风险等级 <span class="hint">由操作分类自动推算</span></span>
+            <div class="risk-display"><span class="risk-arrow">←</span><span class="risk-badge none" id="i-risk-badge">待选择操作分类</span></div>
+          </div>
+
+          <!-- 成功判定规则：仅脚本类需要 -->
+          <div class="form-item full" id="i-successrule-area" style="display:none"><span class="form-label"><span class="req">*</span>成功判定规则 <span class="hint">定义执行结果的判定逻辑</span></span><textarea class="fi" id="i-successrule" rows="2" placeholder="如：exit_code==0 && output.contains('switch success')"></textarea></div>
+          <div class="form-item full" id="i-no-successrule-note" style="display:none">
+            <div class="success-rule" style="border-left-color:var(--text-assist);margin-top:0">
+              <div class="sr-head"><span class="sr-title">成功判定规则</span><span class="sr-opt" style="color:var(--text-assist)">非脚本类公共操作无需设置，由来源组件统一管控</span></div>
+            </div>
+          </div>
+
+          <div class="form-item full"><span class="form-label">操作描述</span><textarea class="fi" id="i-description" rows="2" placeholder="选填，默认继承来源"></textarea></div>
+        </div>
+      </div>
+
+      <!-- ========== Step2 定制-脚本类 ========== -->
+      <div class="step-panel" id="panel-custom-2-script">
+        <!-- 脚本子类型选择 -->
+        <div class="subtype-bar">
+          <span class="st-label"><span style="color:var(--danger)">*</span> 脚本类型</span>
+          <div class="subtype-pills" id="script-subtypes">
+            <span class="subtype-pill active" data-val="1" onclick="pickSubtype(this,'script')">Shell</span>
+            <span class="subtype-pill" data-val="2" onclick="pickSubtype(this,'script')">Python2</span>
+            <span class="subtype-pill" data-val="6" onclick="pickSubtype(this,'script')">Python3</span>
+            <span class="subtype-pill" data-val="5" onclick="pickSubtype(this,'script')">SQL</span>
+            <span class="subtype-pill" data-val="g" onclick="pickSubtype(this,'script')">Groovy</span>
+          </div>
+        </div>
+        <div class="editor-wrap">
+          <div class="editor-toolbar"><span class="lang-tag" id="script-lang">shell</span><span class="var-hint">预埋参数变量：<code>${param_name}</code>，保存时自动提取</span></div>
+          <div class="editor-box">
+            <pre class="editor-hl" id="script-hl" aria-hidden="true"></pre>
+            <textarea class="editor" id="script-content" spellcheck="false" oninput="onScriptInput()" onscroll="syncScroll('script-content','script-hl')">#!/bin/bash
+# 检查指定集群的节点状态（注释高亮演示）
+echo "检查集群 ${cluster_id} 状态"
+kubectl get nodes --context ${env}
+exit_code=$?
+if [ $exit_code -eq 0 ]; then
+  echo "SUCCESS"
+else
+  echo "FAILED: exit_code=$exit_code"
+fi</textarea>
+          </div>
+          <div class="extract-bar" id="script-vars"><span>自动提取变量：</span></div>
+        </div>
+        <div class="success-rule">
+          <div class="sr-head"><span class="sr-title">成功判定规则</span><span class="sr-opt">选填，默认 exit_code==0</span></div>
+          <input class="fi" id="script-successflag" placeholder="如：output.contains('SUCCESS')，留空则默认 exit_code==0">
+        </div>
+        <div class="section-title">参数配置 <span class="badge">模板提取 + 手动添加</span></div>
+        <div class="parm-table-wrap">
+          <table class="parm-table">
+            <thead><tr><th style="width:36px">#</th><th>参数名(英文)</th><th>中文名</th><th style="width:90px">控件类型</th><th>预设值/选项</th><th style="width:90px">校验规则</th><th style="width:50px">加密</th><th style="width:60px">来源</th><th style="width:40px">操作</th></tr></thead>
+            <tbody id="script-parm-body"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" onclick="addManualParm('script')">+ 添加参数</button>
+        <div class="legend"><span>🔗 = 模板提取</span><span>✍ = 手动添加</span><span>⚠ = 待清理(模板变量已删除)</span></div>
+      </div>
+
+      <!-- ========== Step2 定制-API类 ========== -->
+      <div class="step-panel" id="panel-custom-2-api">
+        <!-- API 子类型选择 -->
+        <div class="subtype-bar">
+          <span class="st-label"><span style="color:var(--danger)">*</span> API 类型</span>
+          <div class="subtype-pills" id="api-subtypes">
+            <span class="subtype-pill active" data-val="http" onclick="pickSubtype(this,'api')">HTTP</span>
+            <span class="subtype-pill" data-val="tcp" onclick="pickSubtype(this,'api')">TCP</span>
+          </div>
+        </div>
+        <div id="api-http-area">
+          <div class="api-row">
+            <select class="fi api-protocol" id="api-protocol" title="请求协议"><option value="https" selected>HTTPS</option><option value="http">HTTP</option></select>
+            <select class="fi api-method" id="api-method"><option>GET</option><option selected>POST</option><option>PUT</option><option>DELETE</option></select>
+            <input class="fi" id="api-url" style="flex:1" value="deploy.internal.com/api/v1/deploy" placeholder="主机 + 路径，支持 {{param_name}} 埋点" oninput="extractVars('api')">
+          </div>
+          <div class="section-title" style="margin-top:8px">Headers</div>
+          <table class="kv-table">
+            <thead><tr><th style="width:200px">Key</th><th>Value</th><th style="width:40px"></th></tr></thead>
+            <tbody id="api-headers">
+              <tr><td><input class="fi" value="Content-Type"></td><td><input class="fi" id="ct-val" value="application/json"></td><td><button class="kv-del" onclick="this.closest('tr').remove()">✕</button></td></tr>
+              <tr><td><input class="fi" value="Authorization"></td><td><input class="fi" value="Bearer {{token}}" oninput="extractVars('api')"></td><td><button class="kv-del" onclick="this.closest('tr').remove();extractVars('api')">✕</button></td></tr>
+            </tbody>
+          </table>
+          <button class="add-row-btn" onclick="addHeaderRow()">+ 添加 Header</button>
+        </div>
+        <div id="api-tcp-area" style="display:none">
+          <div class="form-grid" style="margin-bottom:12px">
+            <div class="form-item"><span class="form-label"><span class="req">*</span>目标地址</span><input class="fi" id="tcp-host" value="10.0.1.100" placeholder="IP 或主机名"></div>
+            <div class="form-item"><span class="form-label"><span class="req">*</span>端口</span><input class="fi" id="tcp-port" value="6379" placeholder="端口号"></div>
+          </div>
+        </div>
+        <div class="section-title">Body <span class="badge" id="api-body-lang">JSON</span></div>
+        <div class="body-format-bar" id="body-format-bar">
+          <span class="st-label"><span style="color:var(--danger)">*</span> 报文格式</span>
+          <div class="subtype-pills">
+            <span class="subtype-pill active" id="bf-json" onclick="switchBodyFormat('json')">JSON</span>
+            <span class="subtype-pill" id="bf-form" onclick="switchBodyFormat('form')">x-www-form-urlencoded</span>
+          </div>
+          <span class="bf-note" id="bf-note">Content-Type: application/json</span>
+        </div>
+        <div id="api-json-area">
+        <div class="editor-wrap">
+          <div class="editor-toolbar"><span class="lang-tag" id="api-body-tag">JSON</span><span class="var-hint">埋点格式：<code>{{param_name}}</code></span></div>
+          <div class="editor-box">
+            <pre class="editor-hl" id="api-hl" aria-hidden="true"></pre>
+            <textarea class="editor" id="api-body" spellcheck="false" oninput="onApiInput()" onscroll="syncScroll('api-body','api-hl')">{
+  "app": "{{app_name}}",
+  "version": "{{version}}",
+  "env": "{{env}}"
+}</textarea>
+          </div>
+          <div class="extract-bar" id="api-vars"><span>自动提取埋点：</span></div>
+        </div>
+        </div>
+        <div id="api-form-area" style="display:none">
+          <table class="kv-table">
+            <thead><tr><th style="width:220px">Key</th><th>Value <span style="color:var(--text-assist);font-weight:400">支持 {{param}} 埋点</span></th><th style="width:40px"></th></tr></thead>
+            <tbody id="api-form-kv">
+              <tr><td><input class="fi" value="app"></td><td><input class="fi" value="{{app_name}}" oninput="extractVars('api')"></td><td><button class="kv-del" onclick="this.closest('tr').remove();extractVars('api')">✕</button></td></tr>
+              <tr><td><input class="fi" value="version"></td><td><input class="fi" value="{{version}}" oninput="extractVars('api')"></td><td><button class="kv-del" onclick="this.closest('tr').remove();extractVars('api')">✕</button></td></tr>
+              <tr><td><input class="fi" value="env"></td><td><input class="fi" value="{{env}}" oninput="extractVars('api')"></td><td><button class="kv-del" onclick="this.closest('tr').remove();extractVars('api')">✕</button></td></tr>
+            </tbody>
+          </table>
+          <button class="add-row-btn" onclick="addFormKvRow()">+ 添加键值对</button>
+          <div class="extract-bar" style="border-radius:0 0 var(--r-small) var(--r-small);border:1px solid var(--bg-divider);border-top:none;margin-top:0" id="api-form-vars-note"><span style="color:var(--text-assist)">键值对中的 {{param}} 埋点同样自动提取至下方参数表</span></div>
+        </div>
+        <div class="success-rule" style="border-left-color:var(--danger)">
+          <div class="sr-head"><span class="sr-title">成功判定规则</span><span class="sr-req">* 必填，写入 successflag</span></div>
+          <input class="fi" id="api-successflag" value="response.code == 200 && response.body.status == 'success'">
+        </div>
+        <div class="section-title">参数配置 <span class="badge">埋点提取 + 手动添加</span></div>
+        <div class="parm-table-wrap">
+          <table class="parm-table">
+            <thead><tr><th style="width:36px">#</th><th>参数名(英文)</th><th>中文名</th><th style="width:90px">控件类型</th><th>预设值/选项</th><th style="width:90px">校验规则</th><th style="width:50px">加密</th><th style="width:60px">来源</th><th style="width:40px">操作</th></tr></thead>
+            <tbody id="api-parm-body"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" onclick="addManualParm('api')">+ 添加参数</button>
+        <div class="legend"><span>🔗 = 模板提取</span><span>✍ = 手动添加</span></div>
+      </div>
+
+      <!-- ========== Step2 实例固化 ========== -->
+      <div class="step-panel" id="panel-instance-2">
+        <div class="inherit-banner" id="inherit-banner">
+          <div class="ib-icon">⧉</div>
+          <div><div class="ib-name" id="ib-name">请先在 Step1 选择来源公共组件</div><div class="ib-meta" id="ib-meta">实例将继承来源组件的 templateType + templateId，不创建独立模板</div></div>
+        </div>
+        <div class="section-title">参数固化值填写 <span class="badge">继承参数，仅填固化值</span></div>
+        <div class="parm-table-wrap">
+          <table class="fix-table">
+            <thead><tr><th style="width:36px">#</th><th>参数名</th><th style="width:100px">控件类型</th><th>固化值 <span style="color:var(--danger)">*</span></th><th style="width:80px">参数来源</th></tr></thead>
+            <tbody id="fix-parm-body"><tr><td colspan="5" style="text-align:center;color:var(--text-assist);padding:24px">选择来源组件后自动填充</td></tr></tbody>
+          </table>
+        </div>
+        <div class="legend" style="margin-top:8px"><span>固化值校验规则继承来源参数(parmcheckflag + parmcheckapiid)</span><span>固化后前台执行不再显示该参数输入框</span></div>
+      </div>
+
+      <!-- ========== Step3 确认预览 ========== -->
+      <div class="step-panel" id="panel-preview">
+        <div class="preview-card">
+          <h5>基本信息 <span class="pc-tag" id="pv-mode-tag">定制模式</span></h5>
+          <div class="pv-grid" id="pv-basic"></div>
+        </div>
+        <div class="preview-card" id="pv-template-card">
+          <h5>模板内容 <span class="pc-tag" id="pv-tpl-tag">scriptlibrary</span></h5>
+          <div class="pv-code" id="pv-code"></div>
+        </div>
+        <div class="preview-card">
+          <h5>参数列表 <span class="pc-tag" id="pv-parm-count"></span></h5>
+          <table class="pv-parm"><thead><tr><th>#</th><th>参数名</th><th>中文名</th><th>控件</th><th>预设值</th><th>校验</th><th>来源</th></tr></thead><tbody id="pv-parm-body"></tbody></table>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="dialog-footer">
+      <button class="btn ghost" id="btn-prev" style="display:none" onclick="prevStep()">上一步</button>
+      <button class="btn" onclick="saveDraft()">保存草稿</button>
+      <button class="btn primary" id="btn-next" onclick="nextStep()">下一步</button>
+      <button class="btn primary" id="btn-submit" style="display:none" onclick="submitEntry()">提交入库</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span class="t-icon"></span><span class="t-msg"></span></div>
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h4 id="confirm-title">提示</h4>
+    <p id="confirm-msg"></p>
+    <div class="cb-btns"><button class="btn" onclick="closeConfirm(false)">取消</button><button class="btn primary" onclick="closeConfirm(true)">确定</button></div>
+  </div>
+</div>
+
+<div class="proto-bar">
+  <span><span class="pb-dot"></span>交互原型 v1.5</span>
+  <span>变更：实例固化按来源类型分流（脚本类→分类可选+风险反显 / 非脚本类→分类继承+无需判定规则）</span>
+  <span>可交互：来源切换联动 / 分类→风险反显 / 报文格式切换 / 变量提取 / 参数同步</span>
+</div>
+
+<script>
+  let currentMode = 'custom';
+  let currentStep = 1;
+  let tplCategory = ''; // 'script' | 'api'
+  let scriptSubtype = '1'; // templateType
+  let apiSubtype = 'http'; // 'http' | 'tcp'
+  let confirmCb = null;
+
+  // ===== 操作分类 → 风险等级映射 =====
+  const RISK_MAP = {
+    'query':     { level:'低风险', cls:'low',  code:'01' },
+    'verify':    { level:'中风险', cls:'mid',  code:'02' },
+    'startstop': { level:'高风险', cls:'high', code:'03' },
+    'config':    { level:'高风险', cls:'high', code:'03' },
+    'deploy':    { level:'高风险', cls:'high', code:'03' },
+    'cleanup':   { level:'中风险', cls:'mid',  code:'02' }
+  };
+  const CATEGORY_NAMES = { 'query':'查询','verify':'验证','startstop':'启停','config':'配置变更','deploy':'部署发布','cleanup':'清理回收' };
+
+  function onCategoryChange() {
+    const v = document.getElementById('c-category').value;
+    const badge = document.getElementById('risk-badge');
+    if (!v) { badge.className='risk-badge none'; badge.textContent='待选择操作分类'; return; }
+    const r = RISK_MAP[v];
+    badge.className = 'risk-badge ' + r.cls;
+    badge.textContent = r.level + '（' + r.code + '）';
+    toast('info', `操作分类「${CATEGORY_NAMES[v]}」→ 风险等级自动推算为 ${r.level}`);
+  }
+
+  // ===== 模板大类选择 =====
+  function selectTplCategory(cat) {
+    tplCategory = cat;
+    document.getElementById('tpl-card-script').classList.toggle('selected', cat==='script');
+    document.getElementById('tpl-card-api').classList.toggle('selected', cat==='api');
+    // 平台类型自动赋值：脚本类→01-Linux，API类→空值
+    const pb = document.getElementById('platform-badge');
+    if (cat==='script') { pb.className='risk-badge low'; pb.textContent='01-Linux（自动赋值）'; }
+    else { pb.className='risk-badge none'; pb.textContent='空值（API类无需平台）'; }
+  }
+
+  // ===== Step2 子类型切换 =====
+  const LANG_MAP = {'1':'shell','2':'python','5':'sql','6':'python','g':'groovy'};
+  function pickSubtype(el, kind) {
+    el.parentElement.querySelectorAll('.subtype-pill').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    if (kind==='script') {
+      scriptSubtype = el.dataset.val;
+      const lang = LANG_MAP[scriptSubtype] || 'shell';
+      document.getElementById('script-lang').textContent = lang;
+      syncHl('script-content','script-hl', lang);
+      toast('info', `脚本类型切换 → ${el.textContent}（templateType=${scriptSubtype}，语法高亮：${lang}）`);
+    } else {
+      apiSubtype = el.dataset.val;
+      document.getElementById('api-http-area').style.display = apiSubtype==='http' ? '' : 'none';
+      document.getElementById('api-tcp-area').style.display = apiSubtype==='tcp' ? '' : 'none';
+      document.getElementById('body-format-bar').style.display = apiSubtype==='tcp' ? 'none' : '';
+      if (apiSubtype==='tcp') {
+        document.getElementById('api-method').innerHTML = '<option>TCP</option>';
+        document.getElementById('api-body-tag').textContent = 'Text';
+        document.getElementById('api-body-lang').textContent = 'Text';
+        document.getElementById('api-form-area').style.display = 'none';
+        document.getElementById('api-json-area').style.display = '';
+      } else {
+        document.getElementById('api-method').innerHTML = '<option>GET</option><option selected>POST</option><option>PUT</option><option>DELETE</option>';
+        const fmtTag = apiBodyFormat==='json' ? 'JSON' : 'form-urlencoded';
+        document.getElementById('api-body-tag').textContent = fmtTag;
+        document.getElementById('api-body-lang').textContent = fmtTag;
+        document.getElementById('api-json-area').style.display = apiBodyFormat==='json' ? '' : 'none';
+        document.getElementById('api-form-area').style.display = apiBodyFormat==='form' ? '' : 'none';
+      }
+      syncHl('api-body','api-hl', apiSubtype==='tcp' ? 'text' : 'json');
+      toast('info', `API 类型切换 → ${el.textContent.toUpperCase()}`);
+    }
+  }
+
+  // ===== 报文格式切换（JSON / x-www-form-urlencoded） =====
+  let apiBodyFormat = 'json'; // 'json' | 'form'
+  function switchBodyFormat(fmt) {
+    apiBodyFormat = fmt;
+    document.getElementById('bf-json').classList.toggle('active', fmt==='json');
+    document.getElementById('bf-form').classList.toggle('active', fmt==='form');
+    document.getElementById('api-json-area').style.display = fmt==='json' ? '' : 'none';
+    document.getElementById('api-form-area').style.display = fmt==='form' ? '' : 'none';
+    const tag = fmt==='json' ? 'JSON' : 'form-urlencoded';
+    document.getElementById('api-body-lang').textContent = tag;
+    document.getElementById('api-body-tag').textContent = tag;
+    document.getElementById('bf-note').textContent = fmt==='json' ? 'Content-Type: application/json' : 'Content-Type: application/x-www-form-urlencoded';
+    const ct = document.getElementById('ct-val');
+    if (ct) ct.value = fmt==='json' ? 'application/json' : 'application/x-www-form-urlencoded';
+    extractVars('api');
+    toast('info', fmt==='json' ? '报文格式 → JSON（代码编辑器）' : '报文格式 → x-www-form-urlencoded（键值对）');
+  }
+  function addFormKvRow() {
+    const tbody = document.getElementById('api-form-kv');
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><input class="fi" placeholder="参数名"></td><td><input class="fi" placeholder="值，支持 {{param}} 埋点" oninput="extractVars(\'api\')"></td><td><button class="kv-del" onclick="this.closest(\'tr\').remove();extractVars(\'api\')">✕</button></td>';
+    tbody.appendChild(tr);
+    tr.querySelector('input').focus();
+  }
+  function addHeaderRow() {
+    const tbody = document.getElementById('api-headers');
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td><input class="fi" placeholder="Header Key"></td><td><input class="fi" placeholder="Value，支持 {{param}} 埋点" oninput="extractVars(\'api\')"></td><td><button class="kv-del" onclick="this.closest(\'tr\').remove();extractVars(\'api\')">✕</button></td>';
+    tbody.appendChild(tr);
+    tr.querySelector('input').focus();
+  }
+
+  // ===== 模式切换 =====
+  function switchMode(mode) {
+    if (mode === currentMode) return;
+    showConfirm('切换模式', '切换模式将清空已填内容，是否继续？', ok => {
+      if (ok) { currentMode = mode; currentStep = 1; renderStep(); toast('info', '已切换为' + (mode==='custom'?'定制模式':'实例固化模式')); }
+      else { document.querySelector(`input[name="mode"][value="${currentMode}"]`).checked = true; }
+    });
+  }
+
+  // ===== Step 导航 =====
+  function gotoStep(n) { if (n >= currentStep) return; currentStep = n; renderStep(); }
+  function nextStep() {
+    if (currentStep === 1 && !validateStep1()) return;
+    if (currentStep === 2 && !validateStep2()) return;
+    if (currentStep < 3) { currentStep++; if (currentStep===3) buildPreview(); renderStep(); }
+  }
+  function prevStep() { if (currentStep > 1) { currentStep--; renderStep(); } }
+
+  function validateStep1() {
+    if (currentMode === 'custom') {
+      if (!document.getElementById('c-servicename').value) { toast('error','请输入操作名称(英文)'); return false; }
+      if (!document.getElementById('c-servicecnname').value) { toast('error','请输入操作名称(中文)'); return false; }
+      if (!document.getElementById('c-category').value) { toast('error','请选择操作分类'); return false; }
+      if (!tplCategory) { toast('error','请选择模板大类（脚本类 / API类）'); return false; }
+    } else {
+      if (!document.getElementById('i-source').value) { toast('error','请选择来源公共组件'); return false; }
+      if (!document.getElementById('i-instancename').value) { toast('error','请填写实例名称'); return false; }
+      if (instanceIsScript) {
+        if (!document.getElementById('i-category').value) { toast('error','请选择操作分类'); return false; }
+        if (!document.getElementById('i-successrule').value) { toast('error','成功判定规则为必填（执行脚本类）'); return false; }
+      }
+    }
+    return true;
+  }
+  function validateStep2() {
+    if (currentMode !== 'custom') return true;
+    if (tplCategory === 'api') {
+      if (!document.getElementById('api-successflag').value.trim()) { toast('error','API类成功判定规则为必填（写入 successflag）'); return false; }
+    } else {
+      if (!document.getElementById('script-content').value.trim()) { toast('error','模板内容不能为空'); return false; }
+    }
+    return true;
+  }
+
+  function renderStep() {
+    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('visible'));
+    let panelId;
+    if (currentStep === 3) panelId = 'panel-preview';
+    else if (currentMode === 'instance') panelId = `panel-instance-${currentStep}`;
+    else if (currentStep === 1) panelId = 'panel-custom-1';
+    else panelId = tplCategory === 'api' ? 'panel-custom-2-api' : 'panel-custom-2-script';
+    document.getElementById(panelId).classList.add('visible');
+
+    for (let i=1;i<=3;i++) {
+      const el = document.getElementById('step-ind-'+i);
+      el.classList.remove('active','done','clickable');
+      if (i === currentStep) el.classList.add('active');
+      else if (i < currentStep) el.classList.add('done','clickable');
+    }
+    document.getElementById('line-1').classList.toggle('done', currentStep>1);
+    document.getElementById('line-2').classList.toggle('done', currentStep>2);
+    document.getElementById('btn-prev').style.display = currentStep>1 ? '' : 'none';
+    document.getElementById('btn-next').style.display = currentStep<3 ? '' : 'none';
+    document.getElementById('btn-submit').style.display = currentStep===3 ? '' : 'none';
+  }
+
+  // ===== 语法高亮（shell / python / sql / groovy / json） =====
+  const LANGS = {
+    shell: { ci:false, tokens:[
+      [/#[^\n]*/, 'tk-c'],
+      [/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/, 'tk-s'],
+      [/\$\{\w+\}/, 'tk-p'],
+      [/\b(?:if|then|else|elif|fi|for|while|until|do|done|case|esac|function|echo|exit|export|source|local|return|set|cd|read|eval|kubectl|grep|awk|sed|curl|cat|chmod|chown|systemctl|docker|sudo|nohup|tail|head|find|xargs|ssh|tar|mkdir|rm|cp|mv|ps|kill|df|du|ping)\b/, 'tk-k']
+    ]},
+    python: { ci:false, tokens:[
+      [/#(?:[^\n]*)/, 'tk-c'],
+      [/"""[\s\S]*?"""|'''[\s\S]*?'''|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/, 'tk-s'],
+      [/\$\{\w+\}/, 'tk-p'],
+      [/\b(?:def|class|import|from|return|yield|if|elif|else|for|while|in|not|and|or|is|try|except|finally|raise|with|as|lambda|pass|break|continue|global|assert|del|print|True|False|None|self)\b/, 'tk-k']
+    ]},
+    sql: { ci:true, tokens:[
+      [/--[^\n]*|\/\*[\s\S]*?\*\//, 'tk-c'],
+      [/'(?:[^'\\]|\\.)*'/, 'tk-s'],
+      [/\$\{\w+\}/, 'tk-p'],
+      [/\b(?:select|from|where|insert|into|values|update|set|delete|create|table|drop|alter|add|index|view|join|left|right|inner|outer|on|group|by|order|having|limit|offset|and|or|not|null|as|distinct|count|sum|avg|max|min|union|all|exists|between|like|is|case|when|then|end|asc|desc|primary|key|varchar|int|integer|text|date|timestamp|default|begin|commit|rollback|truncate)\b/, 'tk-k']
+    ]},
+    groovy: { ci:false, tokens:[
+      [/\/\/[^\n]*|\/\*[\s\S]*?\*\//, 'tk-c'],
+      [/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/, 'tk-s'],
+      [/\$\{\w+\}/, 'tk-p'],
+      [/\b(?:def|class|interface|return|if|else|for|while|in|new|try|catch|finally|throw|import|package|public|private|protected|static|final|void|int|long|boolean|String|true|false|null|println|assert|switch|case|break|continue|instanceof)\b/, 'tk-k']
+    ]},
+    json: { ci:false, tokens:[
+      [/\{\{\w+\}\}/, 'tk-p'],
+      [/"(?:[^"\\\n]|\\.)*"(?=\s*:)/, 'tk-k'],
+      [/"(?:[^"\\\n]|\\.)*"/, 'tk-s'],
+      [/\b(?:true|false|null)\b/, 'tk-k'],
+      [/-?\d+(?:\.\d+)?/, 'tk-n']
+    ]},
+    text: { ci:false, tokens:[ [/\{\{\w+\}\}/, 'tk-p'] ]}
+  };
+  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function highlight(code, lang){
+    const def = LANGS[lang];
+    const esc = escapeHtml(code);
+    if (!def) return esc;
+    const re = new RegExp(def.tokens.map(t=>'('+t[0].source+')').join('|'), 'g'+(def.ci?'i':''));
+    return esc.replace(re, function(m){
+      for (let i=1; i<arguments.length-2; i++) { if (arguments[i]!=null) return '<span class="'+def.tokens[i-1][1]+'">'+m+'</span>'; }
+      return m;
+    });
+  }
+  function syncHl(taId, hlId, lang){
+    const ta=document.getElementById(taId), hl=document.getElementById(hlId);
+    hl.innerHTML = highlight(ta.value, lang) + '\n';
+    hl.scrollTop = ta.scrollTop; hl.scrollLeft = ta.scrollLeft;
+  }
+  function syncScroll(taId, hlId){ const ta=document.getElementById(taId), hl=document.getElementById(hlId); hl.scrollTop=ta.scrollTop; hl.scrollLeft=ta.scrollLeft; }
+  function onScriptInput(){ extractVars('script'); syncHl('script-content','script-hl', LANG_MAP[scriptSubtype]||'shell'); }
+  function onApiInput(){ extractVars('api'); syncHl('api-body','api-hl', apiSubtype==='tcp'?'text':'json'); }
+
+  // ===== 变量提取 =====
+  function extractVars(kind) {
+    let content='', re, barId, bodyId;
+    if (kind==='script') { content=document.getElementById('script-content').value; re=/\$\{(\w+)\}/g; barId='script-vars'; bodyId='script-parm-body'; }
+    else { content=document.getElementById('api-body').value + ' ' + document.getElementById('api-url').value; document.querySelectorAll('#api-headers input').forEach(i=>content+=' '+i.value); document.querySelectorAll('#api-form-kv input').forEach(i=>content+=' '+i.value); re=/\{\{(\w+)\}\}/g; barId='api-vars'; bodyId='api-parm-body'; }
+    const names = [...new Set([...content.matchAll(re)].map(m=>m[1]))];
+    const bar = document.getElementById(barId);
+    bar.innerHTML = '<span>自动提取' + (kind==='api'?'埋点':'变量') + '：</span>' + (names.length ? names.map(n=>`<span class="var-chip">${n}<span class="src">🔗</span></span>`).join('') : '<span style="color:var(--text-assist)">无</span>');
+    syncParmTable(bodyId, names);
+  }
+
+  function syncParmTable(bodyId, tplNames) {
+    const body = document.getElementById(bodyId);
+    const existing = {};
+    body.querySelectorAll('tr[data-name]').forEach(tr => { existing[tr.dataset.name] = tr; });
+    body.querySelectorAll('tr[data-src="template"]').forEach(tr => {
+      if (!tplNames.includes(tr.dataset.name)) { tr.querySelector('.src-tag').className='src-tag stale'; tr.querySelector('.src-tag').textContent='⚠ 待清理'; }
+      else { tr.querySelector('.src-tag').className='src-tag tpl'; tr.querySelector('.src-tag').textContent='🔗 模板'; }
+    });
+    tplNames.forEach(name => {
+      if (!existing[name]) {
+        const tr = document.createElement('tr');
+        tr.dataset.name = name; tr.dataset.src = 'template';
+        tr.innerHTML = parmRowHTML(name, '', '0', '', '0', 'template');
+        body.appendChild(tr);
+      }
+    });
+    reindex(bodyId);
+  }
+  function parmRowHTML(name, cn, ctrl, preset, check, src) {
+    const srcTag = src==='template' ? '<span class="src-tag tpl">🔗 模板</span>' : '<span class="src-tag manual">✍ 手动</span>';
+    return `<td class="parm-idx"></td>
+      <td><input class="fi" value="${name}" ${src==='template'?'readonly style="background:var(--bg-nested);color:var(--text-assist)"':''}></td>
+      <td><input class="fi" value="${cn}" placeholder="中文名"></td>
+      <td><select class="fi"><option value="0" ${ctrl==='0'?'selected':''}>输入框</option><option value="1">单选框</option><option value="2">多选框</option><option value="3">时间下拉</option><option value="4">计数器</option></select></td>
+      <td><input class="fi" value="${preset}" placeholder="选填"></td>
+      <td><select class="fi"><option value="0">可空+不校验</option><option value="1">可空+正则</option><option value="2" ${check==='2'?'selected':''}>必填</option><option value="3">必填+正则</option></select></td>
+      <td><div class="switch" onclick="this.classList.toggle('on')"></div></td>
+      <td>${srcTag}</td>
+      <td><button class="kv-del" onclick="delParm(this)">✕</button></td>`;
+  }
+  function addManualParm(kind) {
+    const bodyId = kind+'-parm-body';
+    const body = document.getElementById(bodyId);
+    const tr = document.createElement('tr');
+    tr.dataset.name = 'param_' + (body.children.length+1); tr.dataset.src='manual';
+    tr.innerHTML = parmRowHTML(tr.dataset.name, '', '0', '', '0', 'manual');
+    body.appendChild(tr); reindex(bodyId);
+    toast('info','已添加手动参数行（✍ 不反向写入模板）');
+  }
+  function delParm(btn) {
+    const tr = btn.closest('tr');
+    if (tr.dataset.src==='template') {
+      showConfirm('删除参数','该参数来自模板提取，删除后模板内变量仍存在，执行时将缺少传参。确认删除？', ok=>{ if(ok){ tr.remove(); reindex(tr.closest('tbody').id);} });
+    } else { tr.remove(); reindex(tr.closest('tbody').id); }
+  }
+  function reindex(bodyId) {
+    document.querySelectorAll('#'+bodyId+' tr').forEach((tr,i)=>{ const td=tr.querySelector('.parm-idx'); if(td) td.textContent=String(i+1).padStart(2,'0'); });
+  }
+
+  // ===== 实例固化 =====
+  // isScript=true → 执行脚本类公共组件：分类可选(复用定制模式列表)+风险反显+需成功判定规则
+  // isScript=false → 其他公共操作(通用命令/API等)：分类继承来源+无需成功判定规则
+  const SOURCE_PARAMS = {
+    'SRV20260101000001': {name:'Redis主从切换', tt:'1', tplId:'TPL20260001', isScript:true, cat:'startstop', params:[{n:'master_node',cn:'主节点',ctrl:'0'},{n:'slave_node',cn:'从节点',ctrl:'0'},{n:'confirm',cn:'确认切换',ctrl:'1',opts:'yes,no'}]},
+    'SRV20260101000002': {name:'集群状态检查', tt:'1', tplId:'TPL20260002', isScript:true, cat:'query', params:[{n:'cluster_id',cn:'集群ID',ctrl:'0'},{n:'env',cn:'环境',ctrl:'1',opts:'prod,staging,dev'}]},
+    'SRV20260101000003': {name:'服务重启', tt:'0', tplId:'-', isScript:false, cat:'startstop', params:[{n:'service_name',cn:'服务名',ctrl:'0'}]},
+    'SRV20260101000004': {name:'数据库备份', tt:'3', tplId:'TPL20260004', isScript:false, cat:'verify', params:[{n:'db_name',cn:'数据库名',ctrl:'0'},{n:'backup_type',cn:'备份类型',ctrl:'1',opts:'full,incremental'}]}
+  };
+  const CTRL_NAMES = {'0':'输入框','1':'单选框','2':'多选框','3':'时间下拉','4':'计数器'};
+  let instanceIsScript = false; // 当前来源是否为执行脚本类
+
+  function onSourceChange() {
+    const sid = document.getElementById('i-source').value;
+    const body = document.getElementById('fix-parm-body');
+    const catSelect = document.getElementById('i-category-select-area');
+    const catInherit = document.getElementById('i-category-inherit-area');
+    const riskArea = document.getElementById('i-risk-area');
+    const srArea = document.getElementById('i-successrule-area');
+    const srNote = document.getElementById('i-no-successrule-note');
+    if (!sid) {
+      body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-assist);padding:24px">选择来源组件后自动填充</td></tr>';
+      [catSelect,catInherit,riskArea,srArea,srNote].forEach(el=>el.style.display='none');
+      instanceIsScript = false;
+      return;
+    }
+    const src = SOURCE_PARAMS[sid];
+    instanceIsScript = src.isScript;
+    document.getElementById('i-instancename').value = `${src.name}-生产环境-01`;
+    document.getElementById('ib-name').textContent = src.name;
+    document.getElementById('ib-meta').textContent = src.isScript
+      ? `执行脚本类 · 复用来源 templateType=${src.tt} + templateId=${src.tplId} · 需选择操作分类并设置成功判定规则`
+      : `非脚本类公共操作 · 复用来源 templateType=${src.tt} · 操作分类继承来源，无需设置成功判定规则`;
+
+    if (src.isScript) {
+      // 脚本类：分类下拉（复用定制模式列表）+ 风险反显 + 成功判定规则必填
+      catSelect.style.display=''; catInherit.style.display='none';
+      riskArea.style.display=''; srArea.style.display=''; srNote.style.display='none';
+      document.getElementById('i-category').value='';
+      const rb = document.getElementById('i-risk-badge');
+      rb.className='risk-badge none'; rb.textContent='待选择操作分类';
+    } else {
+      // 其他公共操作：分类继承只读 + 无需成功判定规则
+      catSelect.style.display='none'; catInherit.style.display='';
+      riskArea.style.display='none'; srArea.style.display='none'; srNote.style.display='';
+      const icb = document.getElementById('i-inherit-cat-badge');
+      icb.className='risk-badge ' + (RISK_MAP[src.cat]?.cls||'none');
+      icb.textContent = `${CATEGORY_NAMES[src.cat]||src.cat}（继承来源）`;
+    }
+
+    body.innerHTML = src.params.map((p,i)=>`<tr>
+      <td class="parm-idx">${String(i+1).padStart(2,'0')}</td>
+      <td class="readonly">${p.n} <span style="color:var(--text-assist)">(${p.cn})</span></td>
+      <td><span class="ctrl-tag">${CTRL_NAMES[p.ctrl]}</span></td>
+      <td>${p.ctrl==='1' ? `<div class="radio-inline">${p.opts.split(',').map((o,j)=>`<label><input type="radio" name="fix_${p.n}" ${j===0?'checked':''}><span class="radio-dot"></span>${o}</label>`).join('')}</div>` : `<input class="fi" placeholder="填写固化值（校验规则继承来源）">`}</td>
+      <td><span class="src-tag tpl">继承</span></td>
+    </tr>`).join('');
+    toast('success', `已加载「${src.name}」${src.isScript ? '（执行脚本类）' : '（非脚本类）'}的 ${src.params.length} 个参数定义`);
+  }
+
+  // 实例固化-脚本类：操作分类选择 → 风险等级反显
+  function onInstanceCategoryChange() {
+    const v = document.getElementById('i-category').value;
+    const badge = document.getElementById('i-risk-badge');
+    const risk = RISK_MAP[v];
+    if (risk) { badge.className = 'risk-badge ' + risk.cls; badge.textContent = `${risk.level}（${risk.code}）`; }
+    else { badge.className = 'risk-badge none'; badge.textContent = '待选择操作分类'; }
+  }
+
+  // ===== Step3 预览 =====
+  function buildPreview() {
+    const isCustom = currentMode==='custom';
+    document.getElementById('pv-mode-tag').textContent = isCustom?'定制模式':'实例固化模式';
+    const basic = document.getElementById('pv-basic');
+    if (isCustom) {
+      const catVal = document.getElementById('c-category').value;
+      const catName = CATEGORY_NAMES[catVal]||'-';
+      const risk = RISK_MAP[catVal];
+      const tplName = tplCategory==='script' ? '脚本类' : 'API类';
+      const subName = tplCategory==='script'
+        ? document.querySelector('#script-subtypes .active')?.textContent || '-'
+        : apiSubtype.toUpperCase();
+      basic.innerHTML = pvItem('操作名称(英文)', val('c-servicename')) + pvItem('操作名称(中文)', val('c-servicecnname'))
+        + pvItem('操作分类', catName) + pvItem('风险等级', risk ? risk.level+'('+risk.code+')' : '-')
+        + pvItem('平台类型', tplCategory==='script' ? '01-Linux（自动）' : '空值（API类自动）') + pvItem('模板大类', tplName)
+        + pvItem('具体类型', subName) + pvItem('超时时间', val('c-timeout')+'s') + pvItem('执行方式', '非批量（后台默认）');
+      const tplCard = document.getElementById('pv-template-card');
+      tplCard.style.display='';
+      document.getElementById('pv-tpl-tag').textContent = tplCategory==='api' ? 'transtemplate' : 'scriptlibrary';
+      if (tplCategory==='api') {
+        let prefix, bodyText;
+        if (apiSubtype==='http') {
+          prefix = `${document.getElementById('api-protocol').value.toUpperCase()} · ${document.getElementById('api-method').value} ${document.getElementById('api-url').value}`;
+          if (apiBodyFormat==='form') {
+            const rows=[]; document.querySelectorAll('#api-form-kv tr').forEach(tr=>{ const ins=tr.querySelectorAll('input'); if(ins.length>=2 && ins[0].value) rows.push(ins[0].value+' = '+ins[1].value); });
+            bodyText = '[x-www-form-urlencoded]\n' + (rows.join('\n')||'（空）');
+          } else {
+            bodyText = '[JSON]\n' + document.getElementById('api-body').value;
+          }
+        } else {
+          prefix = `TCP ${document.getElementById('tcp-host').value}:${document.getElementById('tcp-port').value}`;
+          bodyText = document.getElementById('api-body').value;
+        }
+        document.getElementById('pv-code').textContent = `${prefix}\n\nBody:\n${bodyText}\n\nsuccessflag: ${document.getElementById('api-successflag').value}`;
+      } else {
+        document.getElementById('pv-code').textContent = document.getElementById('script-content').value;
+      }
+      buildParmPreview(tplCategory==='api'?'api-parm-body':'script-parm-body');
+    } else {
+      const sid = document.getElementById('i-source').value;
+      const src = SOURCE_PARAMS[sid]||{name:'-',isScript:false,cat:''};
+      let catText, riskText, srText;
+      if (src.isScript) {
+        const cv = document.getElementById('i-category').value;
+        catText = CATEGORY_NAMES[cv]||'-';
+        const r = RISK_MAP[cv];
+        riskText = r ? `${r.level}（${r.code}）` : '-';
+        srText = val('i-successrule') || '-';
+      } else {
+        catText = `${CATEGORY_NAMES[src.cat]||src.cat}（继承来源）`;
+        riskText = '由来源组件管控';
+        srText = '无需设置（非脚本类）';
+      }
+      basic.innerHTML = pvItem('实例名称', val('i-instancename')) + pvItem('来源公共组件', src.name)
+        + pvItem('来源类型', src.isScript ? '执行脚本类' : '非脚本类公共操作')
+        + pvItem('操作分类', catText) + pvItem('风险等级', riskText)
+        + pvItem('成功判定规则', srText)
+        + pvItem('复用模板', `templateType=${src.tt||'-'} / templateId=${src.tplId||'-'}`) + pvItem('写入表', 'serv_ins_info + serv_ins_parm');
+      document.getElementById('pv-template-card').style.display='none';
+      const fb = document.getElementById('fix-parm-body');
+      let rows=''; let idx=0;
+      fb.querySelectorAll('tr').forEach(tr=>{ const tds=tr.querySelectorAll('td'); if(tds.length<5) return; idx++; const name=tds[1].textContent.trim(); const ctrl=tds[2].textContent.trim(); const inp=tds[3].querySelector('input.fi'); const radio=tds[3].querySelector('input[type=radio]:checked'); const v= inp?inp.value:(radio?radio.nextSibling.textContent:'-'); rows+=`<tr><td>${String(idx).padStart(2,'0')}</td><td>${name}</td><td>-</td><td>${ctrl}</td><td>${v||'-'}</td><td>-</td><td><span class="src-tag tpl">继承</span></td></tr>`; });
+      document.getElementById('pv-parm-body').innerHTML = rows;
+      document.getElementById('pv-parm-count').textContent = idx + ' 个固化参数';
+    }
+  }
+  function pvItem(k,v){ return `<div class="pv-item"><span class="k">${k}</span><span class="v">${v||'-'}</span></div>`; }
+  function val(id){ return document.getElementById(id).value; }
+  function buildParmPreview(bodyId) {
+    const body = document.getElementById(bodyId);
+    let rows=''; let idx=0;
+    body.querySelectorAll('tr').forEach(tr=>{ const inputs=tr.querySelectorAll('input.fi, select.fi'); if(inputs.length<3) return; idx++;
+      const name=inputs[0].value, cn=inputs[1].value, ctrl=inputs[2].value, preset=inputs[3].value, check=inputs[4].value;
+      const srcTag = tr.querySelector('.src-tag').textContent;
+      rows+=`<tr><td>${String(idx).padStart(2,'0')}</td><td>${name}</td><td>${cn||'-'}</td><td>${CTRL_NAMES[ctrl]||ctrl}</td><td>${preset||'-'}</td><td>${check}</td><td>${srcTag}</td></tr>`; });
+    document.getElementById('pv-parm-body').innerHTML = rows || '<tr><td colspan="7" style="text-align:center;color:var(--text-assist)">无参数（允许 0 参数）</td></tr>';
+    document.getElementById('pv-parm-count').textContent = idx + ' 个参数';
+  }
+
+  function saveDraft() { toast('success', currentMode==='custom' ? '草稿已保存（confstatus=2，templateId 已同步回写）' : '实例草稿已保存（confstatus=2）'); }
+  function submitEntry() {
+    showConfirm('提交入库', '确认将该组件提交入库？入库后 confstatus 将置为 1（启用），组件将出现在「正式操作」列表。', ok=>{ if (ok) toast('success','操作组件已入库（confstatus=1），已刷新「正式操作」列表'); });
+  }
+
+  let toastTimer;
+  function toast(type, msg) {
+    const t = document.getElementById('toast');
+    t.className = 'toast ' + type;
+    t.querySelector('.t-icon').textContent = type==='success'?'✓':(type==='error'?'✕':'ℹ');
+    t.querySelector('.t-msg').textContent = msg;
+    requestAnimationFrame(()=>t.classList.add('show'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 2600);
+  }
+  function showConfirm(title, msg, cb) {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = msg;
+    confirmCb = cb;
+    document.getElementById('confirm-overlay').classList.add('show');
+  }
+  function closeConfirm(ok) {
+    document.getElementById('confirm-overlay').classList.remove('show');
+    if (confirmCb) confirmCb(ok);
+    confirmCb = null;
+  }
+
+  extractVars('script');
+  extractVars('api');
+  syncHl('script-content','script-hl','shell');
+  syncHl('api-body','api-hl','json');
+  renderStep();
+</script>
+</body>
+</html>
