@@ -1,17 +1,15 @@
 <script setup lang="ts">
+import type { ExecutionDetail, ExecutionRecord, ExecutionTicket } from '~/demo/types/workbench'
 import {
   ArrowDown,
-  CircleCheck,
-  CircleClose,
-  Clock,
   Download,
-  Loading,
   MagicStick,
   Refresh,
   RefreshRight,
   WarningFilled,
 } from '@element-plus/icons-vue'
 import DiagnosticPanel from '~/demo/components/DiagnosticPanel.vue'
+import ResourceDetailDialog from '~/demo/components/workbench/ResourceDetailDialog.vue'
 import { useWorkbenchContext } from '~/pages/workbench/composables/useWorkbench'
 
 const {
@@ -34,11 +32,11 @@ const {
   getHistoryStatusText,
   formatHistoryTime,
   getFirstError,
-  getDetailStatusClass,
   getDetailStatusType,
   getDetailStatusText,
   handleViewResourceDetail,
-  handleRetryFromHistory,
+  handleRetryDetail,
+  openDiagnosticForDetail,
   getOrchestrationStatusType,
   getOrchestrationStatusText,
   formatOrchestrationHistoryTime,
@@ -53,15 +51,14 @@ const {
   diagnosticFailedResources,
 } = useWorkbenchContext()
 
-// 明细状态 → 图标组件映射（原 composable 返回字符串名，这里映射为实际组件以保证渲染）
-function detailStatusIcon(status: string) {
-  const map: Record<string, any> = {
-    S: CircleCheck,
-    F: CircleClose,
-    P: Clock,
-    R: Loading,
-  }
-  return map[status] || Clock
+/** 流程单标签文案（变更单/事件单，§5 Popover） */
+function ticketLabel(ticket: ExecutionTicket): string {
+  return ticket.type === 'change' ? '变更单' : '事件单'
+}
+
+/** 耗时格式化（无值返回 '-'） */
+function formatDuration(duration?: number): string {
+  return duration != null ? `${duration.toFixed(1)}s` : '-'
 }
 </script>
 
@@ -69,7 +66,7 @@ function detailStatusIcon(status: string) {
   <el-drawer
     v-model="showHistoryDrawer"
     title="执行历史"
-    size="720px"
+    size="900px"
     direction="rtl"
     :close-on-click-modal="false"
   >
@@ -187,54 +184,97 @@ function detailStatusIcon(status: string) {
               <span>{{ getFirstError(record) }}</span>
             </div>
 
-            <!-- 展开的明细 -->
+            <!-- 展开的明细（《执行记录信息扩展-交互设计》§3/§4） -->
             <div v-if="expandedHistoryIds.includes(record.id)" class="record-details">
-              <div class="details-header">
-                <span>资源明细</span>
-                <div class="details-actions">
-                  <el-button
-                    size="small"
-                    type="primary"
-                    link
-                    :disabled="record.status !== 'failed'"
-                    @click="openDiagnostic(record)"
-                  >
-                    <el-icon><MagicStick /></el-icon>
-                    AI 诊断
-                  </el-button>
-                  <el-button size="small" type="primary" link @click="handleRetryFromHistory(record)">
-                    <el-icon><RefreshRight /></el-icon>
-                    重新执行
-                  </el-button>
-                </div>
-              </div>
-              <div class="details-list">
-                <div
-                  v-for="detail in record.details"
-                  :key="detail.serviceSeqId"
-                  class="detail-item"
+              <!-- 执行信息条：提交人恒显；复核人/流程单缺失整项隐藏（Q1/Q2） -->
+              <div class="exec-info-bar">
+                <span class="exec-info-item">
+                  <span class="exec-info-label">提交人</span>
+                  <span class="exec-info-value">{{ record.operator }}</span>
+                </span>
+                <span v-if="record.reviewer" class="exec-info-item">
+                  <span class="exec-info-label">复核人</span>
+                  <span class="exec-info-value">{{ record.reviewer }}</span>
+                </span>
+                <el-popover
+                  v-for="ticket in record.tickets ?? []"
+                  :key="ticket.no"
+                  trigger="click"
+                  :width="300"
+                  placement="bottom"
                 >
-                  <div class="detail-main" @click="handleViewResourceDetail(detail)">
-                    <el-icon class="detail-status-icon" :class="getDetailStatusClass(detail.execStatus)">
-                      <component :is="detailStatusIcon(detail.execStatus)" />
-                    </el-icon>
-                    <div class="detail-info">
-                      <span class="detail-pk">{{ detail.pkDisplay }}</span>
-                      <span v-if="detail.pkValue !== detail.pkDisplay" class="detail-ip">{{ detail.pkValue }}</span>
+                  <template #reference>
+                    <span class="exec-ticket-link">{{ ticketLabel(ticket) }} {{ ticket.no }}</span>
+                  </template>
+                  <div class="ticket-popover">
+                    <div class="ticket-popover-title">
+                      {{ ticketLabel(ticket) }} {{ ticket.no }}
                     </div>
-                    <el-tag
-                      :type="getDetailStatusType(detail.execStatus)"
-                      size="small"
-                      effect="light"
-                    >
-                      {{ getDetailStatusText(detail.execStatus) }}
-                    </el-tag>
+                    <div class="ticket-popover-desc">
+                      {{ ticket.title }}
+                    </div>
+                    <div v-if="ticket.summary" class="ticket-popover-summary">
+                      {{ ticket.summary }}
+                    </div>
+                    <div v-if="ticket.submitter || ticket.createTime" class="ticket-popover-meta">
+                      <span v-if="ticket.submitter">提单人: {{ ticket.submitter }}</span>
+                      <span v-if="ticket.createTime">· {{ ticket.createTime }}</span>
+                    </div>
                   </div>
-                  <div v-if="detail.errorMsg" class="detail-error">
-                    {{ detail.errorMsg }}
-                  </div>
-                </div>
+                </el-popover>
               </div>
+
+              <!-- 资源明细表格（§4.1/§4.2） -->
+              <el-table :data="record.details" size="small" class="detail-table" :row-key="(row: ExecutionDetail) => row.serviceSeqId">
+                <el-table-column label="资源" width="200">
+                  <template #default="{ row }">
+                    <div class="detail-resource">
+                      <span class="detail-resource-name">{{ row.pkDisplay }}</span>
+                      <span v-if="row.pkValue !== row.pkDisplay" class="detail-resource-sub">{{ row.pkValue }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" width="80">
+                  <template #default="{ row }">
+                    <el-tag :type="getDetailStatusType(row.execStatus)" size="small" effect="light">
+                      {{ getDetailStatusText(row.execStatus) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="开始时间" width="110">
+                  <template #default="{ row }">
+                    {{ row.startTime || '-' }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="耗时" width="70">
+                  <template #default="{ row }">
+                    {{ formatDuration(row.duration) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="报错" min-width="100">
+                  <template #default="{ row }">
+                    <span v-if="row.errorMsg" class="detail-error-text" :title="row.errorMsg">{{ row.errorMsg }}</span>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="160">
+                  <template #default="{ row }">
+                    <div class="detail-actions">
+                      <el-button size="small" type="primary" link @click="handleViewResourceDetail(row)">
+                        查看详细信息
+                      </el-button>
+                      <template v-if="row.execStatus === 'F'">
+                        <el-button size="small" type="primary" link @click="handleRetryDetail(row)">
+                          重试
+                        </el-button>
+                        <el-button size="small" type="primary" link @click="openDiagnosticForDetail(record as ExecutionRecord, row)">
+                          AI 诊断
+                        </el-button>
+                      </template>
+                    </div>
+                  </template>
+                </el-table-column>
+              </el-table>
             </div>
           </div>
 
@@ -372,6 +412,9 @@ function detailStatusIcon(status: string) {
     @feedback="(type: string) => console.log('诊断反馈:', type)"
     @retry="() => {}"
   />
+
+  <!-- 资源详情弹窗（《执行记录信息扩展-交互设计》§6） -->
+  <ResourceDetailDialog />
 </template>
 
 <style lang="scss" scoped>

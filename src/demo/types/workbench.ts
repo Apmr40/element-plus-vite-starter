@@ -73,6 +73,17 @@ export interface ExecutionDetail {
   startTime?: string
   endTime?: string
   duration?: number
+  returnInfo?: string // 返回信息原始文本，展示时智能识别类型（见《执行记录信息扩展-交互设计》§7）
+}
+
+/** 关联流程单（变更单/事件单） */
+export interface ExecutionTicket {
+  type: 'change' | 'incident' // 变更单 / 事件单
+  no: string // 单号，如 CHG-2026-0088
+  title: string // 标题/描述
+  summary: string // 摘要（2-3 句）
+  submitter?: string // 提单人
+  createTime?: string // 创建时间
 }
 
 // 编排作业明细
@@ -113,6 +124,8 @@ export interface ExecutionRecord {
   successCount: number
   params?: Record<string, any>
   details: ExecutionDetail[]
+  reviewer?: string // 复核人（可空；缺失时 UI 整项隐藏）
+  tickets?: ExecutionTicket[] // 关联流程单（变更单/事件单，0-N 个）
 }
 
 // 参数模板

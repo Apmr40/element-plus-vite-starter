@@ -99,6 +99,13 @@ const LANGS: Record<string, LangDef> = {
     [/\b(?:true|false|null)\b/, 'tk-k'],
     [/-?\d+(?:\.\d+)?/, 'tk-n'],
   ] },
+  yaml: { ci: false, tokens: [
+    [/#[^\n]*/, 'tk-c'],
+    [/"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/, 'tk-s'],
+    [/^\s*[\w.-]+(?=\s*:)/m, 'tk-k'],
+    [/\b(?:true|false|null|yes|no)\b/, 'tk-k'],
+    [/-?\d+(?:\.\d+)?/, 'tk-n'],
+  ] },
   text: { ci: false, tokens: [[/\{\{\w+\}\}/, 'tk-p']] },
 }
 
@@ -131,4 +138,87 @@ export function highlight(code: string, lang: string): string {
   }
   result += escapeHtml(code.slice(lastIdx))
   return result
+}
+
+// ============ 返回信息智能识别（《执行记录信息扩展-交互设计》§7）============
+
+/** 返回信息识别类型 */
+export type ReturnDataType = 'json' | 'jsonarray' | 'yaml' | 'text'
+
+/**
+ * 识别返回信息的展示类型。
+ * 优先级：JSON.parse 成功（Array→jsonarray / Object→json）→ YAML 启发式 → text。
+ * 识别结果仅用于展示，原始字符串是唯一数据源。
+ */
+export function detectReturnType(content: string | undefined): ReturnDataType {
+  const raw = (content ?? '').trim()
+  if (!raw)
+    return 'text'
+
+  // JSON / JSON Array
+  if (raw[0] === '{' || raw[0] === '[') {
+    try {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) {
+        // 元素全为对象才走表格形式，否则降级 json 代码块
+        const allObjects = parsed.length > 0 && parsed.every(item => item !== null && typeof item === 'object' && !Array.isArray(item))
+        return allObjects ? 'jsonarray' : 'json'
+      }
+      if (parsed !== null && typeof parsed === 'object')
+        return 'json'
+    }
+    catch {
+      // parse 失败继续向下
+    }
+  }
+
+  // YAML 启发式：首行 --- 或 ≥2 行 key:value（单行冒号文本不误判）
+  const lines = raw.split('\n')
+  if (lines[0].trim() === '---')
+    return 'yaml'
+  const kvLines = lines.filter(line => /^[\w.-]+\s*:/.test(line.trim()))
+  if (kvLines.length >= 2)
+    return 'yaml'
+
+  return 'text'
+}
+
+/** 返回信息类型徽标文案 */
+export const RETURN_TYPE_LABEL: Record<ReturnDataType, string> = {
+  json: 'JSON',
+  jsonarray: 'JSON Array',
+  yaml: 'YAML',
+  text: 'TEXT',
+}
+
+/** JSON Array 表格列推断结果 */
+export interface InferredColumn {
+  key: string
+  /** object 类型的列为嵌套列 */
+  nested: boolean
+}
+
+/**
+ * 为 JSON Array 推断表格列：全体元素 key 的并集，按首次出现顺序排列。
+ * 列类型按首个非空值的类型判定（object → 嵌套列）。
+ */
+export function inferArrayColumns(items: Record<string, any>[]): InferredColumn[] {
+  const cols: InferredColumn[] = []
+  const seen = new Set<string>()
+  for (const item of items) {
+    for (const key of Object.keys(item)) {
+      if (seen.has(key))
+        continue
+      seen.add(key)
+      const val = item[key]
+      const nested = val !== null && typeof val === 'object'
+      cols.push({ key, nested })
+    }
+  }
+  return cols
+}
+
+/** 判断 JSON Array 中是否存在嵌套对象（决定是否出现展开列） */
+export function hasNestedObject(items: Record<string, any>[]): boolean {
+  return items.some(item => Object.values(item).some(v => v !== null && typeof v === 'object'))
 }

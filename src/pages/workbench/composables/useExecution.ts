@@ -535,8 +535,18 @@ export function useExecution() {
     ElMessage.info(`重新执行: ${record.name}`)
   }
 
+  // ============ 资源详情弹窗（《执行记录信息扩展-交互设计》§6，状态收敛）============
+  const resourceDetailVisible = ref(false)
+  const resourceDetail = ref<ExecutionDetail | null>(null)
+
   const handleViewResourceDetail = (detail: ExecutionDetail) => {
-    ElMessage.info(`查看资源详情: ${detail.pkDisplay}`)
+    resourceDetail.value = detail
+    resourceDetailVisible.value = true
+  }
+
+  /** 单资源重试（demo 占位：toast 确认，无参数可改不打开执行弹窗） */
+  const handleRetryDetail = (detail: ExecutionDetail) => {
+    ElMessage.success(`已提交重试: ${detail.pkDisplay}`)
   }
 
   // ============ 编排执行历史抽屉 ============
@@ -961,6 +971,26 @@ export function useExecution() {
     showDiagnosticPanel.value = true
   }
 
+  /**
+   * 单资源 AI 诊断（Q5）：与 openDiagnostic(record) 独立——
+   * 后者接收整条记录并内部过滤全部失败资源，行级入口仅传该资源。
+   */
+  const openDiagnosticForDetail = (record: ExecutionRecord, detail: ExecutionDetail) => {
+    diagnosticRecordId.value = record.id
+    diagnosticOperationName.value = record.name || '未知操作'
+
+    const parts = (record.name || '').split('::')
+    diagnosticOperationCategory.value = parts[0]?.trim() || '未知'
+
+    diagnosticFailedResources.value = [{
+      pk: detail.pkValue || detail.pkDisplay || '',
+      pkDisplay: detail.pkDisplay || detail.pkValue || '',
+      errorMsg: detail.errorMsg || '执行失败',
+    }]
+
+    showDiagnosticPanel.value = true
+  }
+
   return {
     // 状态
     executionHistory,
@@ -1026,6 +1056,10 @@ export function useExecution() {
     handleRefreshHistory,
     handleRetryFromHistory,
     handleViewResourceDetail,
+    resourceDetailVisible,
+    resourceDetail,
+    handleRetryDetail,
+    openDiagnosticForDetail,
     // 编排执行历史抽屉
     handleOpenOrchestrationHistoryDrawer,
     handleCloseOrchestrationHistoryDrawer,

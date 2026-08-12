@@ -3014,6 +3014,277 @@
   margin-right: $uops-spacing-sm;
 }
 
+// ============ 执行记录信息扩展（docs/workbench/执行记录信息扩展-交互设计.md）============
+
+// --- 执行信息条（§3：提交人/复核人/流程单链）---
+.exec-info-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $uops-spacing-lg;
+  padding: 10px 0 12px;
+
+  .exec-info-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: $font-size-label;
+  }
+
+  .exec-info-label {
+    color: $uops-text-secondary;
+  }
+
+  .exec-info-value {
+    color: $uops-text-primary;
+    font-weight: 500;
+  }
+
+  .exec-ticket-link {
+    color: $uops-primary-color;
+    font-size: $font-size-label;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// --- 流程单 Popover（§5）---
+.ticket-popover {
+  .ticket-popover-title {
+    font-weight: 600;
+    color: $uops-text-primary;
+    margin-bottom: 6px;
+  }
+
+  .ticket-popover-desc {
+    font-size: $font-size-base;
+    color: $uops-text-primary;
+    margin-bottom: 8px;
+  }
+
+  .ticket-popover-summary {
+    font-size: $font-size-label;
+    color: $uops-text-secondary;
+    line-height: 1.6;
+    padding: 8px;
+    background: $bg-list-nested;
+    border-radius: $uops-radius-sm;
+    margin-bottom: 8px;
+  }
+
+  .ticket-popover-meta {
+    font-size: $font-size-label;
+    color: $uops-text-placeholder;
+  }
+}
+
+// --- 资源明细表格（§4）---
+.record-details {
+  .detail-table {
+    .detail-resource {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.4;
+
+      .detail-resource-name {
+        color: $uops-text-primary;
+      }
+
+      .detail-resource-sub {
+        font-size: $font-size-label;
+        color: $uops-text-secondary;
+      }
+    }
+
+    .detail-error-text {
+      color: $uops-danger-color;
+      display: inline-block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: bottom;
+    }
+
+    .detail-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .el-button + .el-button {
+        margin-left: 0;
+      }
+    }
+  }
+}
+
+// --- 资源详情弹窗（§6/§7）---
+.resource-detail {
+  .rd-section {
+    margin-bottom: $uops-spacing-lg;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  .rd-section-title {
+    display: flex;
+    align-items: center;
+    gap: $uops-spacing-sm;
+    font-size: $font-size-base;
+    font-weight: 600;
+    color: $uops-text-primary;
+    margin-bottom: $uops-spacing-sm;
+
+    .rd-type-badge {
+      margin-left: auto;
+    }
+
+    .rd-copy-btn {
+      margin-left: $uops-spacing-xs;
+    }
+  }
+
+  .rd-desc-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $uops-spacing-sm $uops-spacing-lg;
+    padding: $uops-spacing-md;
+    background: $bg-list-header;
+    border-radius: $uops-radius-sm;
+
+    .rd-desc-item {
+      display: flex;
+      align-items: center;
+      gap: $uops-spacing-sm;
+      font-size: $font-size-label;
+    }
+
+    .rd-desc-label {
+      color: $uops-text-secondary;
+      flex-shrink: 0;
+    }
+
+    .rd-desc-value {
+      color: $uops-text-primary;
+      font-weight: 500;
+    }
+  }
+
+  .rd-kv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $font-size-label;
+
+    td {
+      border: 1px solid $uops-border-color;
+      padding: 6px 10px;
+    }
+
+    .rd-kv-key {
+      width: 160px;
+      color: $uops-text-secondary;
+      background: $bg-list-header;
+    }
+
+    .rd-kv-val {
+      color: $uops-text-primary;
+      word-break: break-all;
+    }
+
+    &.rd-kv-mini .rd-kv-key {
+      width: 120px;
+    }
+  }
+
+  .rd-error-block {
+    padding: $uops-spacing-md;
+    background: rgba($uops-danger-color, 0.06);
+    border: 1px solid rgba($uops-danger-color, 0.25);
+    border-radius: $uops-radius-sm;
+    color: $uops-danger-color;
+    font-size: $font-size-label;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  // JSON Array 表格
+  .rd-array {
+    .rd-nested-hint {
+      color: $uops-primary-color;
+    }
+  }
+
+  .rd-nested-area {
+    padding: $uops-spacing-sm $uops-spacing-lg;
+    display: flex;
+    flex-direction: column;
+    gap: $uops-spacing-md;
+
+    .rd-nested-title {
+      font-size: $font-size-label;
+      font-weight: 600;
+      color: $uops-text-primary;
+      margin-bottom: 4px;
+    }
+
+    .rd-nested-code {
+      margin: 0;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  }
+
+  // JSON / YAML 只读代码块（复用 CodeEditor 暗色底 + token 配色）
+  .rd-code-block-wrap {
+    border-radius: $uops-radius-sm;
+    overflow: hidden;
+  }
+
+  .rd-code-block {
+    margin: 0;
+    max-height: 300px;
+    overflow: auto;
+    padding: $uops-spacing-md $uops-spacing-lg;
+    background: #1e2733;
+    color: #d7e2ee;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+
+    .tk-c { color: #7c9cb4; font-style: italic; }
+    .tk-s { color: #8bd697; }
+    .tk-p { color: #ffce3f; font-weight: 700; }
+    .tk-k { color: #55cfff; }
+    .tk-n { color: #ff9f41; }
+  }
+
+  // TEXT 纯文本块
+  .rd-text-block {
+    margin: 0;
+    max-height: 300px;
+    overflow: auto;
+    padding: $uops-spacing-md;
+    background: $bg-list-header;
+    border-radius: $uops-radius-sm;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: $uops-text-primary;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+}
+
 // ============ 筛选入口与 chips（筛选条收纳方案）============
 // 设计文档：docs/archive/筛选条收纳方案-交互设计.md
 .filter-entry {
