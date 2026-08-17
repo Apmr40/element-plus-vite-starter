@@ -1,19 +1,19 @@
 <script lang="ts" setup>
-import { useRoute } from 'vue-router'
 import {
+  Check,
   Document,
   Menu as IconMenu,
-  Location,
-  Setting,
-  Monitor,
   List,
-  Check,
-  Tickets,
+  Location,
   Lock,
-  Switch,
-  Tools,
+  Monitor,
+  Setting,
   SetUp,
+  Switch,
+  Tickets,
+  Tools,
 } from '@element-plus/icons-vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
 </script>
@@ -81,7 +81,7 @@ const route = useRoute()
       </template>
     </el-menu-item>
 
-    <!-- Demo 模块：应用配置巡检系统 -->
+    <!-- Demo 模块：应用配置巡检系统（2026-08-17 菜单合并：原"巡检管理"+"配置巡检"统一） -->
     <el-sub-menu index="demo">
       <template #title>
         <el-icon>
@@ -91,63 +91,59 @@ const route = useRoute()
       </template>
       <el-menu-item index="/inspection">
         <el-icon><Location /></el-icon>
-        <span>巡检首页</span>
+        <span>巡检总览</span>
       </el-menu-item>
-      <el-sub-menu index="demo-inspection">
+      <el-sub-menu index="demo-inspect-config">
         <template #title>
-          <el-icon><List /></el-icon>
-          <span>巡检管理</span>
+          <el-icon><Setting /></el-icon>
+          <span>巡检配置</span>
         </template>
         <el-menu-item index="/inspection/rule">
           <el-icon><Setting /></el-icon>
           <span>规则配置</span>
         </el-menu-item>
-        <el-menu-item index="/inspection/result">
-          <el-icon><Check /></el-icon>
-          <span>巡检结果</span>
-        </el-menu-item>
-        <el-menu-item index="/inspection/order">
-          <el-icon><Tickets /></el-icon>
-          <span>整改工单</span>
-        </el-menu-item>
-      </el-sub-menu>
-      <el-menu-item index="/inspection/admin">
-        <el-icon><Lock /></el-icon>
-        <span>权限后台</span>
-      </el-menu-item>
-      <el-sub-menu index="demo-config-inspect">
-        <template #title>
-          <el-icon><Monitor /></el-icon>
-          <span>配置巡检</span>
-        </template>
         <el-menu-item index="/config-inspect/strategy">
-          <el-icon><Setting /></el-icon>
+          <el-icon><List /></el-icon>
           <span>巡检策略</span>
         </el-menu-item>
         <el-menu-item index="/config-inspect/plan">
           <el-icon><Tickets /></el-icon>
           <span>巡检计划</span>
         </el-menu-item>
-        <el-menu-item index="/config-inspect/result">
-          <el-icon><Check /></el-icon>
-          <span>巡检结果</span>
-        </el-menu-item>
       </el-sub-menu>
+      <el-menu-item index="/config-inspect/result">
+        <el-icon><Check /></el-icon>
+        <span>检查结果</span>
+      </el-menu-item>
+      <el-menu-item index="/inspection/order">
+        <el-icon><Tickets /></el-icon>
+        <span>整改工单</span>
+      </el-menu-item>
+      <el-menu-item index="/inspection/admin">
+        <el-icon><Lock /></el-icon>
+        <span>权限后台</span>
+      </el-menu-item>
     </el-sub-menu>
 
     <el-menu-item index="/change-protection">
       <el-icon><Switch /></el-icon>
-      <template #title>变更特护视图</template>
+      <template #title>
+        变更特护视图
+      </template>
     </el-menu-item>
 
     <el-menu-item index="/api-config">
       <el-icon><Tools /></el-icon>
-      <template #title>操作资源配置</template>
+      <template #title>
+        操作资源配置
+      </template>
     </el-menu-item>
 
     <el-menu-item index="/workbench">
       <el-icon><SetUp /></el-icon>
-      <template #title>操作工作台</template>
+      <template #title>
+        操作工作台
+      </template>
     </el-menu-item>
   </el-menu>
 </template>

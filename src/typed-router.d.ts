@@ -95,8 +95,6 @@ declare module 'vue-router/auto-routes' {
       | '/inspection/components/FeatToggle'
       | '/inspection/components/ModeSwitch'
       | '/inspection/order/'
-      | '/inspection/result/'
-      | '/inspection/result/inspection-result-drawer'
       | '/inspection/rule/'
       | '/inspection/rule/RuleConfigFormV2'
     >,
@@ -152,20 +150,6 @@ declare module 'vue-router/auto-routes' {
     '/inspection/order/': RouteRecordInfo<
       '/inspection/order/',
       '/inspection/order',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/inspection/result/': RouteRecordInfo<
-      '/inspection/result/',
-      '/inspection/result',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/inspection/result/inspection-result-drawer': RouteRecordInfo<
-      '/inspection/result/inspection-result-drawer',
-      '/inspection/result/inspection-result-drawer',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -295,8 +279,6 @@ declare module 'vue-router/auto-routes' {
         | '/inspection/components/FeatToggle'
         | '/inspection/components/ModeSwitch'
         | '/inspection/order/'
-        | '/inspection/result/'
-        | '/inspection/result/inspection-result-drawer'
         | '/inspection/rule/'
         | '/inspection/rule/RuleConfigFormV2'
       views:
@@ -347,18 +329,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/inspection/order/index.vue': {
       routes:
         | '/inspection/order/'
-      views:
-        | never
-    }
-    'src/pages/inspection/result/index.vue': {
-      routes:
-        | '/inspection/result/'
-      views:
-        | never
-    }
-    'src/pages/inspection/result/inspection-result-drawer.vue': {
-      routes:
-        | '/inspection/result/inspection-result-drawer'
       views:
         | never
     }

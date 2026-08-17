@@ -4,9 +4,13 @@
  */
 import type {
   CategoryNode,
+  InspectAppSummary,
   InspectComponent,
+  InspectException,
   InspectExecDetail,
   InspectExecMiss,
+  InspectExecution,
+  InspectGovern,
   InspectItem,
   InspectPlan,
   InspectResult,
@@ -55,9 +59,9 @@ export const CROSS_CENTER_MAP: Record<string, string> = {
 }
 
 export const PLAN_STATUS_MAP: Record<string, string> = {
-  '0': '试运行',
-  '1': '常态化',
-  '2': '已取消',
+  0: '试运行',
+  1: '常态化',
+  2: '已取消',
 }
 
 export const ENABLE_FLAG_MAP: Record<string, string> = {
@@ -993,9 +997,17 @@ interface ResultSeed {
   isException?: string
 }
 
+// detail_id 自增生成（统一模型事实源主键，对齐 iop_mc_inspect_exec_detail）
+let detailSeq = 0
+function nextDetailId(): string {
+  detailSeq++
+  return `DTL${String(detailSeq).padStart(4, '0')}`
+}
+
 function buildResult(seed: ResultSeed): InspectResult {
   const { strategy: s, machine: m } = seed
   return {
+    detail_id: nextDetailId(),
     strategy_id: s.strategy_id,
     dept_id: s.dept_id || 'D005',
     component_id: seed.componentId,
@@ -1184,3 +1196,145 @@ export function getHistoryDetails(hostName: string, checkName: string): InspectE
   })
   return details
 }
+
+// ==================== 统一模型派生数据（2026-08-17 菜单合并） ====================
+// 全部从 results（事实源）派生，保证汇总/治理/例外与明细天然一致
+
+/** 执行批次：按 job_id 聚合 results（一次执行 = 1 条） */
+export const executions: InspectExecution[] = (() => {
+  const map = new Map<string, InspectExecution>()
+  for (const r of results) {
+    if (map.has(r.job_id))
+      continue
+    map.set(r.job_id, {
+      job_id: r.job_id,
+      jobtimer_id: `JT-${r.inspect_date.replace(/-/g, '')}-001`,
+      plan_id: 'PLN20260201000001',
+      strategy_id: r.strategy_id,
+      component_id: r.component_id,
+      component_version: r.component_version,
+      trial_flag: r.trial_flag,
+      dept_id: r.dept_id,
+      dept_name: r.dept_name,
+      inspect_date: r.inspect_date,
+      inspect_time: r.inspect_time,
+      strategy_name: r.strategy_name,
+      top_type: r.top_type,
+      sub_type: r.sub_type,
+      tags: r.tags,
+      exec_status: '1',
+      category_code: r.category_code,
+      category_name: r.category_name,
+    })
+  }
+  return [...map.values()]
+})()
+
+/**
+ * 汇总视图行：按应用聚合 results（字段语义对齐 iop_mc_inspect_summary）
+ * 这是"汇总视图"的唯一数据来源，数字与明细视图天然一致
+ */
+export const appSummaries: InspectAppSummary[] = (() => {
+  const map = new Map<string, InspectAppSummary>()
+  for (const r of results) {
+    const key = r.app_id
+    if (!map.has(key)) {
+      map.set(key, {
+        app_id: r.app_id,
+        app_name: r.app_name,
+        tech_stack: r.resource_type,
+        strategy_name: r.strategy_name,
+        dept_name: r.dept_name,
+        inspect_date: r.inspect_date,
+        latest_inspect_time: `${r.inspect_date} ${r.inspect_time}`,
+        tar_num: 0,
+        actual_target_num: 0,
+        check_num: 0,
+        abnormal_num: 0,
+        warning_num: 0,
+        exception_num: 0,
+        compliance_rate: 100,
+      })
+    }
+    const s = map.get(key)!
+    s.check_num++
+    s.tar_num++
+    s.actual_target_num++
+    if (r.result_status === '异常')
+      s.abnormal_num++
+    if (r.result_status === '警告')
+      s.warning_num++
+    if (r.is_exception === '1')
+      s.exception_num++
+  }
+  // 合规率 = (检查条目 - 异常 - 警告) / 检查条目
+  for (const s of map.values()) {
+    s.compliance_rate = s.check_num === 0
+      ? 100
+      : Math.round(((s.check_num - s.abnormal_num - s.warning_num) / s.check_num) * 1000) / 10
+  }
+  return [...map.values()]
+})()
+
+/** 治理单（前端呈现为"整改工单"）：从异常明细派生，detail_ids 关联事实源 */
+export const governs: InspectGovern[] = (() => {
+  const abnormals = results.filter(r => r.result_status === '异常')
+  const statusCycle: Array<InspectGovern['status']> = ['pending-confirm', 'pending-rectify', 'pending-review', 'closed', 'rejected']
+  return abnormals.map((r, idx) => {
+    const machine = machines.find(m => m.host_name === r.host_name)
+    const status = statusCycle[idx % statusCycle.length]
+    const daysLeft = idx % 3 === 0 ? 2 : 5
+    return {
+      govern_id: `GOV${String(idx + 1).padStart(4, '0')}`,
+      check_name: r.check_name,
+      obj_name: r.obj_name,
+      host_name: r.host_name,
+      ip: r.ip,
+      remain_time: `${daysLeft}天`,
+      start_date: r.inspect_date,
+      dept_id: r.dept_id,
+      category_code: r.category_code,
+      category_name: r.category_name,
+      resource_type: r.resource_type,
+      strategy_name: r.strategy_name,
+      risk_level: r.risk_level === '01' ? 'high' : r.risk_level === '02' ? 'medium' : 'low',
+      handler: idx % 2 === 0 ? '李四' : '王五',
+      detail_ids: [r.detail_id],
+      app_name: machine?.app_name || r.app_name,
+      status,
+      remaining_time_ms: daysLeft * 24 * 60 * 60 * 1000,
+      history: [
+        { time: `${r.inspect_date} 19:15:00`, content: `巡检发现异常：${r.check_name}，当前值 ${r.current_value}`, user: '系统' },
+        { time: `${r.inspect_date} 19:30:00`, content: '生成整改工单，派发至一线管理员确认', user: '系统' },
+        ...(status !== 'pending-confirm'
+          ? [{ time: `${r.inspect_date} 20:00:00`, content: '一线确认属实，转单二线整改', user: '张三' }]
+          : []),
+        ...(status === 'closed'
+          ? [{ time: `${r.inspect_date} 21:00:00`, content: '整改完成，审核通过，工单闭环', user: '王五' }]
+          : []),
+        ...(status === 'rejected'
+          ? [{ time: `${r.inspect_date} 21:00:00`, content: '整改审核驳回：整改证据不足', user: '王五' }]
+          : []),
+      ],
+    }
+  })
+})()
+
+/** 例外审批记录：从已申请例外的明细派生（demo 申请即生效，status='1' 审批通过） */
+export const exceptions: InspectException[] = (() => {
+  const withException = results.filter(r => r.is_exception === '1')
+  return withException.map((r, idx) => ({
+    exception_id: `EXC${String(idx + 1).padStart(4, '0')}`,
+    check_name: r.check_name,
+    obj_name: r.obj_name,
+    host_name: r.host_name,
+    applicant: r.exception_applicant || r.admin_name,
+    appl_user_id: r.admin_id,
+    appl_time: r.exception_apply_time || '2026-07-20 10:30:00',
+    check_type: r.top_type,
+    remark: r.exception_remark || '该机器为临时环境，由应用侧自行管理',
+    excep_end_date: '2026-12-31',
+    work_order_id: `WO-2026-${String(idx + 1).padStart(4, '0')}`,
+    status: '1', // demo：申请即生效（审批通过），接真 API 时启用审批流
+  }))
+})()

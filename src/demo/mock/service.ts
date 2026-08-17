@@ -4,27 +4,20 @@
  */
 
 import type {
+  ApiResponse,
+  PaginationParams,
+  PaginationResponse,
+  Role,
   RuleConfig,
   RuleFilter,
   RuleFormData,
-  InspectionResult,
-  InspectionFilter,
-  Order,
-  OrderFilter,
-  Role,
-  PaginationParams,
-  PaginationResponse,
-  ApiResponse,
   TestResult,
   UploadedFile,
 } from '~/demo/types/inspection'
 
 import {
-  mockRules,
-  mockInspectionResults,
-  mockOrders,
   mockRoles,
-  mockUploadedFiles,
+  mockRules,
   mockTestResults,
 } from './data'
 
@@ -38,7 +31,7 @@ export const mockRuleService = {
   /** 获取规则列表 */
   async getList(
     filter: Partial<RuleFilter>,
-    pagination: PaginationParams
+    pagination: PaginationParams,
   ): Promise<ApiResponse<PaginationResponse<RuleConfig>>> {
     await delay()
 
@@ -49,13 +42,13 @@ export const mockRuleService = {
       filtered = filtered.filter(rule =>
         Array.isArray(rule.techStack)
           ? rule.techStack.includes(filter.techStack!)
-          : rule.techStack === filter.techStack
+          : rule.techStack === filter.techStack,
       )
     }
 
     if (filter.tags && filter.tags.length > 0) {
       filtered = filtered.filter(rule =>
-        filter.tags!.some(tag => rule.tags.includes(tag))
+        filter.tags!.some(tag => rule.tags.includes(tag)),
       )
     }
 
@@ -66,8 +59,8 @@ export const mockRuleService = {
     if (filter.keyword) {
       const keyword = filter.keyword.toLowerCase()
       filtered = filtered.filter(rule =>
-        rule.name.toLowerCase().includes(keyword) ||
-        rule.description?.toLowerCase().includes(keyword)
+        rule.name.toLowerCase().includes(keyword)
+        || rule.description?.toLowerCase().includes(keyword),
       )
     }
 
@@ -208,7 +201,7 @@ export const mockRuleService = {
   /** 运行规则测试 */
   async runTest(
     config: any,
-    files: UploadedFile[]
+    files: UploadedFile[],
   ): Promise<ApiResponse<TestResult>> {
     await delay(1000)
 
@@ -218,281 +211,6 @@ export const mockRuleService = {
       code: 200,
       message: '测试完成',
       data: result,
-    }
-  },
-}
-
-// ============================================
-// 巡检结果服务
-// ============================================
-export const mockInspectionService = {
-  /** 获取巡检结果列表 */
-  async getList(
-    filter: Partial<InspectionFilter>,
-    pagination: PaginationParams
-  ): Promise<ApiResponse<PaginationResponse<InspectionResult>>> {
-    await delay()
-
-    let filtered = [...mockInspectionResults]
-
-    // 筛选
-    if (filter.appName) {
-      filtered = filtered.filter(item => item.appName === filter.appName)
-    }
-
-    if (filter.techStack) {
-      filtered = filtered.filter(item => item.techStack === filter.techStack)
-    }
-
-    if (filter.status && filter.status !== 'all') {
-      filtered = filtered.filter(item => item.status === filter.status)
-    }
-
-    if (filter.timeRange && filter.timeRange.length === 2) {
-      const [start, end] = filter.timeRange
-      filtered = filtered.filter(item => {
-        const date = new Date(item.inspectedAt)
-        return date >= start && date <= end
-      })
-    }
-
-    // 分页
-    const startIdx = (pagination.currentPage - 1) * pagination.pageSize
-    const endIdx = startIdx + pagination.pageSize
-    const list = filtered.slice(startIdx, endIdx)
-
-    return {
-      code: 200,
-      message: 'success',
-      data: {
-        list,
-        total: filtered.length,
-        currentPage: pagination.currentPage,
-        pageSize: pagination.pageSize,
-      },
-    }
-  },
-
-  /** 获取巡检结果详情 */
-  async getDetail(id: string): Promise<ApiResponse<InspectionResult>> {
-    await delay()
-
-    const result = mockInspectionResults.find(item => item.id === id)
-    if (!result) {
-      return { code: 404, message: '巡检结果不存在', data: null as any }
-    }
-
-    return {
-      code: 200,
-      message: 'success',
-      data: result,
-    }
-  },
-
-  /** 导出巡检结果 */
-  async export(ids: string[]): Promise<ApiResponse<Blob>> {
-    await delay(500)
-
-    // 模拟导出
-    const blob = new Blob(['mock export data'], { type: 'text/csv' })
-
-    return {
-      code: 200,
-      message: '导出成功',
-      data: blob,
-    }
-  },
-
-  /** 批量创建工单 */
-  async batchCreateOrders(
-    inspectionId: string,
-    nonCompliantItemIds: string[]
-  ): Promise<ApiResponse<Order[]>> {
-    await delay()
-
-    const inspection = mockInspectionResults.find(item => item.id === inspectionId)
-    if (!inspection) {
-      return { code: 404, message: '巡检结果不存在', data: null as any }
-    }
-
-    const newOrders: Order[] = nonCompliantItemIds.map((itemId, index) => {
-      const nonCompliant = inspection.nonCompliantItems[index]
-      return {
-        id: `T${Date.now()}-${index}`,
-        appName: inspection.appName,
-        nonCompliantItem: nonCompliant?.ruleName || '未知项',
-        riskLevel: nonCompliant?.riskLevel || 'medium',
-        remainingTimeMs: 24 * 60 * 60 * 1000, // 24小时
-        status: 'pending-confirm',
-        handler: '一线管理员 - 张三',
-        ruleName: nonCompliant?.ruleName || '',
-        checkItem: nonCompliant?.ruleName || '',
-        reason: nonCompliant?.reason || '',
-        instanceId: nonCompliant?.instanceId || '',
-        dataSource: inspection.dataSource,
-        createdAt: new Date().toISOString(),
-        techStack: inspection.techStack,
-        history: [
-          { time: new Date().toISOString(), content: '系统自动创建工单', user: 'system' },
-        ],
-      }
-    })
-
-    mockOrders.push(...newOrders)
-
-    return {
-      code: 200,
-      message: '创建成功',
-      data: newOrders,
-    }
-  },
-}
-
-// ============================================
-// 整改工单服务
-// ============================================
-export const mockOrderService = {
-  /** 获取工单列表 */
-  async getList(
-    filter: Partial<OrderFilter>,
-    pagination: PaginationParams
-  ): Promise<ApiResponse<PaginationResponse<Order>>> {
-    await delay()
-
-    let filtered = [...mockOrders]
-
-    // 筛选
-    if (filter.status && filter.status !== 'all') {
-      filtered = filtered.filter(order => order.status === filter.status)
-    }
-
-    if (filter.riskLevel) {
-      filtered = filtered.filter(order => order.riskLevel === filter.riskLevel)
-    }
-
-    if (filter.appName) {
-      filtered = filtered.filter(order => order.appName === filter.appName)
-    }
-
-    if (filter.createdAt && filter.createdAt.length === 2) {
-      const [start, end] = filter.createdAt
-      filtered = filtered.filter(order => {
-        const date = new Date(order.createdAt)
-        return date >= start && date <= end
-      })
-    }
-
-    // 分页
-    const startIdx = (pagination.currentPage - 1) * pagination.pageSize
-    const endIdx = startIdx + pagination.pageSize
-    const list = filtered.slice(startIdx, endIdx)
-
-    return {
-      code: 200,
-      message: 'success',
-      data: {
-        list,
-        total: filtered.length,
-        currentPage: pagination.currentPage,
-        pageSize: pagination.pageSize,
-      },
-    }
-  },
-
-  /** 获取工单详情 */
-  async getDetail(id: string): Promise<ApiResponse<Order>> {
-    await delay()
-
-    const order = mockOrders.find(item => item.id === id)
-    if (!order) {
-      return { code: 404, message: '工单不存在', data: null as any }
-    }
-
-    return {
-      code: 200,
-      message: 'success',
-      data: order,
-    }
-  },
-
-  /** 误报闭环 */
-  async closeAsFalseAlarm(
-    id: string,
-    reason: string
-  ): Promise<ApiResponse<void>> {
-    await delay()
-
-    const order = mockOrders.find(item => item.id === id)
-    if (!order) {
-      return { code: 404, message: '工单不存在', data: null as any }
-    }
-
-    order.status = 'closed'
-    order.history.push({
-      time: new Date().toISOString(),
-      content: `误报闭环：${reason}`,
-      user: '一线管理员',
-    })
-
-    return {
-      code: 200,
-      message: '操作成功',
-      data: undefined,
-    }
-  },
-
-  /** 转单 */
-  async transfer(
-    id: string,
-    handler: string,
-    note: string
-  ): Promise<ApiResponse<void>> {
-    await delay()
-
-    const order = mockOrders.find(item => item.id === id)
-    if (!order) {
-      return { code: 404, message: '工单不存在', data: null as any }
-    }
-
-    order.status = 'pending-rectify'
-    order.handler = handler
-    order.history.push({
-      time: new Date().toISOString(),
-      content: `转单给${handler}：${note}`,
-      user: '一线管理员',
-    })
-
-    return {
-      code: 200,
-      message: '转单成功',
-      data: undefined,
-    }
-  },
-
-  /** 提交整改 */
-  async submitRectification(
-    id: string,
-    note: string,
-    attachments: any[]
-  ): Promise<ApiResponse<void>> {
-    await delay()
-
-    const order = mockOrders.find(item => item.id === id)
-    if (!order) {
-      return { code: 404, message: '工单不存在', data: null as any }
-    }
-
-    order.status = 'pending-review'
-    order.history.push({
-      time: new Date().toISOString(),
-      content: `提交整改：${note}`,
-      user: order.handler,
-    })
-
-    return {
-      code: 200,
-      message: '提交成功',
-      data: undefined,
     }
   },
 }
@@ -546,7 +264,7 @@ export const mockSystemService = {
   /** 更新角色权限 */
   async updatePermissions(
     id: string,
-    permissions: any
+    permissions: any,
   ): Promise<ApiResponse<void>> {
     await delay()
 
