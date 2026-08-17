@@ -112,6 +112,11 @@ function handleDetailReset() {
 
 /** 钻取：切到明细视图并带入筛选条件（统计卡片/汇总行触发） */
 function switchToDetail(preset?: Partial<ResultFilter>) {
+  // 先重置全部明细筛选，避免上一次钻取残留条件叠加导致查不到数据
+  Object.assign(detailFilter, {
+    appName: '', strategyName: '', checkName: '', resultStatus: '', tags: '',
+    isException: '', hostName: '', ip: '', resourceType: '', deptName: '',
+  })
   Object.assign(detailFilter, preset || {})
   activeView.value = 'detail'
   detailPagination.currentPage = 1
